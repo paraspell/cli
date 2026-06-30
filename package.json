@@ -1,0 +1,76 @@
+{
+  "name": "create-paraspell",
+  "version": "1.0.0",
+  "description": "Scaffold ParaSpell XCM SDK and XCM API starter apps",
+  "type": "module",
+  "packageManager": "pnpm@10.19.0",
+  "license": "MIT",
+  "author": "ParaSpell",
+  "bin": {
+    "create-paraspell": "index.js"
+  },
+  "files": [
+    "index.js",
+    "dist",
+    "_templates",
+    "assets",
+    "shared",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paraspell/cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/paraspell/cli/issues"
+  },
+  "homepage": "https://github.com/paraspell/cli#readme",
+  "keywords": [
+    "paraspell",
+    "xcm",
+    "polkadot",
+    "scaffold",
+    "create-app"
+  ],
+  "scripts": {
+    "dev": "tsdown --watch",
+    "build": "tsdown",
+    "typecheck": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
+    "execute": "node index.js",
+    "generate": "tsx src/index.ts",
+    "generate:sdk": "tsx src/generate-sdk.ts",
+    "generate:xcm-api": "tsx src/generate-xcm-api.ts",
+    "generate:sdk:examples": "tsx src/generate-sdk-examples.ts",
+    "generate:xcm-api:examples": "tsx src/generate-xcm-api-examples.ts",
+    "test": "vitest run --project structure",
+    "test:typecheck": "vitest run --project typecheck",
+    "test:build": "vitest run --project build",
+    "test:all": "vitest run",
+    "test:watch": "vitest --project structure",
+    "test:generate": "tsx src/tests/generate-all.ts"
+  },
+  "dependencies": {
+    "@inquirer/ansi": "^2.0.7",
+    "@inquirer/core": "^11.2.1",
+    "@inquirer/figures": "^2.0.7",
+    "@inquirer/prompts": "^8.4.3",
+    "ejs": "^6.0.1",
+    "hygen": "^6.2.11",
+    "terminal-image": "^4.3.0",
+    "validate-npm-package-name": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/ejs": "^3.1.5",
+    "@types/node": "^24.0.0",
+    "@types/validate-npm-package-name": "^4.0.2",
+    "tsdown": "^0.22.3",
+    "tsx": "^4.19.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}
