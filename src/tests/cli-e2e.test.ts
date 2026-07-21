@@ -12,10 +12,10 @@ const PACKAGE_ROOT = path.resolve(
 const CLI_ENTRY = path.join(PACKAGE_ROOT, 'src/index.ts');
 const CLI_TIMEOUT_MS = 120_000;
 
-async function runCli(
+const runCli = async (
   args: string[],
   cwd = PACKAGE_ROOT,
-): Promise<{ ok: boolean; output: string; code: number }> {
+): Promise<{ ok: boolean; output: string; code: number }> => {
   const result = await runCommand(
     cwd,
     path.join(PACKAGE_ROOT, 'node_modules/.bin/tsx'),
@@ -41,7 +41,7 @@ describe('CLI subprocess', () => {
     const result = await runCli(['--help']);
     expect(result.ok).toBe(true);
     expect(result.output).toContain('create-paraspell sdk');
-    expect(result.output).toContain('--type sdk|api');
+    expect(result.output).toContain('create-paraspell api');
   });
 
   it('prints sdk help without generating a project', async () => {
@@ -62,18 +62,16 @@ describe('CLI subprocess', () => {
     expect(result.output).toContain('--private-key');
   });
 
-  it('exits with code 1 for orphan flags without sdk|api', async () => {
+  it('exits non-zero for orphan flags without sdk|api', async () => {
     const result = await runCli(['--name', 'orphan']);
     expect(result.ok).toBe(false);
-    expect(result.output).toContain(
-      'Non-interactive mode requires --type sdk|api',
-    );
+    expect(result.output).toContain('No command registered');
   });
 
   it('rejects unknown positional framework values', async () => {
     const result = await runCli(['sdk', 'angular', '--name', 'bad']);
     expect(result.ok).toBe(false);
-    expect(result.output).toContain('Unknown argument "angular"');
+    expect(result.output).toContain('Unknown framework "angular"');
   });
 
   it('rejects invalid project names in consumer mode', async () => {

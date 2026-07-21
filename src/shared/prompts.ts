@@ -1,0 +1,73 @@
+import { select, text } from "@clack/prompts";
+import { ask, toClackValidate } from "./clack.js";
+import { PACKAGE_MANAGERS } from "./package-manager.js";
+import { SDK_CLIENT_LABELS, SDK_CLIENTS } from "./types.js";
+import type {
+  Framework,
+  PackageManager,
+  ProjectType,
+  SdkClient,
+} from "./types.js";
+
+export const promptName = (
+  initialValue: string,
+  validate: (value: string) => true | string,
+): Promise<string> => {
+  return ask(
+    text({
+      message: "Enter the project name",
+      initialValue,
+      validate: toClackValidate(validate),
+    }),
+  );
+};
+
+export const promptPackageManager = (
+  initialValue: PackageManager,
+): Promise<PackageManager> => {
+  return ask(
+    select<PackageManager>({
+      message: "Select the desired package manager",
+      options: PACKAGE_MANAGERS.map((pm) => ({ value: pm, label: pm })),
+      initialValue,
+    }),
+  );
+};
+
+export const promptFramework = (): Promise<Framework> => {
+  return ask(
+    select<Framework>({
+      message: "Select the desired framework",
+      options: [
+        { value: "react", label: "Vite - React" },
+        { value: "vue", label: "Vite - Vue" },
+        { value: "node", label: "NodeJS" },
+      ],
+    }),
+  );
+};
+
+export const promptProjectType = (): Promise<ProjectType> => {
+  return ask(
+    select<ProjectType>({
+      message: "Select the desired project type",
+      options: [
+        { value: "sdk", label: "XCM SDK" },
+        { value: "api", label: "XCM API" },
+      ],
+    }),
+  );
+};
+
+export const promptClient = (initialValue: SdkClient) => {
+  return ask(
+    select<SdkClient>({
+      message: "Select the desired JS client type",
+      options: SDK_CLIENTS.map((value) => ({
+        value,
+        label: SDK_CLIENT_LABELS[value],
+      })),
+      initialValue,
+    }),
+  );
+};

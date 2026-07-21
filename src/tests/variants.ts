@@ -1,14 +1,21 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { API_EXAMPLES } from '../examples/api-examples.js';
-import { SDK_EXAMPLES } from '../examples/sdk-examples.js';
-import type { FeatureFlags, Framework, SdkClient } from '../shared/types.js';
-
-export type VariantKind = 'sdk' | 'api';
+import {
+  FEATURE_COMBOS,
+  apiExampleName,
+  sdkExampleDir,
+} from '../generate-examples.js';
+import { FRAMEWORKS, SDK_CLIENTS } from '../shared/types.js';
+import type {
+  FeatureFlags,
+  Framework,
+  ProjectType,
+  SdkClient,
+} from '../shared/types.js';
 
 export interface GeneratedVariant extends FeatureFlags {
   id: string;
-  kind: VariantKind;
+  kind: ProjectType;
   framework: Framework;
   dir: string;
   absPath: string;
@@ -17,46 +24,41 @@ export interface GeneratedVariant extends FeatureFlags {
 
 const cliRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
-export function listVariants(options?: {
-  kind?: VariantKind;
-  framework?: Framework;
-}): GeneratedVariant[] {
+export const listVariants = (): GeneratedVariant[] => {
   const variants: GeneratedVariant[] = [];
 
-  if (!options?.kind || options.kind === 'sdk') {
-    for (const framework of Object.keys(SDK_EXAMPLES) as Framework[]) {
-      if (options?.framework && options.framework !== framework) continue;
-      for (const ex of SDK_EXAMPLES[framework]) {
+  for (const framework of FRAMEWORKS) {
+    for (const client of SDK_CLIENTS) {
+      for (const combo of FEATURE_COMBOS) {
+        const dir = sdkExampleDir(client, combo);
         variants.push({
-          id: `sdk/${framework}/${ex.dir}`,
+          id: `sdk/${framework}/${dir}`,
           kind: 'sdk',
           framework,
-          dir: ex.dir,
-          absPath: path.join(cliRoot, 'generated', 'xcm-sdk', framework, ex.dir),
-          client: ex.client,
-          evm: ex.evm,
-          swap: ex.swap,
-          snowbridge: ex.snowbridge,
+          dir,
+          absPath: path.join(cliRoot, 'generated', 'xcm-sdk', framework, dir),
+          client,
+          evm: combo.evm,
+          swap: combo.swap,
+          snowbridge: combo.snowbridge,
         });
       }
     }
   }
 
-  if (!options?.kind || options.kind === 'api') {
-    for (const framework of ['react', 'vue', 'node'] as Framework[]) {
-      if (options?.framework && options.framework !== framework) continue;
-      for (const ex of API_EXAMPLES) {
-        variants.push({
-          id: `api/${framework}/${ex.name}`,
-          kind: 'api',
-          framework,
-          dir: ex.name,
-          absPath: path.join(cliRoot, 'generated', 'xcm-api', framework, ex.name),
-          evm: ex.evm,
-          swap: ex.swap,
-          snowbridge: ex.snowbridge,
-        });
-      }
+  for (const framework of FRAMEWORKS) {
+    for (const combo of FEATURE_COMBOS) {
+      const dir = apiExampleName(combo);
+      variants.push({
+        id: `api/${framework}/${dir}`,
+        kind: 'api',
+        framework,
+        dir,
+        absPath: path.join(cliRoot, 'generated', 'xcm-api', framework, dir),
+        evm: combo.evm,
+        swap: combo.swap,
+        snowbridge: combo.snowbridge,
+      });
     }
   }
 

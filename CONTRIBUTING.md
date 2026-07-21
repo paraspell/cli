@@ -16,13 +16,6 @@ pnpm execute     # run the built CLI locally
 pnpm generate    # interactive flow via tsx (source)
 ```
 
-Generate specific variants (output defaults to `generated/` unless `--out` is given):
-
-```bash
-pnpm generate:sdk -- react --name my-app --client pjs
-pnpm generate:xcm-api -- vue --name my-api --package-manager npm
-```
-
 ## Project layout
 
 - `src/` — the TypeScript CLI (entry `src/index.ts`, bundled to `dist/`)

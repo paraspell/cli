@@ -1,16 +1,24 @@
-export type Framework = 'react' | 'vue' | 'node';
+export const FRAMEWORKS = ["react", "vue", "node"] as const;
+export type Framework = (typeof FRAMEWORKS)[number];
 
-export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
+export const PACKAGE_MANAGERS = ["npm", "yarn", "pnpm", "bun"] as const;
+export type PackageManager = (typeof PACKAGE_MANAGERS)[number];
 
-export type ProjectType = 'sdk' | 'api';
+export const PROJECT_TYPES = ["sdk", "api"] as const;
+export type ProjectType = (typeof PROJECT_TYPES)[number];
 
-export type SdkClient = 'papi' | 'pjs' | 'dedot';
+export const SDK_CLIENTS = ["papi", "pjs", "dedot"] as const;
+export type SdkClient = (typeof SDK_CLIENTS)[number];
 
-export interface FeatureFlags {
-  evm: boolean;
-  swap: boolean;
-  snowbridge: boolean;
-}
+export const SDK_CLIENT_LABELS: Record<SdkClient, string> = {
+  papi: "Polkadot API",
+  pjs: "Polkadot JS",
+  dedot: "Dedot",
+};
+
+export const FEATURE_KEYS = ["evm", "swap", "snowbridge"] as const;
+export type FeatureKey = (typeof FEATURE_KEYS)[number];
+export type FeatureFlags = Record<FeatureKey, boolean>;
 
 export interface SdkGenerateOptions extends FeatureFlags {
   framework: Framework;
@@ -38,4 +46,28 @@ export interface FrameworkMeta {
   label: string;
   examplesSubdir: string;
   logoFile?: string;
+}
+
+export interface ResolveInput {
+  kind: ProjectType;
+  framework: Framework;
+  name?: string;
+  client?: SdkClient;
+  evm?: boolean;
+  swap?: boolean;
+  snowbridge?: boolean;
+  packageManager?: PackageManager;
+  privateKey?: string;
+  substrateMnemonic?: string;
+}
+
+export interface ResolvedOptions {
+  name: string;
+  client?: SdkClient;
+  evm: boolean;
+  swap: boolean;
+  snowbridge: boolean;
+  packageManager: PackageManager;
+  privateKey?: string;
+  substrateMnemonic?: string;
 }

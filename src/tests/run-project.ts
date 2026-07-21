@@ -14,7 +14,7 @@ export interface CommandStep {
   output: string;
 }
 
-export function detectPackageManager(projectDir: string): PackageManager {
+const detectPackageManager = (projectDir: string): PackageManager => {
   try {
     const pkg = JSON.parse(
       fs.readFileSync(path.join(projectDir, 'package.json'), 'utf8'),
@@ -29,7 +29,7 @@ export function detectPackageManager(projectDir: string): PackageManager {
   return 'pnpm';
 }
 
-export function installArgs(pm: PackageManager): [string, string[]] {
+const installArgs = (pm: PackageManager): [string, string[]] => {
   switch (pm) {
     case 'npm':
       return ['npm', ['install', '--no-audit', '--no-fund']];
@@ -42,7 +42,7 @@ export function installArgs(pm: PackageManager): [string, string[]] {
   }
 }
 
-export function runArgs(pm: PackageManager, script: string): [string, string[]] {
+const runArgs = (pm: PackageManager, script: string): [string, string[]] => {
   switch (pm) {
     case 'npm':
       return ['npm', ['run', script]];
@@ -55,12 +55,12 @@ export function runArgs(pm: PackageManager, script: string): [string, string[]] 
   }
 }
 
-export function runCommand(
+export const runCommand = (
   cwd: string,
   command: string,
   args: string[],
   timeoutMs: number,
-): Promise<{ ok: boolean; output: string }> {
+): Promise<{ ok: boolean; output: string }> => {
   return new Promise((resolve) => {
     const child = spawn(command, args, {
       cwd,
@@ -97,10 +97,10 @@ export function runCommand(
   });
 }
 
-export async function installProject(
+export const installProject = async (
   projectDir: string,
   timeoutMs: number,
-): Promise<{ pm: PackageManager; step: CommandStep }> {
+): Promise<{ pm: PackageManager; step: CommandStep }> => {
   const pm = detectPackageManager(projectDir);
 
   if (isInGeneratedWorkspace(projectDir) && hasProjectDependencies(projectDir)) {
@@ -122,12 +122,12 @@ export async function installProject(
   };
 }
 
-export async function runProjectScript(
+export const runProjectScript = async (
   projectDir: string,
   pm: PackageManager,
   script: string,
   timeoutMs: number,
-): Promise<CommandStep> {
+): Promise<CommandStep> => {
   const [cmd, argv] = runArgs(pm, script);
   const result = await runCommand(projectDir, cmd, argv, timeoutMs);
   return { name: script, ok: result.ok, output: result.output };

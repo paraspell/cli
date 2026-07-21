@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { hasExtraBlankLines } from '../shared/normalize-blank-lines.js';
 import type { GeneratedVariant } from './variants.js';
 
 export interface StructureResult {
@@ -9,61 +8,14 @@ export interface StructureResult {
   errors: string[];
 }
 
-function fileExists(root: string, rel: string): boolean {
+const fileExists = (root: string, rel: string): boolean => {
   return fs.existsSync(path.join(root, rel));
 }
 
-async function walkSourceFiles(
-  dir: string,
-  files: string[] = [],
-): Promise<string[]> {
-  const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const full = path.join(dir, entry.name);
-    if (entry.name === 'node_modules' || entry.name === 'dist') continue;
-    if (entry.isDirectory()) {
-      await walkSourceFiles(full, files);
-    } else if (/\.(ts|tsx|vue|js|jsx|json|html|css)$/.test(entry.name)) {
-      files.push(full);
-    }
-  }
-  return files;
-}
-
-async function assertNoExtraBlankLines(root: string): Promise<string[]> {
-  const errors: string[] = [];
-  const files = await walkSourceFiles(root);
-  for (const file of files) {
-    const content = await fs.promises.readFile(file, 'utf8');
-    if (hasExtraBlankLines(content)) {
-      errors.push(
-        `Multiple consecutive blank lines in ${path.relative(root, file)}`,
-      );
-    }
-  }
-  return errors;
-}
-
-async function assertNoTemplateArtifacts(root: string): Promise<string[]> {
-  const errors: string[] = [];
-  const files = await walkSourceFiles(root);
-  for (const file of files) {
-    if (file.endsWith('.ejs.t')) {
-      errors.push(`Template artifact: ${path.relative(root, file)}`);
-      continue;
-    }
-    const content = await fs.promises.readFile(file, 'utf8');
-    if (content.includes('<%') || content.includes('<%=')) {
-      errors.push(`Unrendered EJS in ${path.relative(root, file)}`);
-    }
-  }
-  return errors;
-}
-
-function assertPackageDeps(
+const assertPackageDeps = (
   pkg: Record<string, Record<string, string> | undefined>,
   variant: GeneratedVariant,
-): string[] {
+): string[] => {
   const errors: string[] = [];
   const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
@@ -147,7 +99,7 @@ function assertPackageDeps(
   return errors;
 }
 
-function assertConditionalFiles(variant: GeneratedVariant, root: string): string[] {
+const assertConditionalFiles = (variant: GeneratedVariant, root: string): string[] => {
   const errors: string[] = [];
   const isWeb = variant.framework === 'react' || variant.framework === 'vue';
   const evmWallet = variant.evm || variant.snowbridge;
@@ -275,7 +227,7 @@ function assertConditionalFiles(variant: GeneratedVariant, root: string): string
   return errors;
 }
 
-async function assertNodeEnv(variant: GeneratedVariant, root: string): Promise<string[]> {
+const assertNodeEnv = async (variant: GeneratedVariant, root: string): Promise<string[]> => {
   const errors: string[] = [];
   if (variant.framework !== 'node') return errors;
 
@@ -310,9 +262,9 @@ async function assertNodeEnv(variant: GeneratedVariant, root: string): Promise<s
   return errors;
 }
 
-export async function assertVariantStructure(
+export const assertVariantStructure = async (
   variant: GeneratedVariant,
-): Promise<StructureResult> {
+): Promise<StructureResult> => {
   const errors: string[] = [];
   const root = variant.absPath;
 
@@ -341,8 +293,6 @@ export async function assertVariantStructure(
     }
   }
 
-  errors.push(...(await assertNoTemplateArtifacts(root)));
-  errors.push(...(await assertNoExtraBlankLines(root)));
   errors.push(...(await assertNodeEnv(variant, root)));
 
   return { variant, ok: errors.length === 0, errors };

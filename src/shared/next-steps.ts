@@ -1,11 +1,11 @@
 import path from 'node:path';
 import type { Framework, PackageManager } from './types.js';
 
-export function printNextSteps(
+export const printNextSteps = (
   outDir: string,
   pm: PackageManager,
   framework: Framework,
-): void {
+): void => {
   const cdPath = path.isAbsolute(outDir)
     ? outDir
     : path.relative(process.cwd(), outDir) || path.basename(outDir);
