@@ -15,9 +15,9 @@ export { resolveFeatureFlags };
 
 export type ResolvedFeatureFlags = FeatureFlags & { evmWallet: boolean };
 
-export function applyFeatureFlags<T extends FeatureFlags>(
+export const applyFeatureFlags = <T extends FeatureFlags>(
   opts: T,
-): T & { evmWallet: boolean } {
+): T & { evmWallet: boolean } => {
   const flags = resolveFeatureFlags(opts);
   return { ...opts, ...flags };
 }

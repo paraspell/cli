@@ -1,139 +1,96 @@
-import figures from '@inquirer/figures';
+import { log } from '@clack/prompts';
 import { styleText } from 'node:util';
 import { applyFeatureFlags } from './feature-flags.js';
+import { SDK_CLIENT_LABELS } from './types.js';
+import type { FeatureFlags, ResolveInput, SdkClient } from './types.js';
 import {
-  argvHasAnyFeatureFlag,
-  argvHasAcceptedName,
-  argvHasFlag,
-} from './parse-cli-args.js';
-import type { ApiGenerateOptions, FeatureFlags, Framework, SdkClient, SdkGenerateOptions } from './types.js';
+  validateEvmPrivateKey,
+  validateNameInput,
+  validateSubstrateMnemonic,
+} from './validate.js';
 
-const FRAMEWORK_LABELS: Record<Framework, string> = {
-  react: 'Vite - React',
-  vue: 'Vite - Vue',
-  node: 'NodeJS',
+const SECRET_ANSWER = '(provided via CLI)';
+
+export const formatClientLabel = (client: SdkClient): string => {
+  return SDK_CLIENT_LABELS[client];
 };
 
-const CLIENT_LABELS: Record<SdkClient, string> = {
-  papi: 'Polkadot API',
-  pjs: 'Polkadot JS',
-  dedot: 'Dedot',
-};
-
-const SECRET_ANSWER = styleText('dim', '(provided via CLI)');
-
-export function formatFrameworkLabel(framework: Framework): string {
-  return FRAMEWORK_LABELS[framework];
-}
-
-export function formatClientLabel(client: SdkClient): string {
-  return CLIENT_LABELS[client];
-}
-
-export function formatFeatureFlags(flags: FeatureFlags): string {
+export const formatFeatureFlags = (flags: FeatureFlags): string => {
   const parts: string[] = [];
   if (flags.evm) parts.push('EVM');
   if (flags.swap) parts.push('Swap');
   if (flags.snowbridge) parts.push('Snowbridge');
   return parts.length > 0 ? parts.join(', ') : 'none';
-}
-
-export function logResolvedPrompt(message: string, answer: string): void {
-  console.log(
-    `${styleText('green', figures.tick)} ${message} ${styleText('cyan', answer)}`,
-  );
-}
-
-export function logResolvedSecret(message: string): void {
-  logResolvedPrompt(message, SECRET_ANSWER);
-}
+};
 
 type ResolvedLogLine = { message: string; answer: string };
 
-type LogArgvResolvedInput = {
-  argv: string[];
-  partial: Partial<SdkGenerateOptions | ApiGenerateOptions>;
-  provided?: { framework?: boolean };
-  kind: 'sdk' | 'api';
-  defaultName: string;
+const featuresProvided = (input: ResolveInput): boolean => {
+  return (
+    input.evm !== undefined ||
+    input.swap !== undefined ||
+    input.snowbridge !== undefined
+  );
 };
 
-export function buildArgvResolvedLogs(input: LogArgvResolvedInput): ResolvedLogLine[] {
-  const { argv, partial, provided, kind, defaultName } = input;
+export const buildResolvedLogs = (input: ResolveInput): ResolvedLogLine[] => {
   const lines: ResolvedLogLine[] = [];
 
-  if (argvHasAcceptedName(argv, partial.name)) {
+  if (input.name !== undefined && validateNameInput(input.name) === true) {
+    lines.push({ message: 'Project name', answer: input.name });
+  }
+
+  if (input.packageManager !== undefined) {
+    lines.push({ message: 'Package manager', answer: input.packageManager });
+  }
+
+  if (input.kind === 'sdk' && input.client !== undefined) {
     lines.push({
-      message: 'Enter the project name',
-      answer: partial.name ?? defaultName,
+      message: 'JS client',
+      answer: formatClientLabel(input.client),
     });
   }
 
-  if (provided?.framework && partial.framework) {
+  if (featuresProvided(input)) {
+    const flags = applyFeatureFlags({
+      evm: input.evm ?? false,
+      swap: input.swap ?? false,
+      snowbridge: input.snowbridge ?? false,
+    });
     lines.push({
-      message: 'Select the desired framework',
-      answer: formatFrameworkLabel(partial.framework),
+      message: 'Additional features',
+      answer: formatFeatureFlags(flags),
     });
   }
 
-  if (argvHasFlag(argv, 'package-manager')) {
-    lines.push({
-      message: 'Select the desired package manager',
-      answer: partial.packageManager ?? 'pnpm',
-    });
-  }
-
-  if (kind === 'sdk' && argvHasFlag(argv, 'client')) {
-    const client = (partial as Partial<SdkGenerateOptions>).client ?? 'pjs';
-    lines.push({
-      message: 'Select the desired JS client type',
-      answer: formatClientLabel(client),
-    });
-  }
-
-  if (argvHasAnyFeatureFlag(argv)) {
-    const featureFlags = applyFeatureFlags({
-      evm: partial.evm ?? false,
-      swap: partial.swap ?? false,
-      snowbridge: partial.snowbridge ?? false,
-    });
-    lines.push({
-      message: 'Select the desired additional features',
-      answer: formatFeatureFlags(featureFlags),
-    });
-  }
-
-  if (partial.framework === 'node' && partial.substrateMnemonic !== undefined) {
-    lines.push({
-      message: 'Your Substrate wallet mnemonic for setup',
-      answer: SECRET_ANSWER,
-    });
-  }
-
-  const featureFlags = applyFeatureFlags({
-    evm: partial.evm ?? false,
-    swap: partial.swap ?? false,
-    snowbridge: partial.snowbridge ?? false,
+  const flags = applyFeatureFlags({
+    evm: input.evm ?? false,
+    swap: input.swap ?? false,
+    snowbridge: input.snowbridge ?? false,
   });
+
   if (
-    partial.framework === 'node' &&
-    featureFlags.evmWallet &&
-    partial.privateKey !== undefined
+    input.framework === 'node' &&
+    input.substrateMnemonic !== undefined &&
+    validateSubstrateMnemonic(input.substrateMnemonic) === true
   ) {
-    lines.push({
-      message: 'Your EVM wallet private key for setup',
-      answer: SECRET_ANSWER,
-    });
+    lines.push({ message: 'Substrate mnemonic', answer: SECRET_ANSWER });
+  }
+
+  if (
+    input.framework === 'node' &&
+    flags.evmWallet &&
+    input.privateKey !== undefined &&
+    validateEvmPrivateKey(input.privateKey) === true
+  ) {
+    lines.push({ message: 'EVM private key', answer: SECRET_ANSWER });
   }
 
   return lines;
-}
+};
 
-export function logArgvResolvedPrompts(input: LogArgvResolvedInput): void {
-  const lines = buildArgvResolvedLogs(input);
-  if (lines.length === 0) return;
-  for (const line of lines) {
-    logResolvedPrompt(line.message, line.answer);
+export const logResolvedPrompts = (input: ResolveInput): void => {
+  for (const line of buildResolvedLogs(input)) {
+    log.success(`${line.message}: ${styleText('cyan', line.answer)}`);
   }
-  console.log();
-}
+};

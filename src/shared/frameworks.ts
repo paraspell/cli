@@ -21,11 +21,3 @@ export const API_FRAMEWORKS: Record<Framework, FrameworkMeta> = {
   },
   node: { generator: 'xcm-api-node', label: 'Node.js', examplesSubdir: 'node' },
 };
-
-export function parseFramework(value: string | undefined): Framework | null {
-  const key = value?.toLowerCase();
-  if (key === 'react' || key === 'vue' || key === 'node' || key === 'nodejs') {
-    return key === 'nodejs' ? 'node' : key;
-  }
-  return null;
-}

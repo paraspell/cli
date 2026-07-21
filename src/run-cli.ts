@@ -1,211 +1,325 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { runInteractiveGenerate } from './interactive.js';
-import { API_FRAMEWORKS, SDK_FRAMEWORKS } from './shared/frameworks.js';
-import { generateApiApp, generateSdkApp } from './shared/hygen-runner.js';
-import { printNextSteps } from './shared/next-steps.js';
+import fs from "node:fs";
+import path from "node:path";
 import {
-  assertNoStrayPositional,
-  argvHasFlag,
-  getArgvFlag,
-  hasRejectedCliSecrets,
-  parseApiArgv,
-  parseSdkArgv,
-  printApiHelp,
-  printMainHelp,
-  printSdkHelp,
-  shiftPositionalFramework,
-  shiftPositionalType,
-} from './shared/parse-cli-args.js';
-import { apiNeedsInteractive, promptApiOptions } from './shared/prompt-api.js';
-import { promptSdkOptions, sdkNeedsInteractive } from './shared/prompt-sdk.js';
+  type Application,
+  buildApplication,
+  buildCommand,
+  buildRouteMap,
+  type CommandContext,
+  type FlagParametersForType,
+  help,
+  run,
+} from "@stricli/core";
+import { runInteractiveGenerate } from "./interactive.js";
+import {
+  frameworkPositional,
+  parseClientArg,
+  parseFrameworkArg,
+  parsePackageManagerArg,
+} from "./shared/cli-params.js";
+import { generateApp } from "./shared/generate-dispatch.js";
+import { printNextSteps } from "./shared/next-steps.js";
+import {
+  applyGenerateDefaults,
+  generateNeedsInteractive,
+  hasRejectedSecrets,
+  type NameValidator,
+  promptGenerateOptions,
+} from "./shared/prompt-options.js";
 import type {
-  ApiGenerateOptions,
   Framework,
+  PackageManager,
   ProjectType,
-  SdkGenerateOptions,
-} from './shared/types.js';
-import { UserError } from './shared/errors.js';
-import { validateNameInput } from './shared/validate.js';
+  ResolveInput,
+  SdkClient,
+} from "./shared/types.js";
+import { validateNameInput } from "./shared/validate.js";
 
-function consumerNameValidator(
-  argv: string[],
+interface AppContext extends CommandContext {
+  root: string;
+  templatesRoot: string;
+  consumer: boolean;
+}
+
+export type RunContext = {
+  root: string;
+  templatesRoot: string;
+  consumer?: boolean;
+};
+
+type SharedFlags = {
+  name?: string;
+  framework?: Framework;
+  evm?: boolean;
+  swap?: boolean;
+  snowbridge?: boolean;
+  packageManager?: PackageManager;
+  out?: string;
+  privateKey?: string;
+  substrateMnemonic?: string;
+};
+
+type SdkFlags = SharedFlags & { client?: SdkClient };
+type ApiFlags = SharedFlags;
+
+const identity = (value: string): string => value;
+
+const parseNameArg = (value: string): string => {
+  const result = validateNameInput(value);
+  if (result !== true) throw new Error(result);
+  return value;
+};
+
+const sharedFlagParams = {
+  name: {
+    kind: "parsed",
+    parse: parseNameArg,
+    brief: "Project name",
+    optional: true,
+  },
+  framework: {
+    kind: "parsed",
+    parse: parseFrameworkArg,
+    brief: "Target framework: react | vue | node",
+    optional: true,
+  },
+  evm: { kind: "boolean", brief: "Enable EVM origin chains", optional: true },
+  swap: {
+    kind: "boolean",
+    brief: "Enable cross-chain swaps (@paraspell/swap)",
+    optional: true,
+  },
+  snowbridge: {
+    kind: "boolean",
+    brief: "Enable Snowbridge transfers",
+    optional: true,
+  },
+  packageManager: {
+    kind: "parsed",
+    parse: parsePackageManagerArg,
+    brief: "Package manager: npm | yarn | pnpm | bun",
+    optional: true,
+  },
+  out: {
+    kind: "parsed",
+    parse: identity,
+    brief: "Output directory",
+    optional: true,
+  },
+  privateKey: {
+    kind: "parsed",
+    parse: identity,
+    brief: "EVM wallet key for node when using EVM or Snowbridge origins",
+    optional: true,
+  },
+  substrateMnemonic: {
+    kind: "parsed",
+    parse: identity,
+    brief: "Substrate mnemonic or //Dev URI for node",
+    optional: true,
+  },
+} as const satisfies FlagParametersForType<SharedFlags>;
+
+const sdkFlagParams = {
+  ...sharedFlagParams,
+  client: {
+    kind: "parsed",
+    parse: parseClientArg,
+    brief: "JS client: papi | pjs | dedot",
+    optional: true,
+  },
+} as const satisfies FlagParametersForType<SdkFlags>;
+
+const resolveOut = (root: string, out: string): string =>
+  path.isAbsolute(out) ? out : path.join(root, out);
+
+const defaultInternalOut = (
   root: string,
-  parsedOut: string,
-): (name: string) => true | string {
+  kind: ProjectType,
+  framework: Framework,
+  name: string,
+): string =>
+  path.join(
+    root,
+    "generated",
+    kind === "sdk" ? "xcm-sdk" : "xcm-api",
+    framework,
+    name,
+  );
+
+const assertConsumerProject = (name: string, outDir: string): void => {
+  const nameError = validateNameInput(name);
+  if (nameError !== true) throw new Error(nameError);
+  if (fs.existsSync(outDir)) {
+    throw new Error(`Project already exists: ${outDir}`);
+  }
+};
+
+const makeConsumerNameValidator = (
+  root: string,
+  outFlag: string | undefined,
+): NameValidator => {
   return (name) => {
     const base = validateNameInput(name);
     if (base !== true) return base;
-    const out = resolveConsumerOut(argv, root, name, parsedOut);
+    const out =
+      outFlag !== undefined ? resolveOut(root, outFlag) : path.join(root, name);
     if (fs.existsSync(out)) return `Project already exists: ${out}`;
     return true;
   };
-}
+};
 
-function argvHasOut(argv: string[]): boolean {
-  return argv.some((a) => a === '--out' || a.startsWith('--out='));
-}
-
-function resolveConsumerOut(
-  argv: string[],
-  root: string,
-  name: string,
-  parsedOut: string,
-): string {
-  if (argvHasOut(argv)) return parsedOut;
-  return path.join(root, name);
-}
-
-function assertConsumerProject(name: string, outDir: string): void {
-  const nameError = validateNameInput(name);
-  if (nameError !== true) {
-    throw new UserError(nameError);
-  }
-  if (fs.existsSync(outDir)) {
-    throw new UserError(`Project already exists: ${outDir}`);
-  }
-}
-
-function wantsNonInteractive(argv: string[]): boolean {
-  const type = shiftPositionalType([...argv]).type ?? parseProjectTypeFlag(argv);
-  return type !== null;
-}
-
-function parseProjectTypeFlag(argv: string[]): ProjectType | null {
-  const raw = getArgvFlag(argv, 'type');
-  if (raw === 'sdk' || raw === 'api') return raw;
-  return null;
-}
-
-type RunContext = { root: string; templatesRoot: string; consumer?: boolean };
-
-async function runFromArgv(
+const runGenerate = async (
   kind: ProjectType,
-  rawArgv: string[],
-  ctx: RunContext,
-): Promise<void> {
-  const { argv, framework: positional } = shiftPositionalFramework(rawArgv);
-  assertNoStrayPositional(argv, positional);
-  const parseCtx = {
-    root: ctx.root,
-    framework: positional ?? 'react',
-    frameworkFlag: true,
-  };
-
-  let opts: SdkGenerateOptions | ApiGenerateOptions =
-    kind === 'sdk' ? parseSdkArgv(argv, parseCtx) : parseApiArgv(argv, parseCtx);
-
-  if (opts.help) {
-    const helpCommand = ctx.consumer ? `create-paraspell ${kind}` : undefined;
-    if (kind === 'sdk') printSdkHelp(helpCommand);
-    else printApiHelp(helpCommand);
-    return;
-  }
-
-  const rejectedSecrets = hasRejectedCliSecrets(argv, opts);
-  if (rejectedSecrets && !process.stdin.isTTY) {
-    throw new UserError(
-      'Invalid --private-key or --substrate-mnemonic value. Fix the flag value, or omit it and run on a TTY to enter secrets interactively.',
-    );
-  }
-
-  const needsInteractive =
-    rejectedSecrets ||
-    (kind === 'sdk'
-      ? sdkNeedsInteractive(argv, opts as SdkGenerateOptions)
-      : apiNeedsInteractive(argv, opts));
-  if (needsInteractive) {
-    const validateName = ctx.consumer
-      ? consumerNameValidator(argv, ctx.root, opts.out)
-      : undefined;
-    const provided = {
-      framework: positional !== null || argvHasFlag(argv, 'framework'),
+  ctx: AppContext,
+  flags: SdkFlags,
+  positionalFramework?: Framework,
+): Promise<Error | void> => {
+  try {
+    const framework = flags.framework ?? positionalFramework ?? "react";
+    const input: ResolveInput = {
+      kind,
+      framework,
+      name: flags.name,
+      client: kind === "sdk" ? flags.client : undefined,
+      evm: flags.evm,
+      swap: flags.swap,
+      snowbridge: flags.snowbridge,
+      packageManager: flags.packageManager,
+      privateKey: flags.privateKey,
+      substrateMnemonic: flags.substrateMnemonic,
     };
-    const answers =
-      kind === 'sdk'
-        ? await promptSdkOptions(opts as SdkGenerateOptions, {
-            validateName,
-            argv,
-            provided,
-          })
-        : await promptApiOptions(opts, { validateName, argv, provided });
-    opts = { ...opts, ...answers };
+
+    const rejectedSecrets = hasRejectedSecrets(input);
+    if (rejectedSecrets && !process.stdin.isTTY) {
+      throw new Error(
+        "Invalid --private-key or --substrate-mnemonic value. Fix the flag value, or omit it and run on a TTY to enter secrets interactively.",
+      );
+    }
+
+    const interactive =
+      generateNeedsInteractive(input) ||
+      (rejectedSecrets && Boolean(process.stdin.isTTY));
+
+    const validateName = ctx.consumer
+      ? makeConsumerNameValidator(ctx.root, flags.out)
+      : undefined;
+
+    const resolved = interactive
+      ? await promptGenerateOptions(input, { validateName })
+      : applyGenerateDefaults(input);
+
+    const out =
+      flags.out !== undefined
+        ? resolveOut(ctx.root, flags.out)
+        : ctx.consumer
+          ? path.join(ctx.root, resolved.name)
+          : defaultInternalOut(ctx.root, kind, framework, resolved.name);
+
+    if (ctx.consumer) assertConsumerProject(resolved.name, out);
+
+    const opts = {
+      framework,
+      name: resolved.name,
+      evm: resolved.evm,
+      swap: resolved.swap,
+      snowbridge: resolved.snowbridge,
+      packageManager: resolved.packageManager,
+      out,
+      privateKey: resolved.privateKey,
+      substrateMnemonic: resolved.substrateMnemonic,
+    };
+
+    await generateApp(
+      kind === "sdk"
+        ? {
+            kind,
+            framework,
+            templatesRoot: ctx.templatesRoot,
+            opts: { ...opts, client: resolved.client ?? "pjs" },
+          }
+        : { kind, framework, templatesRoot: ctx.templatesRoot, opts },
+    );
+
+    if (ctx.consumer) {
+      printNextSteps(out, resolved.packageManager, framework);
+    }
+  } catch (error) {
+    return error instanceof Error ? error : new Error(String(error));
   }
+};
 
-  if (ctx.consumer) {
-    opts.out = resolveConsumerOut(argv, ctx.root, opts.name, opts.out);
-    assertConsumerProject(opts.name, opts.out);
-  }
+const createApp = (): Application<AppContext> => {
+  const sdk = buildCommand<SdkFlags, [Framework?], AppContext>({
+    docs: { brief: "Scaffold a ParaSpell XCM SDK starter app" },
+    parameters: { positional: frameworkPositional, flags: sdkFlagParams },
+    func(flags, framework) {
+      return runGenerate("sdk", this, flags, framework);
+    },
+  });
 
-  if (kind === 'sdk') {
-    await generateSdkApp({
-      meta: SDK_FRAMEWORKS[opts.framework],
-      templatesRoot: ctx.templatesRoot,
-      opts: opts as SdkGenerateOptions,
-    });
-  } else {
-    await generateApiApp({
-      meta: API_FRAMEWORKS[opts.framework],
-      templatesRoot: ctx.templatesRoot,
-      opts,
-    });
-  }
+  const api = buildCommand<ApiFlags, [Framework?], AppContext>({
+    docs: { brief: "Scaffold a ParaSpell XCM API starter app" },
+    parameters: { positional: frameworkPositional, flags: sharedFlagParams },
+    func(flags, framework) {
+      return runGenerate("api", this, flags, framework);
+    },
+  });
 
-  if (ctx.consumer) {
-    printNextSteps(opts.out, opts.packageManager, opts.framework);
-  }
-}
+  const routes = buildRouteMap({
+    routes: { sdk, api },
+    docs: {
+      brief: "Scaffold ParaSpell XCM SDK and XCM API starter apps",
+    },
+  });
 
-export async function runSdkFromArgv(
-  rawArgv: string[],
-  ctx: RunContext,
-): Promise<void> {
-  return runFromArgv('sdk', rawArgv, ctx);
-}
+  return buildApplication(
+    routes,
+    {
+      name: "create-paraspell",
+      scanner: { caseStyle: "allow-kebab-for-camel" },
+    },
+    {
+      help: help({
+        alias: "h",
+        brief: "Print help information and exit",
+        formatting: {
+          useAliasInUsageLine: false,
+          onlyRequiredInUsageLine: false,
+          caseStyle: "convert-camel-to-kebab",
+        },
+      }),
+    },
+  );
+};
 
-export async function runApiFromArgv(
-  rawArgv: string[],
-  ctx: RunContext,
-): Promise<void> {
-  return runFromArgv('api', rawArgv, ctx);
-}
+const app = createApp();
 
-export async function runCli(
-  rawArgv: string[],
+const toContext = (
+  root: string,
   templatesRoot: string,
-): Promise<void> {
-  const cwd = process.cwd();
+  consumer: boolean,
+): AppContext => {
+  return { process, root, templatesRoot, consumer };
+};
 
+export const runFromArgv = (rawArgv: string[], ctx: RunContext) => {
+  return run(
+    app,
+    rawArgv,
+    toContext(ctx.root, ctx.templatesRoot, ctx.consumer ?? false),
+  );
+};
+
+export const runCli = async (rawArgv: string[], templatesRoot: string) => {
   if (rawArgv.length === 0) {
     await runInteractiveGenerate(templatesRoot);
     return;
   }
 
-  if (getArgvFlag(rawArgv, 'help') === true && !wantsNonInteractive(rawArgv)) {
-    printMainHelp();
-    return;
-  }
-
-  const { argv, type: positionalType } = shiftPositionalType(rawArgv);
-  const projectType = positionalType ?? parseProjectTypeFlag(argv);
-
-  if (!projectType) {
-    if (rawArgv.some((a) => a.startsWith('--'))) {
-      console.error(
-        'Non-interactive mode requires --type sdk|api or a leading sdk|api subcommand.\n',
-      );
-      printMainHelp();
-      process.exit(1);
-    }
-    await runInteractiveGenerate(templatesRoot);
-    return;
-  }
-
-  const ctx: RunContext = { root: cwd, templatesRoot, consumer: true };
-
-  if (projectType === 'sdk') {
-    await runSdkFromArgv(argv, ctx);
-  } else {
-    await runApiFromArgv(argv, ctx);
-  }
-}
+  await runFromArgv(rawArgv, {
+    root: process.cwd(),
+    templatesRoot,
+    consumer: true,
+  });
+};

@@ -7,10 +7,10 @@ export interface TypecheckResult {
   steps: { name: string; ok: boolean; output: string }[];
 }
 
-export async function typecheckVariant(
+export const typecheckVariant = async (
   variant: GeneratedVariant,
   timeoutMs: number,
-): Promise<TypecheckResult> {
+): Promise<TypecheckResult> => {
   const steps: TypecheckResult['steps'] = [];
 
   const { pm, step: install } = await installProject(variant.absPath, timeoutMs);

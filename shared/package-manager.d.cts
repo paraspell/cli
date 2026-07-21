@@ -1,7 +1,5 @@
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
-export const PACKAGE_MANAGERS: readonly PackageManager[];
-
 export function normalizePackageManager(
   value: string | undefined,
 ): PackageManager;

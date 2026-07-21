@@ -92,12 +92,12 @@ For the **Node.js** framework it additionally (optionally) prompts for a **Subst
 <details><summary><b>For Agents & CI</b></summary>
 <br>
 
-Use `sdk` or `api` as the first argument (or `--type`), plus `--name`. SDK projects also accept `--client` (defaults to `pjs`; on a TTY you're prompted for it if omitted).
+Use `sdk` or `api` as the subcommand, plus `--name`. SDK projects also accept `--client` (defaults to `pjs`; on a TTY you're prompted for it if omitted).
 
 ```bash
 npx create-paraspell@latest sdk react --name my-app --client pjs --package-manager pnpm
 npx create-paraspell@latest api vue --name my-api --package-manager npm
-npx create-paraspell@latest --type sdk --framework node --name my-node --client dedot --evm
+npx create-paraspell@latest sdk node --name my-node --client dedot --evm
 ```
 
 ```bash
@@ -110,10 +110,9 @@ On a TTY, omitting `--name` or `--client` (SDK) opens prompts. Without a TTY, se
 
 | Flag | Values | Default |
 |------|--------|---------|
-| `--type` | `sdk`, `api` | required when not using `sdk`/`api` subcommand |
-| `--framework` | `react`, `vue`, `node` | `react` |
+| `<framework>` positional / `--framework` | `react`, `vue`, `node` | `react` |
 | `--client` (SDK only) | `papi`, `pjs`, `dedot` | `pjs` |
-| `--evm`, `--swap`, `--snowbridge` | bare flag enables feature | `false` |
+| `--evm`, `--swap`, `--snowbridge` | bare flag enables; `--no-evm` etc. disables | `false` |
 | `--package-manager` | `npm`, `yarn`, `pnpm`, `bun` | `pnpm` |
 | `--name`, `--out` | | `./<name>` in the current directory |
 | `--substrate-mnemonic` | (Node only) seed the generated `.env` | — |
@@ -137,23 +136,19 @@ Found a vulnerability? See [SECURITY.md](SECURITY.md).
 <details><summary><b>Repository development</b></summary>
 <br>
 
-Clone this repo and use the same flags via dev scripts. Output defaults to `generated/` unless you pass `--out`:
+Clone this repo and run the CLI from source — it takes the same `sdk` / `api` subcommands and flags as `create-paraspell` (pass `--out` to choose where the app is written):
 
 ```bash
 pnpm install
 pnpm build
 pnpm execute          # run the built CLI locally
 pnpm generate         # interactive flow via tsx (source)
-
-pnpm generate:sdk -- react --name my-app --client pjs --package-manager pnpm
-pnpm generate:xcm-api -- vue --name my-api --package-manager npm
 ```
 
 **Package layout:**
 
 ```text
-├── index.js                  # starting point
-├── dist/                     # built CLI
+├── dist/                     # built CLI (bin entry: dist/index.js)
 ├── assets/                   # bundled static files
 ├── _templates/               # Hygen generators
 │   ├── shared/               # shared EJS partials (evm, xcm)

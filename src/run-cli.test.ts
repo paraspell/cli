@@ -2,63 +2,60 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { UserError } from './shared/errors.js';
 
 type GenerateSdkApp = typeof import('./shared/hygen-runner.js').generateSdkApp;
 type GenerateApiApp = typeof import('./shared/hygen-runner.js').generateApiApp;
-type RunInteractiveGenerate = typeof import('./interactive.js').runInteractiveGenerate;
-type PromptSdkOptions = typeof import('./shared/prompt-sdk.js').promptSdkOptions;
-type PromptApiOptions = typeof import('./shared/prompt-api.js').promptApiOptions;
+type RunInteractive =
+  typeof import('./interactive.js').runInteractiveGenerate;
+type PromptGenerateOptions =
+  typeof import('./shared/prompt-options.js').promptGenerateOptions;
 
 const generateSdkApp = vi.fn<GenerateSdkApp>();
 const generateApiApp = vi.fn<GenerateApiApp>();
-const runInteractiveGenerate = vi.fn<RunInteractiveGenerate>();
-const promptSdkOptions = vi.fn<PromptSdkOptions>();
-const promptApiOptions = vi.fn<PromptApiOptions>();
+const runInteractiveGenerate = vi.fn<RunInteractive>();
+const promptGenerateOptions = vi.fn<PromptGenerateOptions>();
 
 vi.mock('./shared/hygen-runner.js', () => ({
-  generateSdkApp: (params: Parameters<GenerateSdkApp>[0]) => generateSdkApp(params),
-  generateApiApp: (params: Parameters<GenerateApiApp>[0]) => generateApiApp(params),
+  generateSdkApp: (params: Parameters<GenerateSdkApp>[0]) =>
+    generateSdkApp(params),
+  generateApiApp: (params: Parameters<GenerateApiApp>[0]) =>
+    generateApiApp(params),
 }));
 
 vi.mock('./interactive.js', () => ({
-  runInteractiveGenerate: (templatesRoot: Parameters<RunInteractiveGenerate>[0]) =>
+  runInteractiveGenerate: (templatesRoot: string) =>
     runInteractiveGenerate(templatesRoot),
 }));
 
-vi.mock('./shared/prompt-sdk.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./shared/prompt-sdk.js')>();
+vi.mock('./shared/prompt-options.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('./shared/prompt-options.js')>();
   return {
     ...actual,
-    promptSdkOptions: (
-      partial: Parameters<PromptSdkOptions>[0],
-      options?: Parameters<PromptSdkOptions>[1],
-    ) => promptSdkOptions(partial, options),
+    promptGenerateOptions: (
+      input: Parameters<PromptGenerateOptions>[0],
+      options?: Parameters<PromptGenerateOptions>[1],
+    ) => promptGenerateOptions(input, options),
   };
 });
 
-vi.mock('./shared/prompt-api.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./shared/prompt-api.js')>();
-  return {
-    ...actual,
-    promptApiOptions: (
-      partial: Parameters<PromptApiOptions>[0],
-      options?: Parameters<PromptApiOptions>[1],
-    ) => promptApiOptions(partial, options),
-  };
-});
+const { runCli, runFromArgv } = await import('./run-cli.js');
 
-const { runApiFromArgv, runCli, runSdkFromArgv } = await import('./run-cli.js');
+type ArgvContext = { root: string; templatesRoot: string; consumer?: boolean };
+const runSdkFromArgv = (argv: string[], ctx: ArgvContext) =>
+  runFromArgv(['sdk', ...argv], ctx);
+const runApiFromArgv = (argv: string[], ctx: ArgvContext) =>
+  runFromArgv(['api', ...argv], ctx);
 
 const TEMPLATES_ROOT = path.join(process.cwd(), '_templates');
 
-function consumerCtx(root: string) {
+const consumerCtx = (root: string) => {
   return { root, templatesRoot: TEMPLATES_ROOT, consumer: true as const };
-}
+};
 
-function devCtx(root: string) {
+const devCtx = (root: string) => {
   return { root, templatesRoot: TEMPLATES_ROOT };
-}
+};
 
 const SDK_FLAGS = [
   'react',
@@ -71,26 +68,13 @@ const SDK_FLAGS = [
   '--evm',
 ] as const;
 
-const defaultSdkPromptAnswers: Awaited<ReturnType<PromptSdkOptions>> = {
-  name: 'my-app',
-  client: 'pjs',
-  evm: false,
-  swap: false,
-  snowbridge: false,
-  packageManager: 'pnpm',
+const stubTty = (isTTY: boolean): void => {
+  vi.stubGlobal('process', { ...process, stdin: { isTTY }, exitCode: undefined });
 };
 
-const defaultApiPromptAnswers: Awaited<ReturnType<PromptApiOptions>> = {
-  name: 'my-api-app',
-  evm: false,
-  swap: false,
-  snowbridge: false,
-  packageManager: 'pnpm',
+const capturedText = (mock: { mock: { calls: unknown[][] } }): string => {
+  return mock.mock.calls.map((call) => String(call[0])).join('');
 };
-
-function stubTty(isTTY: boolean): void {
-  vi.stubGlobal('process', { ...process, stdin: { isTTY } });
-}
 
 describe('runSdkFromArgv', () => {
   let tmpRoot: string;
@@ -100,8 +84,6 @@ describe('runSdkFromArgv', () => {
     vi.clearAllMocks();
     generateSdkApp.mockResolvedValue(undefined);
     generateApiApp.mockResolvedValue(undefined);
-    promptSdkOptions.mockResolvedValue(defaultSdkPromptAnswers);
-    promptApiOptions.mockResolvedValue(defaultApiPromptAnswers);
     vi.spyOn(fs, 'existsSync').mockReturnValue(false);
     stubTty(false);
   });
@@ -112,10 +94,10 @@ describe('runSdkFromArgv', () => {
     vi.unstubAllGlobals();
   });
 
-  it('generates a sdk app from positional framework and flags without prompting', async () => {
+  it('generates a sdk app from positional framework and flags', async () => {
     await runSdkFromArgv([...SDK_FLAGS], consumerCtx(tmpRoot));
 
-    expect(promptSdkOptions).not.toHaveBeenCalled();
+    expect(promptGenerateOptions).not.toHaveBeenCalled();
     expect(generateSdkApp).toHaveBeenCalledOnce();
     expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
       templatesRoot: TEMPLATES_ROOT,
@@ -132,23 +114,20 @@ describe('runSdkFromArgv', () => {
 
   it('uses --out instead of cwd/name in consumer mode', async () => {
     const outDir = path.join(tmpRoot, 'custom-out');
-    await runSdkFromArgv(
-      [...SDK_FLAGS, '--out', outDir],
-      consumerCtx(tmpRoot),
-    );
+    await runSdkFromArgv([...SDK_FLAGS, '--out', outDir], consumerCtx(tmpRoot));
 
     expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
       opts: expect.objectContaining({ out: outDir }),
     });
   });
 
-  it('keeps the dev default out path when consumer mode is disabled', async () => {
+  it('uses the dev default out path when consumer mode is disabled', async () => {
     await runSdkFromArgv([...SDK_FLAGS], devCtx(tmpRoot));
 
     expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
       opts: expect.objectContaining({
         name: 'my-app',
-        out: path.join(tmpRoot, 'generated', 'xcm-sdk', 'react', 'my-xcm-app'),
+        out: path.join(tmpRoot, 'generated', 'xcm-sdk', 'react', 'my-app'),
       }),
     });
   });
@@ -157,115 +136,94 @@ describe('runSdkFromArgv', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     await runSdkFromArgv([...SDK_FLAGS], consumerCtx(tmpRoot));
 
-    expect(log.mock.calls.some(([line]) => String(line).includes('Next steps:'))).toBe(
-      true,
-    );
-    expect(log.mock.calls.some(([line]) => String(line).includes('npm install'))).toBe(
-      true,
-    );
+    const printed = log.mock.calls.map(([line]) => String(line)).join('\n');
+    expect(printed).toContain('Next steps:');
+    expect(printed).toContain('npm install');
   });
 
-  it('throws when the consumer target directory already exists', async () => {
+  it('reports an error and skips generation when the target exists', async () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
+    const stderr = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
 
-    await expect(
-      runSdkFromArgv([...SDK_FLAGS], consumerCtx(tmpRoot)),
-    ).rejects.toThrow(UserError);
-    await expect(
-      runSdkFromArgv([...SDK_FLAGS], consumerCtx(tmpRoot)),
-    ).rejects.toThrow(/Project already exists/);
+    await runSdkFromArgv([...SDK_FLAGS], consumerCtx(tmpRoot));
+
     expect(generateSdkApp).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(1);
+    expect(capturedText(stderr)).toContain('Project already exists');
   });
 
-  it('prints sdk help and skips generation when --help is passed', async () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+  it('prints sdk help and skips generation for --help', async () => {
+    const stdout = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation(() => true);
+
     await runSdkFromArgv(['react', '--help'], consumerCtx(tmpRoot));
 
-    expect(log.mock.calls[0]?.[0]).toContain('create-paraspell sdk');
+    expect(capturedText(stdout)).toContain('create-paraspell sdk');
     expect(generateSdkApp).not.toHaveBeenCalled();
   });
 
-  it('prompts for missing flags when stdin is a TTY', async () => {
+  it('prompts for missing options when stdin is a TTY', async () => {
     stubTty(true);
-    promptSdkOptions.mockResolvedValue({
+    promptGenerateOptions.mockResolvedValue({
       name: 'prompted-app',
-      packageManager: 'pnpm',
       client: 'pjs',
       evm: false,
       swap: false,
       snowbridge: false,
+      packageManager: 'pnpm',
     });
 
     await runSdkFromArgv(['react'], consumerCtx(tmpRoot));
 
-    expect(promptSdkOptions).toHaveBeenCalledOnce();
+    expect(promptGenerateOptions).toHaveBeenCalledOnce();
     expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
       opts: expect.objectContaining({ name: 'prompted-app' }),
     });
   });
 
-  it('prompts for name when an invalid --name is passed on a TTY', async () => {
-    stubTty(true);
-    promptSdkOptions.mockResolvedValue({
-      name: 'fixed-app',
-      packageManager: 'npm',
-      client: 'pjs',
-      evm: true,
-      swap: false,
-      snowbridge: false,
-    });
+  it('reports invalid CLI secrets and skips generation without a TTY', async () => {
+    const stderr = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
 
     await runSdkFromArgv(
       [
-        'react',
+        'node',
         '--name',
-        'Invalid Name',
+        'node-app',
         '--package-manager',
-        'npm',
+        'pnpm',
         '--client',
-        'pjs',
+        'papi',
         '--evm',
+        '--private-key',
+        'incorrect',
+        '--substrate-mnemonic',
+        'bad-mnemonic',
       ],
       consumerCtx(tmpRoot),
     );
 
-    expect(promptSdkOptions).toHaveBeenCalledOnce();
-    expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
-      opts: expect.objectContaining({ name: 'fixed-app' }),
-    });
-  });
-
-  it('throws on invalid CLI secrets when stdin is not a TTY', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const argv = [
-      'node',
-      '--name',
-      'node-app',
-      '--package-manager',
-      'pnpm',
-      '--client',
-      'papi',
-      '--evm',
-      '--private-key',
-      'incorrect',
-      '--substrate-mnemonic',
-      'bad-mnemonic',
-    ];
-
-    await expect(runSdkFromArgv(argv, consumerCtx(tmpRoot))).rejects.toThrow(UserError);
-    await expect(runSdkFromArgv(argv, consumerCtx(tmpRoot))).rejects.toThrow(
-      /Invalid --private-key or --substrate-mnemonic/,
-    );
-    expect(promptSdkOptions).not.toHaveBeenCalled();
+    expect(promptGenerateOptions).not.toHaveBeenCalled();
     expect(generateSdkApp).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalled();
+    expect(process.exitCode).toBe(1);
+    expect(capturedText(stderr)).toContain(
+      'Invalid --private-key or --substrate-mnemonic',
+    );
   });
 
   it('prompts for secrets when invalid CLI secrets are passed on a TTY', async () => {
     stubTty(true);
-    promptSdkOptions.mockResolvedValue({
-      ...defaultSdkPromptAnswers,
+    promptGenerateOptions.mockResolvedValue({
       name: 'node-app',
+      client: 'papi',
+      evm: true,
+      swap: false,
+      snowbridge: false,
+      packageManager: 'pnpm',
       substrateMnemonic: '//Alice',
       privateKey:
         '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
@@ -289,7 +247,7 @@ describe('runSdkFromArgv', () => {
       consumerCtx(tmpRoot),
     );
 
-    expect(promptSdkOptions).toHaveBeenCalledOnce();
+    expect(promptGenerateOptions).toHaveBeenCalledOnce();
     expect(generateSdkApp).toHaveBeenCalledOnce();
   });
 });
@@ -301,7 +259,6 @@ describe('runApiFromArgv', () => {
     tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-run-cli-'));
     vi.clearAllMocks();
     generateApiApp.mockResolvedValue(undefined);
-    promptApiOptions.mockResolvedValue(defaultApiPromptAnswers);
     vi.spyOn(fs, 'existsSync').mockReturnValue(false);
     stubTty(false);
   });
@@ -348,33 +305,33 @@ describe('runCli', () => {
     expect(runInteractiveGenerate).toHaveBeenCalledWith(TEMPLATES_ROOT);
   });
 
-  it('prints main help for bare --help', async () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+  it('prints root help to stdout for --help', async () => {
+    const stdout = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation(() => true);
+
     await runCli(['--help'], TEMPLATES_ROOT);
-    expect(log.mock.calls[0]?.[0]).toContain('create-paraspell sdk');
+
+    expect(capturedText(stdout)).toContain('create-paraspell');
     expect(runInteractiveGenerate).not.toHaveBeenCalled();
   });
 
-  it('exits with code 1 when orphan flags are passed without sdk|api', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const exit = vi.spyOn(process, 'exit').mockImplementation((() => {
-      throw new Error('process.exit');
-    }) as typeof process.exit);
+  it('reports an unknown command for orphan flags', async () => {
+    const stderr = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
 
-    await expect(runCli(['--name', 'orphan'], TEMPLATES_ROOT)).rejects.toThrow(
-      'process.exit',
-    );
-    expect(exit).toHaveBeenCalledWith(1);
-    expect(error.mock.calls[0]?.[0]).toContain(
-      'Non-interactive mode requires --type sdk|api',
-    );
-    expect(log).toHaveBeenCalled();
+    await runCli(['--name', 'orphan'], TEMPLATES_ROOT);
+
+    expect(generateSdkApp).not.toHaveBeenCalled();
     expect(runInteractiveGenerate).not.toHaveBeenCalled();
+    expect(capturedText(stderr)).toContain('No command registered');
   });
 
   it('routes sdk subcommands through consumer generation', async () => {
-    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-run-cli-'));
+    const tmpRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'paraspell-run-cli-'),
+    );
     const cwd = vi.spyOn(process, 'cwd').mockReturnValue(tmpRoot);
 
     try {

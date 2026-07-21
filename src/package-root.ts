@@ -2,14 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-function isPackageRoot(dir: string): boolean {
+const isPackageRoot = (dir: string): boolean => {
   return (
     fs.existsSync(path.join(dir, '_templates')) &&
     fs.existsSync(path.join(dir, 'shared', 'feature-flags.cjs'))
   );
-}
+};
 
-export function getPackageRoot(fromModuleUrl = import.meta.url): string {
+export const getPackageRoot = (fromModuleUrl = import.meta.url): string => {
   let dir = path.dirname(fileURLToPath(fromModuleUrl));
 
   while (true) {
@@ -25,4 +25,4 @@ export function getPackageRoot(fromModuleUrl = import.meta.url): string {
     }
     dir = parent;
   }
-}
+};

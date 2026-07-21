@@ -7,10 +7,10 @@ export interface BuildResult {
   steps: { name: string; ok: boolean; output: string }[];
 }
 
-export async function buildVariant(
+export const buildVariant = async (
   variant: GeneratedVariant,
   timeoutMs: number,
-): Promise<BuildResult> {
+): Promise<BuildResult> => {
   const steps: BuildResult['steps'] = [];
 
   const { pm, step: install } = await installProject(variant.absPath, timeoutMs);

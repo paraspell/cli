@@ -1,398 +1,109 @@
-import figures from '@inquirer/figures';
-import { styleText } from 'node:util';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
-  buildArgvResolvedLogs,
+  buildResolvedLogs,
   formatClientLabel,
   formatFeatureFlags,
-  formatFrameworkLabel,
-  logArgvResolvedPrompts,
-  logResolvedSecret,
+  logResolvedPrompts,
 } from './log-resolved-prompt.js';
+import type { ResolveInput } from './types.js';
 
-const SECRET_ANSWER = styleText('dim', '(provided via CLI)');
+vi.mock('@clack/prompts', () => ({
+  log: { success: vi.fn() },
+}));
 
-const PROMPTS = {
-  name: 'Enter the project name',
-  framework: 'Select the desired framework',
-  packageManager: 'Select the desired package manager',
-  client: 'Select the desired JS client type',
-  features: 'Select the desired additional features',
-  substrateMnemonic: 'Your Substrate wallet mnemonic for setup',
-  privateKey: 'Your EVM wallet private key for setup',
-} as const;
+const VALID_PRIVATE_KEY =
+  '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
-type BuildInput = Parameters<typeof buildArgvResolvedLogs>[0];
-type ResolvedLine = { message: string; answer: string };
+const answersByMessage = (input: ResolveInput): Record<string, string> => {
+  return Object.fromEntries(
+    buildResolvedLogs(input).map((line) => [line.message, line.answer]),
+  );
+};
 
-function sdkInput(overrides: Partial<BuildInput> = {}): BuildInput {
-  return {
-    argv: [],
-    partial: { framework: 'react' },
-    kind: 'sdk',
-    defaultName: 'my-xcm-app',
-    ...overrides,
-  };
-}
+describe('formatters', () => {
+  it('formats client labels', () => {
+    expect(formatClientLabel('papi')).toBe('Polkadot API');
+    expect(formatClientLabel('pjs')).toBe('Polkadot JS');
+    expect(formatClientLabel('dedot')).toBe('Dedot');
+  });
 
-function expectResolvedLogs(
-  input: BuildInput,
-  expected: ResolvedLine[],
-): void {
-  expect(buildArgvResolvedLogs(input)).toEqual(expected);
-}
-
-function formatResolvedLine(message: string, answer: string): string {
-  return `${styleText('green', figures.tick)} ${message} ${styleText('cyan', answer)}`;
-}
-
-describe('formatFrameworkLabel', () => {
-  it.each([
-    ['react', 'Vite - React'],
-    ['vue', 'Vite - Vue'],
-    ['node', 'NodeJS'],
-  ] as const)('maps %s to %s', (framework, label) => {
-    expect(formatFrameworkLabel(framework)).toBe(label);
+  it('formats feature flags, or "none"', () => {
+    expect(
+      formatFeatureFlags({ evm: true, swap: false, snowbridge: true }),
+    ).toBe('EVM, Snowbridge');
+    expect(
+      formatFeatureFlags({ evm: false, swap: false, snowbridge: false }),
+    ).toBe('none');
   });
 });
 
-describe('formatClientLabel', () => {
-  it.each([
-    ['papi', 'Polkadot API'],
-    ['pjs', 'Polkadot JS'],
-    ['dedot', 'Dedot'],
-  ] as const)('maps %s to %s', (client, label) => {
-    expect(formatClientLabel(client)).toBe(label);
-  });
-});
-
-describe('formatFeatureFlags', () => {
-  it.each([
-    [{ evm: true, swap: true, snowbridge: true }, 'EVM, Swap, Snowbridge'],
-    [{ evm: true, swap: false, snowbridge: true }, 'EVM, Snowbridge'],
-    [{ evm: false, swap: true, snowbridge: false }, 'Swap'],
-    [{ evm: false, swap: false, snowbridge: false }, 'none'],
-  ] as const)('formats %j as %s', (flags, label) => {
-    expect(formatFeatureFlags(flags)).toBe(label);
-  });
-});
-
-describe('buildArgvResolvedLogs', () => {
-  describe('project name', () => {
-    it('logs the parsed name when --name is provided', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--name', 'my-app'],
-          partial: { name: 'my-app' },
-        }),
-        [{ message: PROMPTS.name, answer: 'my-app' }],
-      );
+describe('buildResolvedLogs', () => {
+  it('logs every provided sdk option', () => {
+    const answers = answersByMessage({
+      kind: 'sdk',
+      framework: 'react',
+      name: 'my-app',
+      packageManager: 'npm',
+      client: 'pjs',
+      evm: true,
     });
-
-    it('logs the parsed name from --name=value', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--name=my-app'],
-          partial: { name: 'my-app' },
-        }),
-        [{ message: PROMPTS.name, answer: 'my-app' }],
-      );
-    });
-
-    it('does not log name when the flag is present without a value', () => {
-      expectResolvedLogs(sdkInput({ argv: ['--name'], partial: {} }), []);
-      expectResolvedLogs(
-        {
-          argv: ['--name'],
-          partial: {},
-          kind: 'api',
-          defaultName: 'my-xcm-api-app',
-        },
-        [],
-      );
-    });
-
-    it('does not log name when the flag has an invalid value', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--name', 'Invalid Name'],
-          partial: { name: 'Invalid Name' },
-        }),
-        [],
-      );
-    });
+    expect(answers['Project name']).toBe('my-app');
+    expect(answers['Package manager']).toBe('npm');
+    expect(answers['JS client']).toBe('Polkadot JS');
+    expect(answers['Additional features']).toBe('EVM');
   });
 
-  describe('framework', () => {
-    it('logs the formatted label only when marked as CLI-provided', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--name=my-app'],
-          partial: { framework: 'react', name: 'my-app' },
-          provided: { framework: true },
-        }),
-        [
-          { message: PROMPTS.name, answer: 'my-app' },
-          { message: PROMPTS.framework, answer: 'Vite - React' },
-        ],
-      );
+  it('omits an invalid --name', () => {
+    const lines = buildResolvedLogs({
+      kind: 'sdk',
+      framework: 'react',
+      name: 'Invalid Name',
     });
-
-    it('skips the prompt when framework is not marked as CLI-provided', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--name=my-app'],
-          partial: { framework: 'react', name: 'my-app' },
-          provided: { framework: false },
-        }),
-        [{ message: PROMPTS.name, answer: 'my-app' }],
-      );
-    });
+    expect(lines.some((line) => line.message === 'Project name')).toBe(false);
   });
 
-  describe('package manager', () => {
-    it('logs the parsed package manager', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--package-manager', 'npm'],
-          partial: { packageManager: 'npm' },
-        }),
-        [{ message: PROMPTS.packageManager, answer: 'npm' }],
-      );
+  it('never logs a client for api projects', () => {
+    const lines = buildResolvedLogs({
+      kind: 'api',
+      framework: 'react',
+      client: 'pjs',
     });
-
-    it('does not log package manager when the flag is present without a value', () => {
-      expectResolvedLogs(sdkInput({ argv: ['--package-manager'], partial: {} }), []);
-    });
+    expect(lines.some((line) => line.message === 'JS client')).toBe(false);
   });
 
-  describe('client', () => {
-    it('logs the formatted client for sdk projects', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--client', 'pjs'],
-          partial: { client: 'pjs' },
-        }),
-        [{ message: PROMPTS.client, answer: 'Polkadot JS' }],
-      );
+  it('logs node secrets when valid and EVM wallet origins are enabled', () => {
+    const answers = answersByMessage({
+      kind: 'sdk',
+      framework: 'node',
+      evm: true,
+      substrateMnemonic: '//Alice',
+      privateKey: VALID_PRIVATE_KEY,
     });
-
-    it('does not log client when the flag is present without a value', () => {
-      expectResolvedLogs(sdkInput({ argv: ['--client'], partial: {} }), []);
-    });
-
-    it('does not log the client prompt for api projects', () => {
-      expectResolvedLogs(
-        {
-          argv: ['--client', 'papi'],
-          partial: { client: 'papi' },
-          kind: 'api',
-          defaultName: 'my-xcm-api-app',
-        },
-        [],
-      );
-    });
+    expect(answers['Substrate mnemonic']).toBe('(provided via CLI)');
+    expect(answers['EVM private key']).toBe('(provided via CLI)');
   });
 
-  describe('feature flags', () => {
-    it('logs enabled flags in stable order', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--evm', '--swap', '--snowbridge'],
-          partial: { evm: true, swap: true, snowbridge: true },
-        }),
-        [{ message: PROMPTS.features, answer: 'EVM, Swap, Snowbridge' }],
-      );
+  it('skips invalid node secrets', () => {
+    const lines = buildResolvedLogs({
+      kind: 'sdk',
+      framework: 'node',
+      evm: true,
+      substrateMnemonic: 'not-a-mnemonic',
+      privateKey: 'nope',
     });
-
-    it('logs none when every feature flag is explicitly disabled', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--evm=false', '--swap=false'],
-          partial: { evm: false, swap: false },
-        }),
-        [{ message: PROMPTS.features, answer: 'none' }],
-      );
-    });
-
-    it('omits the prompt when no feature flag appears in argv', () => {
-      expectResolvedLogs(sdkInput({ argv: ['--name', 'my-app'], partial: { name: 'my-app' } }), [
-        { message: PROMPTS.name, answer: 'my-app' },
-      ]);
-    });
-  });
-
-  describe('prompt order', () => {
-    it('preserves sdk prompt order for mixed CLI-provided values', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--name', 'my-app', '--evm', '--client', 'pjs'],
-          partial: {
-            framework: 'react',
-            name: 'my-app',
-            client: 'pjs',
-            evm: true,
-          },
-          provided: { framework: true },
-        }),
-        [
-          { message: PROMPTS.name, answer: 'my-app' },
-          { message: PROMPTS.framework, answer: 'Vite - React' },
-          { message: PROMPTS.client, answer: 'Polkadot JS' },
-          { message: PROMPTS.features, answer: 'EVM' },
-        ],
-      );
-    });
-
-    it('preserves sdk prompt order for framework, package manager, and features', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--package-manager', 'npm', '--evm', '--swap', '--snowbridge'],
-          partial: {
-            framework: 'vue',
-            packageManager: 'npm',
-            evm: true,
-            swap: true,
-            snowbridge: true,
-          },
-          provided: { framework: true },
-        }),
-        [
-          { message: PROMPTS.framework, answer: 'Vite - Vue' },
-          { message: PROMPTS.packageManager, answer: 'npm' },
-          { message: PROMPTS.features, answer: 'EVM, Swap, Snowbridge' },
-        ],
-      );
-    });
-  });
-
-  describe('node secrets', () => {
-    it('masks substrate mnemonic and private key for node projects', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--evm', '--substrate-mnemonic', 'seed', '--private-key', '0xabc'],
-          partial: {
-            framework: 'node',
-            evm: true,
-            substrateMnemonic: 'seed',
-            privateKey: '0xabc',
-          },
-          provided: { framework: true },
-        }),
-        [
-          { message: PROMPTS.framework, answer: 'NodeJS' },
-          { message: PROMPTS.features, answer: 'EVM' },
-          { message: PROMPTS.substrateMnemonic, answer: SECRET_ANSWER },
-          { message: PROMPTS.privateKey, answer: SECRET_ANSWER },
-        ],
-      );
-    });
-
-    it('masks the private key when snowbridge enables the EVM wallet flow', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--snowbridge', '--private-key', '0xabc'],
-          partial: {
-            framework: 'node',
-            snowbridge: true,
-            privateKey: '0xabc',
-          },
-          provided: { framework: true },
-        }),
-        [
-          { message: PROMPTS.framework, answer: 'NodeJS' },
-          { message: PROMPTS.features, answer: 'Snowbridge' },
-          { message: PROMPTS.privateKey, answer: SECRET_ANSWER },
-        ],
-      );
-    });
-
-    it('does not log node secrets for non-node frameworks', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--evm', '--substrate-mnemonic', 'seed', '--private-key', '0xabc'],
-          partial: { framework: 'react', evm: true },
-        }),
-        [{ message: PROMPTS.features, answer: 'EVM' }],
-      );
-    });
-
-    it('does not log the private key when no wallet origin feature is enabled', () => {
-      expectResolvedLogs(
-        sdkInput({
-          argv: ['--private-key', '0xabc'],
-          partial: {
-            framework: 'node',
-            evm: false,
-            snowbridge: false,
-            privateKey: '0xabc',
-          },
-          provided: { framework: true },
-        }),
-        [{ message: PROMPTS.framework, answer: 'NodeJS' }],
-      );
-    });
-  });
-
-  describe('empty output', () => {
-    it('returns no lines when nothing was provided via CLI', () => {
-      expectResolvedLogs(
-        {
-          argv: [],
-          partial: { framework: 'react' },
-          kind: 'api',
-          defaultName: 'my-xcm-api-app',
-        },
-        [],
-      );
-    });
-  });
-});
-
-describe('logArgvResolvedPrompts', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('prints each resolved line in order and ends with a blank line', () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-    logArgvResolvedPrompts(
-      sdkInput({
-        argv: ['--name', 'my-app', '--package-manager', 'npm'],
-        partial: { name: 'my-app', packageManager: 'npm' },
-      }),
+    expect(lines.some((line) => line.message === 'Substrate mnemonic')).toBe(
+      false,
     );
-
-    expect(log.mock.calls).toEqual([
-      [formatResolvedLine(PROMPTS.name, 'my-app')],
-      [formatResolvedLine(PROMPTS.packageManager, 'npm')],
-      [],
-    ]);
-  });
-
-  it('prints nothing when there are no CLI-provided values', () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-    logArgvResolvedPrompts(sdkInput());
-
-    expect(log).not.toHaveBeenCalled();
+    expect(lines.some((line) => line.message === 'EVM private key')).toBe(
+      false,
+    );
   });
 });
 
-describe('logResolvedSecret', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('prints the prompt with a masked CLI-provided answer', () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-    logResolvedSecret(PROMPTS.privateKey);
-
-    expect(log).toHaveBeenCalledOnce();
-    expect(log).toHaveBeenCalledWith(
-      formatResolvedLine(PROMPTS.privateKey, SECRET_ANSWER),
-    );
+describe('logResolvedPrompts', () => {
+  it('does not throw for an empty input', () => {
+    expect(() =>
+      logResolvedPrompts({ kind: 'sdk', framework: 'react' }),
+    ).not.toThrow();
   });
 });

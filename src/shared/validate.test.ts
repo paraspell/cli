@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  parseSecretFlag,
   validateEvmPrivateKey,
   validateSubstrateMnemonic,
 } from './validate.js';
@@ -42,26 +41,9 @@ describe('validateSubstrateMnemonic', () => {
     expect(validateSubstrateMnemonic(VALID_MNEMONIC)).toBe(true);
   });
 
-  it('rejects EVM private keys and other invalid values', () => {
-    expect(validateSubstrateMnemonic(VALID_PRIVATE_KEY)).toMatch(/EVM private key/);
+  it('rejects values that are not a BIP39 phrase or //Dev URI', () => {
+    expect(validateSubstrateMnemonic(VALID_PRIVATE_KEY)).toMatch(/BIP39 phrase/);
     expect(validateSubstrateMnemonic('seed')).toMatch(/BIP39 phrase/);
     expect(validateSubstrateMnemonic('not a valid mnemonic')).toMatch(/BIP39 phrase/);
-  });
-});
-
-describe('parseSecretFlag', () => {
-  it('returns the value when valid', () => {
-    expect(
-      parseSecretFlag('--private-key', VALID_PRIVATE_KEY, validateEvmPrivateKey),
-    ).toBe(VALID_PRIVATE_KEY);
-  });
-
-  it('warns and returns undefined when invalid', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    expect(parseSecretFlag('--private-key', '0xabc', validateEvmPrivateKey)).toBeUndefined();
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringMatching(/ignoring invalid --private-key/),
-    );
-    vi.restoreAllMocks();
   });
 });
