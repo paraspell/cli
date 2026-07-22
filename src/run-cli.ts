@@ -10,40 +10,37 @@ import {
   help,
   run,
 } from "@stricli/core";
+import { generateApp } from "./generator/generate.js";
 import { runInteractiveGenerate } from "./interactive.js";
 import {
   frameworkPositional,
-  parseClientArg,
-  parseFrameworkArg,
-  parsePackageManagerArg,
+  packageManagerFlag,
 } from "./shared/cli-params.js";
-import { generateApp } from "./shared/generate-dispatch.js";
 import { printNextSteps } from "./shared/next-steps.js";
 import {
   applyGenerateDefaults,
-  generateNeedsInteractive,
   hasRejectedSecrets,
   type NameValidator,
   promptGenerateOptions,
 } from "./shared/prompt-options.js";
-import type {
-  Framework,
-  PackageManager,
-  ProjectType,
-  ResolveInput,
-  SdkClient,
+import {
+  FRAMEWORKS,
+  SDK_CLIENTS,
+  type Framework,
+  type PackageManager,
+  type ProjectType,
+  type ResolveInput,
+  type SdkClient,
 } from "./shared/types.js";
 import { validateNameInput } from "./shared/validate.js";
 
 interface AppContext extends CommandContext {
   root: string;
-  templatesRoot: string;
   consumer: boolean;
 }
 
 export type RunContext = {
   root: string;
-  templatesRoot: string;
   consumer?: boolean;
 };
 
@@ -78,8 +75,8 @@ const sharedFlagParams = {
     optional: true,
   },
   framework: {
-    kind: "parsed",
-    parse: parseFrameworkArg,
+    kind: "enum",
+    values: FRAMEWORKS,
     brief: "Target framework: react | vue | node",
     optional: true,
   },
@@ -94,12 +91,7 @@ const sharedFlagParams = {
     brief: "Enable Snowbridge transfers",
     optional: true,
   },
-  packageManager: {
-    kind: "parsed",
-    parse: parsePackageManagerArg,
-    brief: "Package manager: npm | yarn | pnpm | bun",
-    optional: true,
-  },
+  packageManager: packageManagerFlag,
   out: {
     kind: "parsed",
     parse: identity,
@@ -123,8 +115,8 @@ const sharedFlagParams = {
 const sdkFlagParams = {
   ...sharedFlagParams,
   client: {
-    kind: "parsed",
-    parse: parseClientArg,
+    kind: "enum",
+    values: SDK_CLIENTS,
     brief: "JS client: papi | pjs | dedot",
     optional: true,
   },
@@ -197,15 +189,11 @@ const runGenerate = async (
       );
     }
 
-    const interactive =
-      generateNeedsInteractive(input) ||
-      (rejectedSecrets && Boolean(process.stdin.isTTY));
-
     const validateName = ctx.consumer
       ? makeConsumerNameValidator(ctx.root, flags.out)
       : undefined;
 
-    const resolved = interactive
+    const resolved = process.stdin.isTTY
       ? await promptGenerateOptions(input, { validateName })
       : applyGenerateDefaults(input);
 
@@ -234,11 +222,9 @@ const runGenerate = async (
       kind === "sdk"
         ? {
             kind,
-            framework,
-            templatesRoot: ctx.templatesRoot,
             opts: { ...opts, client: resolved.client ?? "pjs" },
           }
-        : { kind, framework, templatesRoot: ctx.templatesRoot, opts },
+        : { kind, opts },
     );
 
     if (ctx.consumer) {
@@ -295,31 +281,22 @@ const createApp = (): Application<AppContext> => {
 
 const app = createApp();
 
-const toContext = (
-  root: string,
-  templatesRoot: string,
-  consumer: boolean,
-): AppContext => {
-  return { process, root, templatesRoot, consumer };
-};
-
 export const runFromArgv = (rawArgv: string[], ctx: RunContext) => {
-  return run(
-    app,
-    rawArgv,
-    toContext(ctx.root, ctx.templatesRoot, ctx.consumer ?? false),
-  );
+  return run(app, rawArgv, {
+    process,
+    root: ctx.root,
+    consumer: ctx.consumer ?? false,
+  });
 };
 
-export const runCli = async (rawArgv: string[], templatesRoot: string) => {
+export const runCli = async (rawArgv: string[]) => {
   if (rawArgv.length === 0) {
-    await runInteractiveGenerate(templatesRoot);
+    await runInteractiveGenerate();
     return;
   }
 
   await runFromArgv(rawArgv, {
     root: process.cwd(),
-    templatesRoot,
     consumer: true,
   });
 };

@@ -9,7 +9,7 @@ const PACKAGE_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../..',
 );
-const CLI_ENTRY = path.join(PACKAGE_ROOT, 'src/index.ts');
+const CLI_ENTRY = path.join(PACKAGE_ROOT, 'dist/index.js');
 const CLI_TIMEOUT_MS = 120_000;
 
 const runCli = async (
@@ -18,7 +18,7 @@ const runCli = async (
 ): Promise<{ ok: boolean; output: string; code: number }> => {
   const result = await runCommand(
     cwd,
-    path.join(PACKAGE_ROOT, 'node_modules/.bin/tsx'),
+    process.execPath,
     [CLI_ENTRY, ...args],
     CLI_TIMEOUT_MS,
   );

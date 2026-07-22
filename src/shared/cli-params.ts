@@ -1,4 +1,4 @@
-import { FRAMEWORKS, PACKAGE_MANAGERS, SDK_CLIENTS } from "./types.js";
+import { FRAMEWORKS, PACKAGE_MANAGERS } from "./types.js";
 
 const choiceParser = <T extends string>(
   label: string,
@@ -15,12 +15,7 @@ const choiceParser = <T extends string>(
   };
 }
 
-export const parseFrameworkArg = choiceParser("framework", FRAMEWORKS);
-export const parseClientArg = choiceParser("client", SDK_CLIENTS);
-export const parsePackageManagerArg = choiceParser(
-  "package manager",
-  PACKAGE_MANAGERS,
-);
+const parseFrameworkArg = choiceParser("framework", FRAMEWORKS);
 
 export const frameworkPositional = {
   kind: "tuple",
@@ -35,8 +30,8 @@ export const frameworkPositional = {
 } as const;
 
 export const packageManagerFlag = {
-  kind: "parsed",
-  parse: parsePackageManagerArg,
+  kind: "enum",
+  values: PACKAGE_MANAGERS,
   brief: "Package manager: npm | yarn | pnpm | bun",
   optional: true,
 } as const;

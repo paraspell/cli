@@ -26,7 +26,6 @@ export interface SdkGenerateOptions extends FeatureFlags {
   client: SdkClient;
   packageManager: PackageManager;
   out: string;
-  help?: boolean;
   privateKey?: string;
   substrateMnemonic?: string;
 }
@@ -36,16 +35,8 @@ export interface ApiGenerateOptions extends FeatureFlags {
   name: string;
   packageManager: PackageManager;
   out: string;
-  help?: boolean;
   privateKey?: string;
   substrateMnemonic?: string;
-}
-
-export interface FrameworkMeta {
-  generator: string;
-  label: string;
-  examplesSubdir: string;
-  logoFile?: string;
 }
 
 export interface ResolveInput {

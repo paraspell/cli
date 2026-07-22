@@ -13,35 +13,40 @@ Thanks for helping improve `create-paraspell`!
 pnpm install
 pnpm build       # build the CLI into dist/
 pnpm execute     # run the built CLI locally
-pnpm generate    # interactive flow via tsx (source)
+pnpm generate    # interactive flow using the compiled CLI
 ```
 
 ## Project layout
 
-- `src/` — the TypeScript CLI (entry `src/index.ts`, bundled to `dist/`)
-- `_templates/` — Hygen generators for the scaffolded apps
-  (`{xcm-sdk,xcm-api}-{react,vue,node}/new/`)
-- `shared/*.cjs` — helpers consumed by **both** the CLI and the templates
-  (`feature-flags.cjs`, `package-manager.cjs`, `versions.cjs`)
+- `src/` — the TypeScript CLI (entry `src/index.ts`, compiled to `dist/`)
+- `src/generator/templates/` — typed scaffold definitions for every SDK/API framework
+- `src/generator/` — synthesis context, formatting, validation, and output
+- `assets/` — logos copied into generated browser projects
 
 The "Repository development" section of the [README](README.md) has the full package layout.
 
-## Editing templates
+## Editing scaffolds
 
-Templates are EJS (`<% %>`) and use feature flags (`evm`, `swap`, `snowbridge`, `client`) for
-conditional output. Pinned dependency versions are centralized in `shared/versions.cjs`
-(`SDK_VERSION`, `PACKAGE_VERSIONS`) — bump them there, not per-template.
+Scaffolds are native TypeScript functions and use ordinary conditionals for `evm`,
+`swap`, `snowbridge`, and `client`. Their substitutions and shared-fragment IDs are
+checked by `tsc`. Pinned dependency versions are centralized in
+`src/generator/versions.ts` (`SDK_VERSION`, `PACKAGE_VERSIONS`) — bump them there,
+not per scaffold.
+
+Generated TypeScript is composed through ts-poet, formatted by Prettier, and parsed
+with ts-morph. Vue SFCs are additionally validated with `@vue/compiler-sfc`.
 
 ## Tests
 
 ```bash
-pnpm typecheck   # type-check the CLI
-pnpm test            # scaffold all variants + assert structure/deps (fast)
+pnpm build       # required before tests; emits dist/
+pnpm compile     # check the CLI for TypeScript errors
+pnpm test        # scaffold all variants + assert structure/deps (fast)
 pnpm test:build  # install + build every generated variant (slow)
 pnpm test:all    # structure + build
 ```
 
-Please run `pnpm typecheck` and `pnpm test` before opening a PR. For template changes,
+Please run `pnpm compile` and `pnpm test` before opening a PR. For scaffold changes,
 `pnpm test:build` (or a targeted subset, e.g. `TEST_FRAMEWORK=react pnpm test:build`) is
 recommended.
 
@@ -52,5 +57,3 @@ pnpm build
 pnpm pack            # inspect the tarball contents
 pnpm publish
 ```
-
-`prepublishOnly` rebuilds `dist/` automatically before publish.
