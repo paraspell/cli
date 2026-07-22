@@ -2,14 +2,12 @@ import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { select, text } from '@clack/prompts';
 
-type GenerateSdkApp = typeof import('./shared/hygen-runner.js').generateSdkApp;
-type GenerateApiApp = typeof import('./shared/hygen-runner.js').generateApiApp;
+type GenerateApp = typeof import('./generator/generate.js').generateApp;
 
 const VALID_PRIVATE_KEY =
   '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
-const generateSdkApp = vi.fn<GenerateSdkApp>();
-const generateApiApp = vi.fn<GenerateApiApp>();
+const generateApp = vi.fn<GenerateApp>();
 const promptFeatureExtensions = vi.fn(async (_defaults?: unknown) => [] as string[]);
 const promptSubstrateMnemonic = vi.fn(async () => undefined as string | undefined);
 const promptEvmPrivateKey = vi.fn(async () => undefined as string | undefined);
@@ -27,11 +25,8 @@ vi.mock('@clack/prompts', () => ({
   isCancel: vi.fn(() => false),
 }));
 
-vi.mock('./shared/hygen-runner.js', () => ({
-  generateSdkApp: (params: Parameters<GenerateSdkApp>[0]) =>
-    generateSdkApp(params),
-  generateApiApp: (params: Parameters<GenerateApiApp>[0]) =>
-    generateApiApp(params),
+vi.mock('./generator/generate.js', () => ({
+  generateApp: (params: Parameters<GenerateApp>[0]) => generateApp(params),
 }));
 
 vi.mock('./shared/feature-extensions-checkbox.js', () => ({
@@ -51,13 +46,10 @@ const { runInteractiveGenerate } = await import('./interactive.js');
 
 const mockedText = vi.mocked(text);
 const mockedSelect = vi.mocked(select);
-const TEMPLATES_ROOT = path.join(process.cwd(), '_templates');
-
 describe('runInteractiveGenerate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    generateSdkApp.mockResolvedValue(undefined);
-    generateApiApp.mockResolvedValue(undefined);
+    generateApp.mockResolvedValue(undefined);
     promptFeatureExtensions.mockResolvedValue([]);
     promptSubstrateMnemonic.mockResolvedValue(undefined);
     promptEvmPrivateKey.mockResolvedValue(undefined);
@@ -72,12 +64,11 @@ describe('runInteractiveGenerate', () => {
       .mockResolvedValueOnce('sdk')
       .mockResolvedValueOnce('papi');
 
-    await runInteractiveGenerate(TEMPLATES_ROOT);
+    await runInteractiveGenerate();
 
-    expect(generateApiApp).not.toHaveBeenCalled();
-    expect(generateSdkApp).toHaveBeenCalledOnce();
-    expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
-      templatesRoot: TEMPLATES_ROOT,
+    expect(generateApp).toHaveBeenCalledOnce();
+    expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
+      kind: 'sdk',
       opts: expect.objectContaining({
         framework: 'react',
         name: 'wizard-app',
@@ -95,12 +86,12 @@ describe('runInteractiveGenerate', () => {
       .mockResolvedValueOnce('vue')
       .mockResolvedValueOnce('api');
 
-    await runInteractiveGenerate(TEMPLATES_ROOT);
+    await runInteractiveGenerate();
 
     expect(mockedSelect).toHaveBeenCalledTimes(3);
-    expect(generateSdkApp).not.toHaveBeenCalled();
-    expect(generateApiApp).toHaveBeenCalledOnce();
-    expect(generateApiApp.mock.calls[0]?.[0]).toMatchObject({
+    expect(generateApp).toHaveBeenCalledOnce();
+    expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
+      kind: 'api',
       opts: expect.objectContaining({ framework: 'vue', name: 'api-wizard' }),
     });
   });
@@ -116,11 +107,12 @@ describe('runInteractiveGenerate', () => {
     promptSubstrateMnemonic.mockResolvedValue('//Alice');
     promptEvmPrivateKey.mockResolvedValue(VALID_PRIVATE_KEY);
 
-    await runInteractiveGenerate(TEMPLATES_ROOT);
+    await runInteractiveGenerate();
 
     expect(promptSubstrateMnemonic).toHaveBeenCalledOnce();
     expect(promptEvmPrivateKey).toHaveBeenCalledOnce();
-    expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
+    expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
+      kind: 'sdk',
       opts: expect.objectContaining({
         framework: 'node',
         evm: true,

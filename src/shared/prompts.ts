@@ -1,6 +1,6 @@
 import { select, text } from "@clack/prompts";
 import { ask, toClackValidate } from "./clack.js";
-import { PACKAGE_MANAGERS } from "./package-manager.js";
+import { PACKAGE_MANAGERS } from "./types.js";
 import { SDK_CLIENT_LABELS, SDK_CLIENTS } from "./types.js";
 import type {
   Framework,

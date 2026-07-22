@@ -8,13 +8,12 @@ const cliRoot = path.join(
 );
 
 const globalSetup = (): Promise<void> => {
+  if (process.env.SKIP_GENERATE === "1") return Promise.resolve();
+
   return new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
-      [
-        path.join(cliRoot, "node_modules/tsx/dist/cli.mjs"),
-        "src/generate-examples.ts",
-      ],
+      [path.join(cliRoot, "dist/generate-examples.js")],
       {
         cwd: cliRoot,
         stdio: "inherit",

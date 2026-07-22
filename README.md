@@ -136,38 +136,41 @@ Found a vulnerability? See [SECURITY.md](SECURITY.md).
 <details><summary><b>Repository development</b></summary>
 <br>
 
-Clone this repo and run the CLI from source — it takes the same `sdk` / `api` subcommands and flags as `create-paraspell` (pass `--out` to choose where the app is written):
+Clone this repo and run the compiled CLI locally — it takes the same `sdk` / `api` subcommands and flags as `create-paraspell` (pass `--out` to choose where the app is written):
 
 ```bash
 pnpm install
 pnpm build
 pnpm execute          # run the built CLI locally
-pnpm generate         # interactive flow via tsx (source)
+pnpm generate         # interactive flow using the compiled CLI
 ```
 
 **Package layout:**
 
 ```text
 ├── dist/                     # built CLI (bin entry: dist/index.js)
-├── assets/                   # bundled static files
-├── _templates/               # Hygen generators
-│   ├── shared/               # shared EJS partials (evm, xcm)
-│   ├── xcm-sdk-{react,vue,node}/
-│   └── xcm-api-{react,vue,node}/
-├── shared/                   # Hygen helpers consumed by templates (CommonJS)
-│   ├── feature-flags.cjs
-│   ├── package-manager.cjs
-│   └── versions.cjs
+├── assets/                   # logos copied into generated projects
 └── src/                      # TypeScript CLI source
     ├── index.ts              # entry → dist/
     ├── run-cli.ts            # argv routing & agent flow
     ├── interactive.ts        # prompts & banner
-    └── shared/               # hygen-runner, parsers, prompts, etc.
+    ├── generator/
+    │   ├── templates/        # typed SDK/API scaffold definitions
+    │   ├── context.ts        # typed synthesis context
+    │   ├── generate.ts       # file synthesis and asset output
+    │   ├── format-generated-file.ts
+    │   └── versions.ts       # centralized generated dependencies
+    └── shared/               # parsers, prompts, and CLI helpers
 ```
+
+The synthesis path is TypeScript-native. Scaffold conditions and substitutions
+are checked by `tsc`; `ts-poet` composes TypeScript output, Prettier parses and
+formats every supported text format, `ts-morph` validates generated TypeScript,
+and `@vue/compiler-sfc` validates Vue components.
 
 **Updating dependency versions**
 
-To edit package versions see `shared/versions.cjs` (`SDK_VERSION`, `PACKAGE_VERSIONS`).
+To edit package versions see `src/generator/versions.ts` (`SDK_VERSION`, `PACKAGE_VERSIONS`).
 All scaffolded dependency versions — runtime and dev — are centralized there.
 
 **Publish:**
@@ -184,13 +187,14 @@ pnpm publish --access public
 <br>
 
 ```bash
-pnpm typecheck          # type-check the CLI
-pnpm test                   # scaffold variants + check structure
+pnpm build              # required before tests; emits dist/
+pnpm compile            # check the CLI for TypeScript errors
+pnpm test               # scaffold variants + check structure
 pnpm test:build         # production build each variant (slow)
 pnpm test:all           # structure + build
 pnpm test:watch         # structure tests in watch mode
 pnpm test:generate      # regenerate generated/ only
-SKIP_GENERATE=1 pnpm test   # skip scaffolding, reuse generated/
+SKIP_GENERATE=1 pnpm test # skip scaffolding, reuse generated/
 ```
 
 </details>

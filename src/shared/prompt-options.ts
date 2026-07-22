@@ -1,29 +1,25 @@
 import {
-  applyFeatureFlags,
-  type ResolvedFeatureFlags,
-} from './feature-flags.js';
-import {
   EVM_EXTENSION,
   promptFeatureExtensions,
   SNOWBRIDGE_EXTENSION,
   SWAP_EXTENSION,
-} from './feature-extensions-checkbox.js';
-import { logResolvedPrompts } from './log-resolved-prompt.js';
+} from "./feature-extensions-checkbox.js";
 import {
   promptEvmPrivateKey,
   promptSubstrateMnemonic,
-} from './prompt-secrets.js';
-import { promptClient, promptName, promptPackageManager } from './prompts.js';
+} from "./prompt-secrets.js";
+import { promptClient, promptName, promptPackageManager } from "./prompts.js";
 import type {
+  FeatureFlags,
   ProjectType,
   ResolveInput,
   ResolvedOptions,
-} from './types.js';
+} from "./types.js";
 import {
   validateEvmPrivateKey,
   validateNameInput,
   validateSubstrateMnemonic,
-} from './validate.js';
+} from "./validate.js";
 
 export type NameValidator = (name: string) => true | string;
 
@@ -32,8 +28,8 @@ type PromptGenerateOptions = {
 };
 
 const DEFAULT_NAME: Record<ProjectType, string> = {
-  sdk: 'my-xcm-app',
-  api: 'my-xcm-api-app',
+  sdk: "my-xcm-app",
+  api: "my-xcm-api-app",
 };
 
 const featuresProvided = (input: ResolveInput): boolean => {
@@ -61,52 +57,24 @@ export const hasRejectedSecrets = (input: ResolveInput): boolean => {
   );
 };
 
-export const generateNeedsInteractive = (input: ResolveInput): boolean => {
-  if (!process.stdin.isTTY) return false;
-  if (input.packageManager === undefined) return true;
-  if (input.kind === 'sdk' && input.client === undefined) return true;
-  if (!featuresProvided(input)) return true;
-  if (input.name === undefined) return true;
-  if (validateNameInput(input.name) !== true) return true;
-
-  const features = applyFeatureFlags({
-    evm: input.evm ?? false,
-    swap: input.swap ?? false,
-    snowbridge: input.snowbridge ?? false,
-  });
-  if (input.framework === 'node' && input.substrateMnemonic === undefined) {
-    return true;
-  }
-  if (
-    input.framework === 'node' &&
-    features.evmWallet &&
-    input.privateKey === undefined
-  ) {
-    return true;
-  }
-  return false;
-};
-
-const resolveFeatures = async (
-  input: ResolveInput,
-): Promise<ResolvedFeatureFlags> => {
+const resolveFeatures = async (input: ResolveInput): Promise<FeatureFlags> => {
   if (featuresProvided(input)) {
-    return applyFeatureFlags({
+    return {
       evm: input.evm ?? false,
       swap: input.swap ?? false,
       snowbridge: input.snowbridge ?? false,
-    });
+    };
   }
   const selected = await promptFeatureExtensions({
     evm: input.evm,
     swap: input.swap,
     snowbridge: input.snowbridge,
   });
-  return applyFeatureFlags({
+  return {
     evm: selected.includes(EVM_EXTENSION),
     swap: selected.includes(SWAP_EXTENSION),
     snowbridge: selected.includes(SNOWBRIDGE_EXTENSION),
-  });
+  };
 };
 
 const resolveSecret = async (
@@ -129,8 +97,6 @@ export const promptGenerateOptions = async (
   input: ResolveInput,
   options: PromptGenerateOptions = {},
 ): Promise<ResolvedOptions> => {
-  logResolvedPrompts(input);
-
   const name =
     input.name ??
     (await promptName(
@@ -139,19 +105,19 @@ export const promptGenerateOptions = async (
     ));
 
   const packageManager =
-    input.packageManager ?? (await promptPackageManager('pnpm'));
+    input.packageManager ?? (await promptPackageManager("pnpm"));
 
   const client =
-    input.kind === 'sdk'
-      ? (input.client ?? (await promptClient('pjs')))
+    input.kind === "sdk"
+      ? (input.client ?? (await promptClient("pjs")))
       : undefined;
 
   const features = await resolveFeatures(input);
-  const isNode = input.framework === 'node';
+  const isNode = input.framework === "node";
 
   const substrateMnemonic = await resolveSecret(
     input.substrateMnemonic,
-    '--substrate-mnemonic',
+    "--substrate-mnemonic",
     validateSubstrateMnemonic,
     promptSubstrateMnemonic,
     isNode,
@@ -159,10 +125,10 @@ export const promptGenerateOptions = async (
 
   const privateKey = await resolveSecret(
     input.privateKey,
-    '--private-key',
+    "--private-key",
     validateEvmPrivateKey,
     promptEvmPrivateKey,
-    isNode && features.evmWallet,
+    isNode && (features.evm || features.snowbridge),
   );
 
   return {
@@ -179,22 +145,21 @@ export const promptGenerateOptions = async (
 
 export const applyGenerateDefaults = (input: ResolveInput): ResolvedOptions => {
   const name = input.name ?? DEFAULT_NAME[input.kind];
-  const packageManager = input.packageManager ?? 'pnpm';
-  const client =
-    input.kind === 'sdk' ? (input.client ?? 'pjs') : undefined;
+  const packageManager = input.packageManager ?? "pnpm";
+  const client = input.kind === "sdk" ? (input.client ?? "pjs") : undefined;
 
-  const features = applyFeatureFlags({
+  const features: FeatureFlags = {
     evm: input.evm ?? false,
     swap: input.swap ?? false,
     snowbridge: input.snowbridge ?? false,
-  });
-  const isNode = input.framework === 'node';
+  };
+  const isNode = input.framework === "node";
 
   const substrateMnemonic = isNode
     ? validSecret(input.substrateMnemonic, validateSubstrateMnemonic)
     : undefined;
   const privateKey =
-    isNode && features.evmWallet
+    isNode && (features.evm || features.snowbridge)
       ? validSecret(input.privateKey, validateEvmPrivateKey)
       : undefined;
 

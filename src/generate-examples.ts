@@ -1,14 +1,11 @@
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildApplication, buildCommand, run } from "@stricli/core";
-import { getPackageRoot } from "./package-root.js";
 import {
   frameworkPositional,
   packageManagerFlag,
 } from "./shared/cli-params.js";
-import { API_FRAMEWORKS, SDK_FRAMEWORKS } from "./shared/frameworks.js";
-import { generateApiApp, generateSdkApp } from "./shared/hygen-runner.js";
-import { normalizePackageManager } from "./shared/package-manager.js";
+import { generateApp } from "./generator/generate.js";
 import {
   FEATURE_KEYS,
   FRAMEWORKS,
@@ -35,31 +32,29 @@ export const apiExampleName = (combo: FeatureFlags): string => {
   return featureSuffix(combo) || "base";
 };
 
-export const sdkExampleDir = (client: SdkClient, combo: FeatureFlags): string => {
+export const sdkExampleDir = (
+  client: SdkClient,
+  combo: FeatureFlags,
+): string => {
   const suffix = featureSuffix(combo);
   return suffix ? `${client}-${suffix}` : client;
 };
 
-const cliRoot = getPackageRoot();
-const templatesRoot = path.join(cliRoot, "_templates");
-
+const cliRoot = fileURLToPath(new URL("../", import.meta.url));
 const generateExamples = async (
   kind: ProjectType | undefined,
   framework: Framework | undefined,
-  packageManagerRaw: PackageManager | undefined,
+  packageManager: PackageManager = "pnpm",
 ): Promise<void> => {
-  const packageManager = normalizePackageManager(packageManagerRaw);
   const frameworks: readonly Framework[] = framework ? [framework] : FRAMEWORKS;
 
   if (!kind || kind === "sdk") {
     for (const fw of frameworks) {
-      const meta = SDK_FRAMEWORKS[fw];
       for (const client of SDK_CLIENTS) {
         for (const combo of FEATURE_COMBOS) {
           const name = sdkExampleDir(client, combo);
-          await generateSdkApp({
-            meta,
-            templatesRoot,
+          await generateApp({
+            kind: "sdk",
             opts: {
               framework: fw,
               name,
@@ -78,12 +73,10 @@ const generateExamples = async (
 
   if (!kind || kind === "api") {
     for (const fw of frameworks) {
-      const meta = API_FRAMEWORKS[fw];
       for (const combo of FEATURE_COMBOS) {
         const name = apiExampleName(combo);
-        await generateApiApp({
-          meta,
-          templatesRoot,
+        await generateApp({
+          kind: "api",
           opts: {
             framework: fw,
             name: `xcm-api-${name}`,

@@ -17,15 +17,23 @@ const getGeneratedRoot = (): string => {
 const GENERATED_WORKSPACE_PACKAGE = {
   name: "paraspell-generated-workspace",
   private: true,
-  pnpm: {
-    // polkadot-api (papi) and @polkadot/api (snowbridge) pull different versions of
-    // @polkadot-api/json-rpc-provider-proxy; without this override Vite resolves
-    // proxy@0.4.0 against provider@0.0.1 and fails during dependency optimization.
-    overrides: {
-      "@polkadot-api/json-rpc-provider": "0.2.0",
-    },
-  },
 } as const;
+
+const GENERATED_WORKSPACE_CONFIG = `packages:
+  - 'xcm-sdk/*/*'
+  - 'xcm-api/*/*'
+
+# polkadot-api (papi) and @polkadot/api (snowbridge) pull incompatible
+# json-rpc-provider versions without this workspace-wide override.
+overrides:
+  '@polkadot-api/json-rpc-provider': 0.2.0
+
+onlyBuiltDependencies:
+  - bufferutil
+  - es5-ext
+  - esbuild
+  - utf-8-validate
+`;
 
 const writeGeneratedWorkspace = (): void => {
   const root = getGeneratedRoot();
@@ -33,7 +41,7 @@ const writeGeneratedWorkspace = (): void => {
 
   fs.writeFileSync(
     path.join(root, "pnpm-workspace.yaml"),
-    "packages:\n  - 'xcm-sdk/*/*'\n  - 'xcm-api/*/*'\n",
+    GENERATED_WORKSPACE_CONFIG,
   );
 
   fs.writeFileSync(

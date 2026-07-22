@@ -3,28 +3,22 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-type GenerateSdkApp = typeof import('./shared/hygen-runner.js').generateSdkApp;
-type GenerateApiApp = typeof import('./shared/hygen-runner.js').generateApiApp;
+type GenerateApp = typeof import('./generator/generate.js').generateApp;
 type RunInteractive =
   typeof import('./interactive.js').runInteractiveGenerate;
 type PromptGenerateOptions =
   typeof import('./shared/prompt-options.js').promptGenerateOptions;
 
-const generateSdkApp = vi.fn<GenerateSdkApp>();
-const generateApiApp = vi.fn<GenerateApiApp>();
+const generateApp = vi.fn<GenerateApp>();
 const runInteractiveGenerate = vi.fn<RunInteractive>();
 const promptGenerateOptions = vi.fn<PromptGenerateOptions>();
 
-vi.mock('./shared/hygen-runner.js', () => ({
-  generateSdkApp: (params: Parameters<GenerateSdkApp>[0]) =>
-    generateSdkApp(params),
-  generateApiApp: (params: Parameters<GenerateApiApp>[0]) =>
-    generateApiApp(params),
+vi.mock('./generator/generate.js', () => ({
+  generateApp: (params: Parameters<GenerateApp>[0]) => generateApp(params),
 }));
 
 vi.mock('./interactive.js', () => ({
-  runInteractiveGenerate: (templatesRoot: string) =>
-    runInteractiveGenerate(templatesRoot),
+  runInteractiveGenerate: () => runInteractiveGenerate(),
 }));
 
 vi.mock('./shared/prompt-options.js', async (importOriginal) => {
@@ -41,20 +35,18 @@ vi.mock('./shared/prompt-options.js', async (importOriginal) => {
 
 const { runCli, runFromArgv } = await import('./run-cli.js');
 
-type ArgvContext = { root: string; templatesRoot: string; consumer?: boolean };
+type ArgvContext = { root: string; consumer?: boolean };
 const runSdkFromArgv = (argv: string[], ctx: ArgvContext) =>
   runFromArgv(['sdk', ...argv], ctx);
 const runApiFromArgv = (argv: string[], ctx: ArgvContext) =>
   runFromArgv(['api', ...argv], ctx);
 
-const TEMPLATES_ROOT = path.join(process.cwd(), '_templates');
-
 const consumerCtx = (root: string) => {
-  return { root, templatesRoot: TEMPLATES_ROOT, consumer: true as const };
+  return { root, consumer: true as const };
 };
 
 const devCtx = (root: string) => {
-  return { root, templatesRoot: TEMPLATES_ROOT };
+  return { root };
 };
 
 const SDK_FLAGS = [
@@ -82,8 +74,7 @@ describe('runSdkFromArgv', () => {
   beforeEach(() => {
     tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-run-cli-'));
     vi.clearAllMocks();
-    generateSdkApp.mockResolvedValue(undefined);
-    generateApiApp.mockResolvedValue(undefined);
+    generateApp.mockResolvedValue(undefined);
     vi.spyOn(fs, 'existsSync').mockReturnValue(false);
     stubTty(false);
   });
@@ -98,9 +89,9 @@ describe('runSdkFromArgv', () => {
     await runSdkFromArgv([...SDK_FLAGS], consumerCtx(tmpRoot));
 
     expect(promptGenerateOptions).not.toHaveBeenCalled();
-    expect(generateSdkApp).toHaveBeenCalledOnce();
-    expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
-      templatesRoot: TEMPLATES_ROOT,
+    expect(generateApp).toHaveBeenCalledOnce();
+    expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
+      kind: 'sdk',
       opts: expect.objectContaining({
         framework: 'react',
         name: 'my-app',
@@ -116,7 +107,7 @@ describe('runSdkFromArgv', () => {
     const outDir = path.join(tmpRoot, 'custom-out');
     await runSdkFromArgv([...SDK_FLAGS, '--out', outDir], consumerCtx(tmpRoot));
 
-    expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
+    expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
       opts: expect.objectContaining({ out: outDir }),
     });
   });
@@ -124,7 +115,7 @@ describe('runSdkFromArgv', () => {
   it('uses the dev default out path when consumer mode is disabled', async () => {
     await runSdkFromArgv([...SDK_FLAGS], devCtx(tmpRoot));
 
-    expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
+    expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
       opts: expect.objectContaining({
         name: 'my-app',
         out: path.join(tmpRoot, 'generated', 'xcm-sdk', 'react', 'my-app'),
@@ -149,7 +140,7 @@ describe('runSdkFromArgv', () => {
 
     await runSdkFromArgv([...SDK_FLAGS], consumerCtx(tmpRoot));
 
-    expect(generateSdkApp).not.toHaveBeenCalled();
+    expect(generateApp).not.toHaveBeenCalled();
     expect(process.exitCode).toBe(1);
     expect(capturedText(stderr)).toContain('Project already exists');
   });
@@ -162,7 +153,7 @@ describe('runSdkFromArgv', () => {
     await runSdkFromArgv(['react', '--help'], consumerCtx(tmpRoot));
 
     expect(capturedText(stdout)).toContain('create-paraspell sdk');
-    expect(generateSdkApp).not.toHaveBeenCalled();
+    expect(generateApp).not.toHaveBeenCalled();
   });
 
   it('prompts for missing options when stdin is a TTY', async () => {
@@ -179,7 +170,7 @@ describe('runSdkFromArgv', () => {
     await runSdkFromArgv(['react'], consumerCtx(tmpRoot));
 
     expect(promptGenerateOptions).toHaveBeenCalledOnce();
-    expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
+    expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
       opts: expect.objectContaining({ name: 'prompted-app' }),
     });
   });
@@ -208,7 +199,7 @@ describe('runSdkFromArgv', () => {
     );
 
     expect(promptGenerateOptions).not.toHaveBeenCalled();
-    expect(generateSdkApp).not.toHaveBeenCalled();
+    expect(generateApp).not.toHaveBeenCalled();
     expect(process.exitCode).toBe(1);
     expect(capturedText(stderr)).toContain(
       'Invalid --private-key or --substrate-mnemonic',
@@ -248,7 +239,7 @@ describe('runSdkFromArgv', () => {
     );
 
     expect(promptGenerateOptions).toHaveBeenCalledOnce();
-    expect(generateSdkApp).toHaveBeenCalledOnce();
+    expect(generateApp).toHaveBeenCalledOnce();
   });
 });
 
@@ -258,7 +249,7 @@ describe('runApiFromArgv', () => {
   beforeEach(() => {
     tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-run-cli-'));
     vi.clearAllMocks();
-    generateApiApp.mockResolvedValue(undefined);
+    generateApp.mockResolvedValue(undefined);
     vi.spyOn(fs, 'existsSync').mockReturnValue(false);
     stubTty(false);
   });
@@ -275,8 +266,9 @@ describe('runApiFromArgv', () => {
       consumerCtx(tmpRoot),
     );
 
-    expect(generateApiApp).toHaveBeenCalledOnce();
-    expect(generateApiApp.mock.calls[0]?.[0]).toMatchObject({
+    expect(generateApp).toHaveBeenCalledOnce();
+    expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
+      kind: 'api',
       opts: expect.objectContaining({
         framework: 'node',
         name: 'api-app',
@@ -290,7 +282,7 @@ describe('runCli', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     runInteractiveGenerate.mockResolvedValue(undefined);
-    generateSdkApp.mockResolvedValue(undefined);
+    generateApp.mockResolvedValue(undefined);
     vi.spyOn(fs, 'existsSync').mockReturnValue(false);
     stubTty(false);
   });
@@ -301,8 +293,8 @@ describe('runCli', () => {
   });
 
   it('delegates empty argv to the interactive wizard', async () => {
-    await runCli([], TEMPLATES_ROOT);
-    expect(runInteractiveGenerate).toHaveBeenCalledWith(TEMPLATES_ROOT);
+    await runCli([]);
+    expect(runInteractiveGenerate).toHaveBeenCalledWith();
   });
 
   it('prints root help to stdout for --help', async () => {
@@ -310,7 +302,7 @@ describe('runCli', () => {
       .spyOn(process.stdout, 'write')
       .mockImplementation(() => true);
 
-    await runCli(['--help'], TEMPLATES_ROOT);
+    await runCli(['--help']);
 
     expect(capturedText(stdout)).toContain('create-paraspell');
     expect(runInteractiveGenerate).not.toHaveBeenCalled();
@@ -321,9 +313,9 @@ describe('runCli', () => {
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
 
-    await runCli(['--name', 'orphan'], TEMPLATES_ROOT);
+    await runCli(['--name', 'orphan']);
 
-    expect(generateSdkApp).not.toHaveBeenCalled();
+    expect(generateApp).not.toHaveBeenCalled();
     expect(runInteractiveGenerate).not.toHaveBeenCalled();
     expect(capturedText(stderr)).toContain('No command registered');
   });
@@ -335,9 +327,10 @@ describe('runCli', () => {
     const cwd = vi.spyOn(process, 'cwd').mockReturnValue(tmpRoot);
 
     try {
-      await runCli(['sdk', ...SDK_FLAGS], TEMPLATES_ROOT);
-      expect(generateSdkApp).toHaveBeenCalledOnce();
-      expect(generateSdkApp.mock.calls[0]?.[0]).toMatchObject({
+      await runCli(['sdk', ...SDK_FLAGS]);
+      expect(generateApp).toHaveBeenCalledOnce();
+      expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
+        kind: 'sdk',
         opts: expect.objectContaining({ out: path.join(tmpRoot, 'my-app') }),
       });
     } finally {

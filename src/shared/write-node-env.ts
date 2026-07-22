@@ -1,10 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { Framework } from "./types.js";
-
-export const shouldWriteNodeEnv = (framework: Framework): boolean => {
-  return framework === "node";
-};
 
 const formatEnvValue = (value: string): string => {
   if (/[\s#"'\\]/.test(value)) {
