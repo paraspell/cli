@@ -28,11 +28,11 @@ const GENERATED_WORKSPACE_CONFIG = `packages:
 overrides:
   '@polkadot-api/json-rpc-provider': 0.2.0
 
-onlyBuiltDependencies:
-  - bufferutil
-  - es5-ext
-  - esbuild
-  - utf-8-validate
+allowBuilds:
+  bufferutil: true
+  es5-ext: true
+  esbuild: true
+  utf-8-validate: true
 `;
 
 const writeGeneratedWorkspace = (): void => {

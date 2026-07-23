@@ -1,4 +1,4 @@
-export const SDK_VERSION = "13.9.0";
+export const SDK_VERSION = "14.0.0";
 
 export const PACKAGE_VERSIONS = {
   polkadotApi: "^2.1.6",
