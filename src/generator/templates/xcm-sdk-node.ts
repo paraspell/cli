@@ -114,7 +114,12 @@ export const createXcmSdkNodeTemplates = (
             "typecheck": "tsc --noEmit"
           },
           "dependencies": {
-            "${sdkPackage}": "${sdkVersion}",
+            "${sdkPackage}": "${sdkVersion}"${
+              client === "papi"
+                ? source`,
+            "@paraspell/descriptors": "${sdkVersion}"`
+                : ""
+            },
             "@polkadot/keyring": "${polkadotKeyring}",
             "@polkadot/util-crypto": "${polkadotUtilCrypto}",
             "dotenv": "${dotenv}",

@@ -194,6 +194,11 @@ export const createXcmSdkReactTemplates = (
           },
           "dependencies": {
             "${sdkPackage}": "${sdkVersion}"${
+              client === "papi"
+                ? source`,
+            "@paraspell/descriptors": "${sdkVersion}"`
+                : ""
+            }${
               swap
                 ? source`,
             "@paraspell/swap": "${sdkVersion}"`

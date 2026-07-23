@@ -26,6 +26,14 @@ const assertPackageDeps = (
     if (variant.client === 'papi' && !deps['@paraspell/sdk']) {
       errors.push('Missing dependency @paraspell/sdk');
     }
+    if (variant.client === 'papi' && !deps['@paraspell/descriptors']) {
+      errors.push('Missing dependency @paraspell/descriptors');
+    }
+    if (variant.client !== 'papi' && deps['@paraspell/descriptors']) {
+      errors.push(
+        'Unexpected dependency @paraspell/descriptors when client is not papi',
+      );
+    }
     if (variant.client === 'dedot' && !deps['@paraspell/sdk-dedot']) {
       errors.push('Missing dependency @paraspell/sdk-dedot');
     }
@@ -87,6 +95,9 @@ const assertPackageDeps = (
     if (!deps['axios']) errors.push('Missing dependency axios');
     if (deps['@paraspell/sdk']) {
       errors.push('Unexpected dependency @paraspell/sdk in api project');
+    }
+    if (deps['@paraspell/descriptors']) {
+      errors.push('Unexpected dependency @paraspell/descriptors in api project');
     }
     if (deps['@paraspell/evm']) {
       errors.push('Unexpected dependency @paraspell/evm in api project');

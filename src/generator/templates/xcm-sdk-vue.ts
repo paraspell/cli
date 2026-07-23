@@ -199,7 +199,12 @@ export const createXcmSdkVueTemplates = (
             "preview": "vite preview"
           },
           "dependencies": {
-            "${sdkPackage}": "${sdkVersion}",
+            "${sdkPackage}": "${sdkVersion}"${
+              client === "papi"
+                ? source`,
+            "@paraspell/descriptors": "${sdkVersion}"`
+                : ""
+            },
             "vue": "${vue}"${
               swap
                 ? source`,
