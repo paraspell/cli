@@ -2,11 +2,14 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
+  DEFAULT_PACKAGE_MANAGER,
+  isPackageManager,
+  type TPackageManager,
+} from '../shared/project-options.js';
+import {
   hasProjectDependencies,
   isInGeneratedWorkspace,
 } from './workspace-install.js';
-
-export type TPackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
 export interface TCommandStep {
   name: string;
@@ -20,13 +23,13 @@ const detectPackageManager = (projectDir: string): TPackageManager => {
       fs.readFileSync(path.join(projectDir, 'package.json'), 'utf8'),
     ) as { packageManager?: string };
     const pm = pkg.packageManager?.split('@')[0];
-    if (pm === 'npm' || pm === 'yarn' || pm === 'pnpm' || pm === 'bun') {
+    if (pm !== undefined && isPackageManager(pm)) {
       return pm;
     }
   } catch {
     /* fall through */
   }
-  return 'pnpm';
+  return DEFAULT_PACKAGE_MANAGER;
 };
 
 const installArgs = (pm: TPackageManager): [string, string[]] => {

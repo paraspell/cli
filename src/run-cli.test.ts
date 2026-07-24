@@ -2,15 +2,40 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { confirm, note } from '@clack/prompts';
 
 type TGenerateApp = typeof import('./generator/generate.js').generateApp;
 type TRunInteractive = typeof import('./interactive.js').runInteractiveGenerate;
 type TPromptGenerateOptions =
   typeof import('./shared/prompt-options.js').promptGenerateOptions;
+type TInstallDependencies =
+  typeof import('./shared/install-dependencies.js').installDependencies;
 
 const generateApp = vi.fn<TGenerateApp>();
 const runInteractiveGenerate = vi.fn<TRunInteractive>();
 const promptGenerateOptions = vi.fn<TPromptGenerateOptions>();
+const installDependencies = vi.fn<TInstallDependencies>(() =>
+  Promise.resolve({ ok: true, output: '' }),
+);
+
+vi.mock('@clack/prompts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@clack/prompts')>();
+  return {
+    ...actual,
+    intro: vi.fn(),
+    outro: vi.fn(),
+    note: vi.fn(),
+    confirm: vi.fn(),
+    spinner: vi.fn(() => ({
+      start: vi.fn(),
+      stop: vi.fn(),
+      error: vi.fn(),
+    })),
+    log: { ...actual.log, warn: vi.fn() },
+    cancel: vi.fn(),
+    isCancel: vi.fn(() => false),
+  };
+});
 
 vi.mock('./generator/generate.js', () => ({
   generateApp: (params: Parameters<TGenerateApp>[0]) => generateApp(params),
@@ -31,6 +56,13 @@ vi.mock('./shared/prompt-options.js', async (importOriginal) => {
     ) => promptGenerateOptions(input, options),
   };
 });
+
+vi.mock('./shared/install-dependencies.js', () => ({
+  installDependencies: (
+    projectDir: string,
+    packageManager: Parameters<TInstallDependencies>[1],
+  ) => installDependencies(projectDir, packageManager),
+}));
 
 const { runCli, runFromArgv } = await import('./run-cli.js');
 
@@ -78,6 +110,8 @@ describe('runSdkFromArgv', () => {
     tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-run-cli-'));
     vi.clearAllMocks();
     generateApp.mockResolvedValue(undefined);
+    installDependencies.mockResolvedValue({ ok: true, output: '' });
+    vi.mocked(confirm).mockResolvedValue(true);
     vi.spyOn(fs, 'existsSync').mockReturnValue(false);
     stubTty(false);
   });
@@ -127,12 +161,12 @@ describe('runSdkFromArgv', () => {
   });
 
   it('prints next steps in consumer mode', async () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     await runSdkFromArgv([...SDK_FLAGS], consumerCtx(tmpRoot));
 
-    const printed = log.mock.calls.map(([line]) => String(line)).join('\n');
-    expect(printed).toContain('Next steps:');
-    expect(printed).toContain('npm install');
+    expect(note).toHaveBeenCalledWith(
+      expect.stringContaining('npm install'),
+      'Next steps',
+    );
   });
 
   it('reports an error and skips generation when the target exists', async () => {
@@ -174,6 +208,44 @@ describe('runSdkFromArgv', () => {
     expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
       opts: { name: 'prompted-app' },
     });
+  });
+
+  it('keeps internal TTY generation prompt-only', async () => {
+    stubTty(true);
+    promptGenerateOptions.mockResolvedValue({
+      name: 'prompted-app',
+      client: 'pjs',
+      extensions: { evm: false, swap: false, snowbridge: false },
+      packageManager: 'pnpm',
+    });
+
+    await runSdkFromArgv(['react'], devCtx(tmpRoot));
+
+    expect(promptGenerateOptions).toHaveBeenCalledOnce();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(installDependencies).not.toHaveBeenCalled();
+    expect(note).not.toHaveBeenCalled();
+  });
+
+  it('displays child directories whose names begin with two dots', async () => {
+    vi.spyOn(process, 'cwd').mockReturnValue(tmpRoot);
+    stubTty(true);
+    promptGenerateOptions.mockResolvedValue({
+      name: 'my-app',
+      client: 'pjs',
+      extensions: { evm: false, swap: false, snowbridge: false },
+      packageManager: 'pnpm',
+    });
+
+    await runSdkFromArgv(
+      ['react', '--name', 'my-app', '--out', '..cache'],
+      consumerCtx(tmpRoot),
+    );
+
+    expect(note).toHaveBeenCalledWith(
+      expect.stringContaining(`Directory        .${path.sep}..cache`),
+      'Project summary',
+    );
   });
 
   it('reports invalid CLI secrets and skips generation without a TTY', async () => {
@@ -282,6 +354,8 @@ describe('runCli', () => {
     vi.clearAllMocks();
     runInteractiveGenerate.mockResolvedValue(undefined);
     generateApp.mockResolvedValue(undefined);
+    installDependencies.mockResolvedValue({ ok: true, output: '' });
+    vi.mocked(confirm).mockResolvedValue(true);
     vi.spyOn(fs, 'existsSync').mockReturnValue(false);
     stubTty(false);
   });

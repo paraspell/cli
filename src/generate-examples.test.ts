@@ -4,7 +4,7 @@ import {
   apiExampleName,
   sdkExampleDir,
 } from './generate-examples.js';
-import { SDK_CLIENTS } from './shared/types.js';
+import { SDK_CLIENTS } from './shared/project-options.js';
 
 describe('extension combinations', () => {
   it('defines 8 valid combinations', () => {

@@ -1,56 +1,34 @@
 import type { Code } from 'ts-poet';
 import type {
-  TApiGenerateOptions,
   TExtensions,
   TFramework,
   TPackageManager,
   TProjectType,
   TSdkClient,
-  TSdkGenerateOptions,
-} from '../shared/types.js';
+} from '../shared/project-options.js';
+import type { TGenerateOptions } from '../shared/types.js';
 import type { TPackageVersions } from './versions.js';
 
-export const TEMPLATE_SET_IDS = [
-  'xcm-api-node',
-  'xcm-api-react',
-  'xcm-api-vue',
-  'xcm-sdk-node',
-  'xcm-sdk-react',
-  'xcm-sdk-vue',
-] as const;
+export type TTemplateSetId = `xcm-${TProjectType}-${TFramework}`;
 
-export type TTemplateSetId = (typeof TEMPLATE_SET_IDS)[number];
-
-export interface TFrameworkMeta {
+export type TGeneratorTarget = {
   templateSet: TTemplateSetId;
-  label: string;
   logoFile?: string;
-}
+};
 
-export type TGenerateAppParams =
-  | {
-      kind: 'sdk';
-      opts: TSdkGenerateOptions;
-    }
-  | {
-      kind: 'api';
-      opts: TApiGenerateOptions;
-    };
+export type TGenerateAppParams = {
+  kind: TProjectType;
+  opts: TGenerateOptions;
+};
 
 export type TSdkPackage =
   '@paraspell/sdk' | '@paraspell/sdk-pjs' | '@paraspell/sdk-dedot';
 
-export interface TClientMeta {
+export type TClientMeta = {
   client: TSdkClient;
   sdkPackage: TSdkPackage;
   sdkVersion: string;
   clientLabel: string;
-}
-
-export type TClientMetaByClient = {
-  [Client in TSdkClient]: Omit<TClientMeta, 'client'> & {
-    client: Client;
-  };
 };
 
 export type TTemplateContext = TPackageVersions &
@@ -66,8 +44,8 @@ export type TTemplateContext = TPackageVersions &
     evmWallet: boolean;
   };
 
-export interface TTemplateFile {
+export type TTemplateFile = {
   path: string;
   skip: boolean;
   render: () => Code;
-}
+};

@@ -1,5 +1,14 @@
+import { PNPM_ALLOWED_BUILDS } from '../config.js';
 import type { TTemplateContext, TTemplateFile } from '../types.js';
 import { source } from './source.js';
+
+const pnpmAllowedBuilds = PNPM_ALLOWED_BUILDS.map(
+  (dependency) => `  ${dependency}: true`,
+).join('\n');
+
+const pnpmWorkspace = `allowBuilds:
+${pnpmAllowedBuilds}
+`;
 
 const renderReactEslintConfig = () => source`
   import js from "@eslint/js";
@@ -115,5 +124,10 @@ export const createQualityTemplates = (
     render: () => source`dist
       node_modules
     `,
+  },
+  {
+    path: 'pnpm-workspace.yaml',
+    skip: context.packageManager !== 'pnpm',
+    render: () => source`${pnpmWorkspace}`,
   },
 ];

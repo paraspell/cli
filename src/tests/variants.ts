@@ -5,13 +5,14 @@ import {
   apiExampleName,
   sdkExampleDir,
 } from '../generate-examples.js';
-import { FRAMEWORKS, SDK_CLIENTS } from '../shared/types.js';
-import type {
-  TExtensions,
-  TFramework,
-  TProjectType,
-  TSdkClient,
-} from '../shared/types.js';
+import {
+  FRAMEWORKS,
+  SDK_CLIENTS,
+  type TExtensions,
+  type TFramework,
+  type TProjectType,
+  type TSdkClient,
+} from '../shared/project-options.js';
 
 export interface TGeneratedVariant {
   id: string;

@@ -17,14 +17,14 @@ type TTemplateFactory = (
   renderFragment: ReturnType<typeof createFragmentRenderer>,
 ) => readonly TTemplateFile[];
 
-const TEMPLATE_FACTORIES = {
+const TEMPLATE_FACTORIES: Record<TTemplateSetId, TTemplateFactory> = {
   'xcm-api-node': createXcmApiNodeTemplates,
   'xcm-api-react': createXcmApiReactTemplates,
   'xcm-api-vue': createXcmApiVueTemplates,
   'xcm-sdk-node': createXcmSdkNodeTemplates,
   'xcm-sdk-react': createXcmSdkReactTemplates,
   'xcm-sdk-vue': createXcmSdkVueTemplates,
-} satisfies Record<TTemplateSetId, TTemplateFactory>;
+};
 
 export const createTemplateFiles = (
   templateSet: TTemplateSetId,

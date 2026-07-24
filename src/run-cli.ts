@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { intro } from '@clack/prompts';
 import {
   type Application,
   buildApplication,
@@ -10,29 +11,26 @@ import {
   help,
   run,
 } from '@stricli/core';
-import { generateApp } from './generator/generate.js';
 import { runInteractiveGenerate } from './interactive.js';
 import {
   frameworkPositional,
   packageManagerFlag,
 } from './shared/cli-params.js';
-import { printNextSteps } from './shared/next-steps.js';
+import { CLI_INTRO } from './shared/messages.js';
 import {
-  applyGenerateDefaults,
-  hasRejectedSecrets,
-  type TNameValidator,
-  promptGenerateOptions,
-} from './shared/prompt-options.js';
-import {
+  DEFAULT_FRAMEWORK,
   FRAMEWORKS,
+  PROJECT_TYPE_OPTIONS,
   SDK_CLIENTS,
   type TExtensions,
   type TFramework,
   type TPackageManager,
   type TProjectType,
-  type TResolveInput,
   type TSdkClient,
-} from './shared/types.js';
+} from './shared/project-options.js';
+import { runProjectFlow } from './shared/project-flow.js';
+import type { TNameValidator } from './shared/prompt-options.js';
+import type { TResolveInput } from './shared/types.js';
 import { validateNameInput } from './shared/validate.js';
 
 interface TAppContext extends CommandContext {
@@ -67,7 +65,7 @@ const parseNameArg = (value: string): string => {
   return value;
 };
 
-const sharedFlagParams = {
+const sharedFlagParams: FlagParametersForType<TCliSharedFlags> = {
   name: {
     kind: 'parsed',
     parse: parseNameArg,
@@ -110,9 +108,9 @@ const sharedFlagParams = {
     brief: 'Substrate mnemonic or //Dev URI for node',
     optional: true,
   },
-} as const satisfies FlagParametersForType<TCliSharedFlags>;
+};
 
-const sdkFlagParams = {
+const sdkFlagParams: FlagParametersForType<TSdkFlags> = {
   ...sharedFlagParams,
   client: {
     kind: 'enum',
@@ -120,7 +118,7 @@ const sdkFlagParams = {
     brief: 'JS client: papi | pjs | dedot',
     optional: true,
   },
-} as const satisfies FlagParametersForType<TSdkFlags>;
+};
 
 const resolveOut = (root: string, out: string): string =>
   path.isAbsolute(out) ? out : path.join(root, out);
@@ -134,7 +132,7 @@ const defaultInternalOut = (
   path.join(
     root,
     'generated',
-    kind === 'sdk' ? 'xcm-sdk' : 'xcm-api',
+    PROJECT_TYPE_OPTIONS[kind].generatedDir,
     framework,
     name,
   );
@@ -168,7 +166,8 @@ const runGenerate = async (
   positionalFramework?: TFramework,
 ): Promise<Error | void> => {
   try {
-    const framework = flags.framework ?? positionalFramework ?? 'react';
+    const framework =
+      flags.framework ?? positionalFramework ?? DEFAULT_FRAMEWORK;
     const input: TResolveInput = {
       kind,
       framework,
@@ -183,53 +182,29 @@ const runGenerate = async (
       privateKey: flags.privateKey,
       substrateMnemonic: flags.substrateMnemonic,
     };
-
-    const rejectedSecrets = hasRejectedSecrets(input);
-    if (rejectedSecrets && !process.stdin.isTTY) {
-      throw new Error(
-        'Invalid --private-key or --substrate-mnemonic value. Fix the flag value, or omit it and run on a TTY to enter secrets interactively.',
-      );
-    }
+    const interactive = process.stdin.isTTY === true;
 
     const validateName = ctx.consumer
       ? makeConsumerNameValidator(ctx.root, flags.out)
       : undefined;
 
-    const resolved = process.stdin.isTTY
-      ? await promptGenerateOptions(input, { validateName })
-      : applyGenerateDefaults(input);
-
-    const out =
-      flags.out !== undefined
-        ? resolveOut(ctx.root, flags.out)
-        : ctx.consumer
-          ? path.join(ctx.root, resolved.name)
-          : defaultInternalOut(ctx.root, kind, framework, resolved.name);
-
-    if (ctx.consumer) assertConsumerProject(resolved.name, out);
-
-    const opts = {
-      framework,
-      name: resolved.name,
-      extensions: resolved.extensions,
-      packageManager: resolved.packageManager,
-      out,
-      privateKey: resolved.privateKey,
-      substrateMnemonic: resolved.substrateMnemonic,
-    };
-
-    await generateApp(
-      kind === 'sdk'
-        ? {
-            kind,
-            opts: { ...opts, client: resolved.client ?? 'pjs' },
-          }
-        : { kind, opts },
-    );
-
-    if (ctx.consumer) {
-      printNextSteps(out, resolved.packageManager, framework);
-    }
+    if (ctx.consumer && interactive) intro(CLI_INTRO);
+    await runProjectFlow({
+      input,
+      resolveOut: (resolved) => {
+        if (flags.out !== undefined) {
+          return resolveOut(ctx.root, flags.out);
+        }
+        if (ctx.consumer) {
+          return path.join(ctx.root, resolved.name);
+        }
+        return defaultInternalOut(ctx.root, kind, framework, resolved.name);
+      },
+      validateName,
+      validateOutput: ctx.consumer ? assertConsumerProject : undefined,
+      interactive,
+      userFacing: ctx.consumer,
+    });
   } catch (error) {
     return error instanceof Error ? error : new Error(String(error));
   }

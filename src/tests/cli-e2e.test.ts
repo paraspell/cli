@@ -118,8 +118,9 @@ describe('CLI subprocess', () => {
     );
 
     expect(result.ok).toBe(true);
-    expect(result.output).toContain('Next steps:');
+    expect(result.output).toContain('Next steps');
     expect(fs.existsSync(path.join(outDir, 'package.json'))).toBe(true);
+    expect(fs.existsSync(path.join(outDir, 'pnpm-workspace.yaml'))).toBe(false);
   });
 
   it('fails when the consumer target directory already exists', async () => {

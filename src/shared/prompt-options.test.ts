@@ -1,26 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { select, text } from '@clack/prompts';
+import { confirm, select, text } from '@clack/prompts';
 import {
   applyGenerateDefaults,
   hasRejectedSecrets,
   promptGenerateOptions,
 } from './prompt-options.js';
+import {
+  promptEvmPrivateKey,
+  promptSubstrateMnemonic,
+} from './prompt-secrets.js';
 
 const VALID_PRIVATE_KEY =
   '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
-vi.mock('@clack/prompts', () => ({
-  text: vi.fn(),
-  select: vi.fn(),
-  log: { success: vi.fn() },
-  cancel: vi.fn(),
-  isCancel: vi.fn(() => false),
-}));
+vi.mock('@clack/prompts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@clack/prompts')>();
+  return {
+    ...actual,
+    text: vi.fn(),
+    select: vi.fn(),
+    confirm: vi.fn(),
+    log: { ...actual.log, warn: vi.fn() },
+    cancel: vi.fn(),
+    isCancel: vi.fn(() => false),
+  };
+});
 
 vi.mock('./extensions-checkbox.js', () => ({
-  EVM_EXTENSION: 'evm-extension',
-  SWAP_EXTENSION: 'swap-extension',
-  SNOWBRIDGE_EXTENSION: 'snowbridge-extension',
   promptExtensions: vi.fn(() => Promise.resolve<string[]>([])),
 }));
 
@@ -31,15 +37,19 @@ vi.mock('./prompt-secrets.js', () => ({
 
 const mockedText = vi.mocked(text);
 const mockedSelect = vi.mocked(select);
+const mockedConfirm = vi.mocked(confirm);
+const mockedSubstratePrompt = vi.mocked(promptSubstrateMnemonic);
+const mockedEvmPrompt = vi.mocked(promptEvmPrivateKey);
 
 describe('promptGenerateOptions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedConfirm.mockResolvedValue(false);
   });
 
   it('prompts for every missing sdk option', async () => {
     mockedText.mockResolvedValue('prompted-app');
-    mockedSelect.mockResolvedValueOnce('npm').mockResolvedValueOnce('pjs');
+    mockedSelect.mockResolvedValueOnce('pjs').mockResolvedValueOnce('npm');
 
     const result = await promptGenerateOptions({
       kind: 'sdk',
@@ -77,7 +87,7 @@ describe('promptGenerateOptions', () => {
     });
   });
 
-  it('never prompts for a client on api projects', async () => {
+  it('uses the default client without prompting on api projects', async () => {
     mockedText.mockResolvedValue('api-app');
     mockedSelect.mockResolvedValueOnce('pnpm');
 
@@ -88,7 +98,42 @@ describe('promptGenerateOptions', () => {
     });
 
     expect(mockedSelect).toHaveBeenCalledOnce();
-    expect(result.client).toBeUndefined();
+    expect(result.client).toBe('papi');
+  });
+
+  it('asks before collecting optional node wallet secrets', async () => {
+    const result = await promptGenerateOptions({
+      kind: 'sdk',
+      framework: 'node',
+      name: 'node-app',
+      packageManager: 'pnpm',
+      client: 'pjs',
+      extensions: { evm: true },
+    });
+
+    expect(mockedConfirm).toHaveBeenCalledOnce();
+    expect(mockedSubstratePrompt).not.toHaveBeenCalled();
+    expect(mockedEvmPrompt).not.toHaveBeenCalled();
+    expect(result.substrateMnemonic).toBeUndefined();
+    expect(result.privateKey).toBeUndefined();
+  });
+
+  it('collects node wallet secrets after the user opts in', async () => {
+    mockedConfirm.mockResolvedValue(true);
+
+    const result = await promptGenerateOptions({
+      kind: 'sdk',
+      framework: 'node',
+      name: 'node-app',
+      packageManager: 'pnpm',
+      client: 'pjs',
+      extensions: { evm: true },
+    });
+
+    expect(mockedSubstratePrompt).toHaveBeenCalledOnce();
+    expect(mockedEvmPrompt).toHaveBeenCalledOnce();
+    expect(result.substrateMnemonic).toBe('//Alice');
+    expect(result.privateKey).toBe(VALID_PRIVATE_KEY);
   });
 });
 
@@ -102,7 +147,7 @@ describe('applyGenerateDefaults', () => {
       }),
     ).toEqual({
       name: 'my-xcm-app',
-      client: 'pjs',
+      client: 'papi',
       extensions: { evm: false, swap: false, snowbridge: false },
       packageManager: 'pnpm',
       privateKey: undefined,
@@ -110,14 +155,14 @@ describe('applyGenerateDefaults', () => {
     });
   });
 
-  it('uses the api default name and no client', () => {
+  it('uses the api defaults', () => {
     const result = applyGenerateDefaults({
       kind: 'api',
       framework: 'react',
       extensions: {},
     });
     expect(result.name).toBe('my-xcm-api-app');
-    expect(result.client).toBeUndefined();
+    expect(result.client).toBe('papi');
   });
 
   it('keeps valid node secrets', () => {

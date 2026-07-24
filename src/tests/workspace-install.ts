@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PNPM_ALLOWED_BUILDS } from '../generator/config.js';
 import { runCommand } from './run-project.js';
 
 export const WORKSPACE_INSTALL_TIMEOUT_MS = 20 * 60 * 1000;
@@ -19,6 +20,10 @@ const GENERATED_WORKSPACE_PACKAGE = {
   private: true,
 } as const;
 
+const pnpmAllowedBuilds = PNPM_ALLOWED_BUILDS.map(
+  (dependency) => `  ${dependency}: true`,
+).join('\n');
+
 const GENERATED_WORKSPACE_CONFIG = `packages:
   - 'xcm-sdk/*/*'
   - 'xcm-api/*/*'
@@ -29,10 +34,7 @@ overrides:
   '@polkadot-api/json-rpc-provider': 0.2.0
 
 allowBuilds:
-  bufferutil: true
-  es5-ext: true
-  esbuild: true
-  utf-8-validate: true
+${pnpmAllowedBuilds}
 `;
 
 const writeGeneratedWorkspace = (): void => {

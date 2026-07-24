@@ -1,4 +1,14 @@
-import { FRAMEWORKS, PACKAGE_MANAGERS } from './types.js';
+import type {
+  CommandContext,
+  TypedFlagParameter,
+  TypedPositionalParameters,
+} from '@stricli/core';
+import {
+  FRAMEWORKS,
+  PACKAGE_MANAGERS,
+  type TFramework,
+  type TPackageManager,
+} from './project-options.js';
 
 const choiceParser = <T extends string>(
   label: string,
@@ -17,7 +27,10 @@ const choiceParser = <T extends string>(
 
 const parseFrameworkArg = choiceParser('framework', FRAMEWORKS);
 
-export const frameworkPositional = {
+export const frameworkPositional: TypedPositionalParameters<
+  [TFramework?],
+  CommandContext
+> = {
   kind: 'tuple',
   parameters: [
     {
@@ -27,11 +40,13 @@ export const frameworkPositional = {
       placeholder: 'framework',
     },
   ],
-} as const;
+};
 
-export const packageManagerFlag = {
+export const packageManagerFlag: TypedFlagParameter<
+  TPackageManager | undefined
+> = {
   kind: 'enum',
   values: PACKAGE_MANAGERS,
   brief: 'Package manager: npm | yarn | pnpm | bun',
   optional: true,
-} as const;
+};
