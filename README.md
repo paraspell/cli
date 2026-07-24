@@ -141,7 +141,7 @@ pnpm lint
 pnpm format:check
 pnpm build
 pnpm test
-pnpm test -- --coverage
+pnpm test --coverage
 pnpm test:e2e
 ```
 

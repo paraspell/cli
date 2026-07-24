@@ -2,13 +2,7 @@ node_modules/
 dist/
 generated/
 coverage/
-
-/public/
-/index.html
-/vite.config.ts
-/tsconfig.json
-/tsconfig.app.json
-/tsconfig.node.json
-/eslint.config.js
-LICENSE
+.env
+.DS_Store
+*.log
 *.tgz

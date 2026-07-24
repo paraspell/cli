@@ -1,0 +1,69 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
+import { generateApp } from './generate.js';
+
+const outputs: string[] = [];
+
+const temporaryOutput = (): string => {
+  const output = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-generator-'));
+  outputs.push(output);
+  return output;
+};
+
+afterEach(() => {
+  for (const output of outputs.splice(0)) {
+    fs.rmSync(output, { recursive: true, force: true });
+  }
+});
+
+describe('generateApp', () => {
+  it('replaces an existing directory with a browser project and its logo', async () => {
+    const out = temporaryOutput();
+    fs.writeFileSync(path.join(out, 'stale.txt'), 'stale');
+
+    await generateApp({
+      kind: 'sdk',
+      opts: {
+        framework: 'react',
+        name: 'browser-app',
+        client: 'dedot',
+        packageManager: 'npm',
+        out,
+        extensions: { evm: false, swap: false, snowbridge: false },
+      },
+    });
+
+    expect(fs.existsSync(path.join(out, 'stale.txt'))).toBe(false);
+    expect(fs.existsSync(path.join(out, 'public', 'paraspell.png'))).toBe(true);
+    expect(fs.readFileSync(path.join(out, 'package.json'), 'utf8')).toContain(
+      '"name": "browser-app"',
+    );
+  });
+
+  it('writes a private node environment with configured wallets', async () => {
+    const out = temporaryOutput();
+    const privateKey = `0x${'a'.repeat(64)}`;
+
+    await generateApp({
+      kind: 'api',
+      opts: {
+        framework: 'node',
+        name: 'node-api',
+        client: 'papi',
+        packageManager: 'pnpm',
+        out,
+        privateKey,
+        substrateMnemonic: '//Alice',
+        extensions: { evm: true, swap: true, snowbridge: true },
+      },
+    });
+
+    expect(fs.readFileSync(path.join(out, '.env'), 'utf8')).toBe(
+      `SUBSTRATE_MNEMONIC=//Alice\nPRIVATE_KEY=${privateKey}\n`,
+    );
+    expect(fs.statSync(path.join(out, '.env')).mode & 0o777).toBe(0o600);
+    expect(fs.existsSync(path.join(out, 'pnpm-workspace.yaml'))).toBe(true);
+  });
+});
