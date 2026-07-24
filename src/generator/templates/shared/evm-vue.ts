@@ -128,25 +128,25 @@ export const createEvmVueFragments: TFragmentFactory<
         </template>
         `,
     'evm/useEvmOriginChains.vue':
-      () => source`import { onMounted, ref } from "vue";
+      () => source`import { onMounted, ref, shallowRef } from "vue";
         import { loadEvmOriginChains } from "./evmOrigins";
         
         export const useEvmOriginChains = () => {
           const chains = ref<readonly string[]>([]);
-          let fetchPromise: Promise<readonly string[]> | null = null;
+          const fetchPromise = shallowRef<Promise<readonly string[]> | null>(null);
         
           const ensureEvmOriginChains = async (): Promise<readonly string[]> => {
             if (chains.value.length > 0) {
               return chains.value;
             }
         
-            fetchPromise ??= loadEvmOriginChains();
+            fetchPromise.value ??= loadEvmOriginChains();
             try {
-              const result = await fetchPromise;
+              const result = await fetchPromise.value;
               chains.value = result;
               return result;
             } finally {
-              fetchPromise = null;
+              fetchPromise.value = null;
             }
           };
         
@@ -159,8 +159,13 @@ export const createEvmVueFragments: TFragmentFactory<
           return { chains, isEvmOrigin, ensureEvmOriginChains };
         };
         `,
-    'evm/useEvmWallet.vue':
-      () => source`import { computed, onMounted, onUnmounted, ref } from "vue";
+    'evm/useEvmWallet.vue': () => source`import {
+        computed,
+        onMounted,
+        onUnmounted,
+        ref,
+        shallowRef,
+      } from "vue";
         import type { EIP6963ProviderDetail } from "mipd";
         import { getAddress, type WalletClient, isAddress } from "viem";
         import { createWalletClient, custom } from "viem";
@@ -181,16 +186,16 @@ export const createEvmVueFragments: TFragmentFactory<
           const selectedProvider = ref<EIP6963ProviderDetail>();
           const providerOptions = ref<TEvmProviderOption[]>([]);
         
-          let unsubscribe: (() => void) | undefined;
+          const unsubscribe = shallowRef<() => void>();
         
           onMounted(() => {
-            unsubscribe = evmProviderStore?.subscribe((nextProviders) => {
+            unsubscribe.value = evmProviderStore?.subscribe((nextProviders) => {
               providers.value = nextProviders;
             });
           });
         
           onUnmounted(() => {
-            unsubscribe?.();
+            unsubscribe.value?.();
           });
         
           const handleAccountsChanged = (nextAccounts: string[]) => {

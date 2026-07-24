@@ -183,17 +183,17 @@ export const createWalletReactFragments: TFragmentFactory<
             if (!selectedAddress) {
               return;
             }
-            let cancelled = false;
+            const abortController = new AbortController();
             void web3FromAddress(selectedAddress)
               .then((injector) => {
-                if (cancelled) return;
+                if (abortController.signal.aborted) return;
                 setSigner(injector.signer);
               })
               .catch(() => {
-                if (!cancelled) setSigner(null);
+                if (!abortController.signal.aborted) setSigner(null);
               });
             return () => {
-              cancelled = true;
+              abortController.abort();
               setSigner(null);
             };
           }, [selectedAddress]);
