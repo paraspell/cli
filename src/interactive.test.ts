@@ -12,10 +12,6 @@ const promptFeatureExtensions = vi.fn(async (_defaults?: unknown) => [] as strin
 const promptSubstrateMnemonic = vi.fn(async () => undefined as string | undefined);
 const promptEvmPrivateKey = vi.fn(async () => undefined as string | undefined);
 
-vi.mock('terminal-image', () => ({
-  default: { buffer: vi.fn(async () => '') },
-}));
-
 vi.mock('@clack/prompts', () => ({
   intro: vi.fn(),
   outro: vi.fn(),
@@ -66,6 +62,14 @@ describe('runInteractiveGenerate', () => {
 
     await runInteractiveGenerate();
 
+    expect(mockedSelect).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        options: expect.arrayContaining([
+          { value: 'papi', label: 'Polkadot API (PAPI)' },
+        ]),
+      }),
+    );
     expect(generateApp).toHaveBeenCalledOnce();
     expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
       kind: 'sdk',

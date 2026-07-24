@@ -141,8 +141,7 @@ Clone this repo and run the compiled CLI locally — it takes the same `sdk` / `
 ```bash
 pnpm install
 pnpm build
-pnpm execute          # run the built CLI locally
-pnpm generate         # interactive flow using the compiled CLI
+pnpm start            # run the built CLI locally
 ```
 
 **Package layout:**
@@ -153,7 +152,7 @@ pnpm generate         # interactive flow using the compiled CLI
 └── src/                      # TypeScript CLI source
     ├── index.ts              # entry → dist/
     ├── run-cli.ts            # argv routing & agent flow
-    ├── interactive.ts        # prompts & banner
+    ├── interactive.ts        # interactive prompts
     ├── generator/
     │   ├── templates/        # typed SDK/API scaffold definitions
     │   ├── context.ts        # typed synthesis context
