@@ -2,11 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeNodeEnv } from '../shared/write-node-env.js';
+import { GENERATOR_TARGETS } from './config.js';
 import { createTemplateContext } from './context.js';
 import { formatGeneratedFile } from './format-generated-file.js';
-import { API_FRAMEWORKS, SDK_FRAMEWORKS } from './frameworks.js';
 import { createTemplateFiles } from './templates/index.js';
-import type { TFrameworkMeta, TGenerateAppParams } from './types.js';
+import type { TGeneratorTarget, TGenerateAppParams } from './types.js';
 
 const resolveOutputPath = (
   outputRoot: string,
@@ -30,7 +30,7 @@ const resolveOutputPath = (
 };
 
 const copyLogo = async (
-  meta: TFrameworkMeta,
+  meta: TGeneratorTarget,
   outputRoot: string,
 ): Promise<void> => {
   if (!meta.logoFile) return;
@@ -51,10 +51,7 @@ export const generateApp = async (
   params: TGenerateAppParams,
 ): Promise<void> => {
   const { kind, opts } = params;
-  const meta =
-    kind === 'sdk'
-      ? SDK_FRAMEWORKS[opts.framework]
-      : API_FRAMEWORKS[opts.framework];
+  const meta = GENERATOR_TARGETS[kind][opts.framework];
   const context = createTemplateContext(params);
   const templates = createTemplateFiles(meta.templateSet, context).filter(
     (template) => !template.skip,
@@ -88,7 +85,4 @@ export const generateApp = async (
       substrateMnemonic: opts.substrateMnemonic,
     });
   }
-
-  const label = kind === 'sdk' ? 'XCM SDK' : 'XCM API';
-  console.log(`\nGenerated ${meta.label} ${label} app at ${opts.out}`);
 };

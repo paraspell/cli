@@ -25,6 +25,7 @@ const PRETTIER_PARSERS: Record<string, string> = {
   '.ts': 'typescript',
   '.tsx': 'typescript',
   '.vue': 'vue',
+  '.yaml': 'yaml',
 };
 
 const validateTypeScript = (relativePath: string, source: string): void => {

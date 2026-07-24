@@ -1,13 +1,21 @@
-import { select, text } from '@clack/prompts';
+import { confirm, group, select, text } from '@clack/prompts';
 import { ask, toClackValidate } from './clack.js';
-import { PACKAGE_MANAGERS } from './types.js';
-import { SDK_CLIENT_LABELS, SDK_CLIENTS } from './types.js';
-import type {
-  TFramework,
-  TPackageManager,
-  TProjectType,
-  TSdkClient,
-} from './types.js';
+import {
+  DEFAULT_FRAMEWORK,
+  DEFAULT_PROJECT_TYPE,
+  DEFAULT_SDK_CLIENT,
+  FRAMEWORK_OPTIONS,
+  FRAMEWORKS,
+  PACKAGE_MANAGERS,
+  PROJECT_TYPE_OPTIONS,
+  PROJECT_TYPES,
+  SDK_CLIENT_OPTIONS,
+  SDK_CLIENTS,
+  type TFramework,
+  type TPackageManager,
+  type TProjectType,
+  type TSdkClient,
+} from './project-options.js';
 
 export const promptName = (
   initialValue: string,
@@ -15,7 +23,7 @@ export const promptName = (
 ): Promise<string> => {
   return ask(
     text({
-      message: 'Enter the project name',
+      message: 'Name your project',
       initialValue,
       validate: toClackValidate(validate),
     }),
@@ -27,47 +35,75 @@ export const promptPackageManager = (
 ): Promise<TPackageManager> => {
   return ask(
     select<TPackageManager>({
-      message: 'Select the desired package manager',
-      options: PACKAGE_MANAGERS.map((pm) => ({ value: pm, label: pm })),
-      initialValue,
-    }),
-  );
-};
-
-export const promptFramework = (): Promise<TFramework> => {
-  return ask(
-    select<TFramework>({
-      message: 'Select the desired framework',
-      options: [
-        { value: 'react', label: 'Vite - React' },
-        { value: 'vue', label: 'Vite - Vue' },
-        { value: 'node', label: 'NodeJS' },
-      ],
-    }),
-  );
-};
-
-export const promptProjectType = (): Promise<TProjectType> => {
-  return ask(
-    select<TProjectType>({
-      message: 'Select the desired project type',
-      options: [
-        { value: 'sdk', label: 'XCM SDK' },
-        { value: 'api', label: 'XCM API' },
-      ],
-    }),
-  );
-};
-
-export const promptClient = (initialValue: TSdkClient) => {
-  return ask(
-    select<TSdkClient>({
-      message: 'Select the desired JS client type',
-      options: SDK_CLIENTS.map((value) => ({
-        value,
-        label: SDK_CLIENT_LABELS[value],
+      message: 'Choose a package manager',
+      options: PACKAGE_MANAGERS.map((pm) => ({
+        value: pm,
+        label: pm,
+        hint: pm === initialValue ? 'recommended' : undefined,
       })),
       initialValue,
+    }),
+  );
+};
+
+const promptFramework = () => {
+  return ask(
+    select<TFramework>({
+      message: 'Choose a framework',
+      options: FRAMEWORKS.map((value) => {
+        const option = FRAMEWORK_OPTIONS[value];
+        return {
+          value,
+          label: option.label,
+          hint: option.hint,
+        };
+      }),
+      initialValue: DEFAULT_FRAMEWORK,
+    }),
+  );
+};
+
+const promptProjectType = () => {
+  return ask(
+    select<TProjectType>({
+      message: 'What would you like to build?',
+      options: PROJECT_TYPES.map((value) => ({
+        value,
+        label: PROJECT_TYPE_OPTIONS[value].label,
+        hint: PROJECT_TYPE_OPTIONS[value].hint,
+      })),
+      initialValue: DEFAULT_PROJECT_TYPE,
+    }),
+  );
+};
+
+export const promptClient = () => {
+  return ask(
+    select<TSdkClient>({
+      message: 'Choose a Polkadot client',
+      options: SDK_CLIENTS.map((value) => ({
+        value,
+        ...SDK_CLIENT_OPTIONS[value],
+      })),
+      initialValue: DEFAULT_SDK_CLIENT,
+    }),
+  );
+};
+
+export const promptProjectBasics = () => {
+  return group({
+    projectType: () => promptProjectType(),
+    framework: () => promptFramework(),
+  });
+};
+
+export const promptConfigureWallet = (): Promise<boolean> => {
+  return ask(
+    confirm({
+      message: 'Configure a development wallet now?',
+      active: 'Configure now',
+      inactive: 'Skip',
+      initialValue: false,
     }),
   );
 };

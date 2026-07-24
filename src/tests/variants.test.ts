@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EXTENSION_COMBINATIONS } from '../generate-examples.js';
-import { FRAMEWORKS, SDK_CLIENTS } from '../shared/types.js';
+import { FRAMEWORKS, SDK_CLIENTS } from '../shared/project-options.js';
 import { listVariants } from './variants.js';
 
 const SDK_PER_FRAMEWORK = SDK_CLIENTS.length * EXTENSION_COMBINATIONS.length;

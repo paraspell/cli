@@ -7,15 +7,18 @@ import {
 } from './shared/cli-params.js';
 import { generateApp } from './generator/generate.js';
 import {
+  DEFAULT_PACKAGE_MANAGER,
+  DEFAULT_SDK_CLIENT,
   EXTENSION_KEYS,
   FRAMEWORKS,
+  PROJECT_TYPES,
   SDK_CLIENTS,
   type TExtensions,
   type TFramework,
   type TPackageManager,
   type TProjectType,
   type TSdkClient,
-} from './shared/types.js';
+} from './shared/project-options.js';
 
 export const EXTENSION_COMBINATIONS: readonly TExtensions[] = [
   false,
@@ -26,7 +29,7 @@ export const EXTENSION_COMBINATIONS: readonly TExtensions[] = [
   ),
 );
 
-export const extensionSuffix = (extensions: TExtensions): string => {
+const extensionSuffix = (extensions: TExtensions): string => {
   return EXTENSION_KEYS.filter((key) => extensions[key]).join('-');
 };
 
@@ -46,7 +49,7 @@ const cliRoot = fileURLToPath(new URL('../', import.meta.url));
 const generateExamples = async (
   kind: TProjectType | undefined,
   framework: TFramework | undefined,
-  packageManager: TPackageManager = 'pnpm',
+  packageManager: TPackageManager = DEFAULT_PACKAGE_MANAGER,
 ): Promise<void> => {
   const frameworks: readonly TFramework[] = framework
     ? [framework]
@@ -82,6 +85,7 @@ const generateExamples = async (
           opts: {
             framework: fw,
             name: `xcm-api-${name}`,
+            client: DEFAULT_SDK_CLIENT,
             out: path.join(cliRoot, 'generated', 'xcm-api', fw, name),
             extensions,
             packageManager,
@@ -103,7 +107,7 @@ const command = buildCommand<
       packageManager: packageManagerFlag,
       kind: {
         kind: 'enum',
-        values: ['sdk', 'api'],
+        values: PROJECT_TYPES,
         brief: 'Which examples to generate (defaults to both)',
         optional: true,
       },

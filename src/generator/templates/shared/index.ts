@@ -15,7 +15,7 @@ import { createWalletReactFragments } from './wallet-react.js';
 import { createWalletVueFragments } from './wallet-vue.js';
 import { createXcmFragments } from './xcm.js';
 
-export type { TFragmentId, TFragmentRenderer } from './contracts.js';
+export type { TFragmentRenderer } from './contracts.js';
 
 export const createFragmentRenderer = (
   context: TTemplateContext,

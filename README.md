@@ -1,104 +1,104 @@
-<h1 align="center">
-create-paraspell ✨ — scaffold XCM starter apps
-</h1>
+<h1 align="center">create-paraspell ✨</h1>
 
 <p align="center">
-<img width="400" alt="ParaSpell logo" src="https://github.com/paraspell/xcm-tools/assets/55763425/a65e3626-84cf-444b-ab77-9375508e5895">
+  <img width="400" alt="ParaSpell logo" src="https://github.com/paraspell/xcm-tools/assets/55763425/a65e3626-84cf-444b-ab77-9375508e5895">
 </p>
 
 <p align="center">
-  Official CLI to bootstrap <strong>XCM SDK</strong> and <strong>XCM API</strong> apps — React, Vue, or Node — in seconds.
+  Start a working XCM app in minutes, with the stack and capabilities you choose.
 </p>
 
 <p align="center">
   <a href="https://paraspell.xyz">Website</a> ·
   <a href="https://paraspell.github.io/docs/">Documentation</a> ·
-  <a href="https://github.com/paraspell/xcm-tools">XCM Tools monorepo</a>
+  <a href="https://github.com/paraspell/xcm-tools">XCM Tools</a>
 </p>
 
-<br>
-
-**What you can generate:**
-
-- **[XCM SDK](https://github.com/paraspell/xcm-tools/tree/main/packages/sdk) 🪄** — Cross-chain dApps with an in-app client library.
-  - **Clients:** `papi` ([Polkadot API](https://github.com/paraspell/xcm-tools/tree/main/packages/sdk)), `pjs` ([Polkadot.js](https://github.com/paraspell/xcm-tools/tree/main/packages/sdk-pjs)), `dedot` ([Dedot](https://github.com/paraspell/xcm-tools/tree/main/packages/sdk-dedot))
-  - **Extensions (optional):** [EVM](https://github.com/paraspell/xcm-tools/tree/main/packages/evm), [Swap](https://paraspell.github.io/docs/xcm-sdk/getting-started.html#install-swap-extension), [Snowbridge](https://github.com/paraspell/xcm-tools/tree/main/packages/evm-snowbridge)
-- **[XCM API](https://github.com/paraspell/xcm-tools/tree/main/apps/xcm-api) ⚡️** — Package-less XCM integration: your app calls the API, signs locally, and stays lean.
-
-**Frameworks** : React (Vite), Vue (Vite), or Node.js (headless Express server).
-
-<br>
-
-## Quick start
-
-Run the CLI in any empty folder (interactive prompts guide you through type, framework, client, and extensions):
+## Get started
 
 ```bash
-pnpm create paraspell
+pnpm create-paraspell
 ```
 
-Then follow the printed next steps. For a **React / Vue** app:
+The wizard helps you choose what to build, shows you the final setup, creates
+the project, and installs its dependencies. When it finishes:
 
 ```bash
-cd my-app
-pnpm install
-pnpm run dev
+cd my-xcm-app
+pnpm dev
 ```
 
-For a **Node.js** app (a headless Express server):
+Use npm, Yarn, or Bun instead if that is what your project uses:
 
 ```bash
-cd my-app
-pnpm install
-pnpm start                          # boots the server — no transfer yet
-curl -X POST http://localhost:3000/ # signs & submits the configured XCM transfer
+npm create paraspell@latest
+yarn create paraspell
+bun create paraspell
 ```
 
-<details><summary><b>Other package managers</b></summary>
-<br>
+Requires Node.js 24 or newer.
 
-| Tool | Command |
-|------|---------|
-| **npm** | `npm create paraspell@latest` |
-| **yarn** | `yarn create paraspell` |
-| **pnpm** | `pnpm create paraspell` |
-| **bun** | `bun create paraspell` |
-| **npx** | `npx create-paraspell@latest` |
+## What can I build?
 
-**Global binary** (after `pnpm install -g create-paraspell`):
+|             | XCM SDK                                | XCM API                            |
+| ----------- | -------------------------------------- | ---------------------------------- |
+| Best for    | Calling ParaSpell directly in your app | Keeping XCM logic outside your app |
+| Integration | PAPI, Polkadot.js, or Dedot            | Package-less HTTP API              |
+| Apps        | React, Vue, or Node.js                 | React, Vue, or Node.js             |
+
+The generated app comes with a transfer flow already wired up. Add any of these
+when you need them:
+
+- **Swap** for cross-chain swaps
+- **EVM** for EVM origin chains
+- **Snowbridge** for transfers between Ethereum and Polkadot
+
+React and Vue projects include a Vite app with wallet integration. Node.js
+projects include a headless Express server and optional development wallet
+setup.
+
+## The wizard
+
+The interactive flow asks only what matters for the project you selected:
+
+1. Choose XCM SDK or XCM API.
+2. Choose React, Vue, or Node.js.
+3. Pick a Polkadot client when using the SDK.
+4. Choose the Swap, EVM, and Snowbridge extensions you need.
+5. Name the project and choose a package manager.
+6. Optionally configure a development wallet for Node.js.
+7. Review everything before files are written.
+
+Project creation and dependency installation include live progress. If
+installation fails, your generated project is kept and the CLI prints the
+manual command to continue.
+
+## Use it from scripts
+
+Prefer explicit commands in CI or when you already know the setup you want:
 
 ```bash
-create-paraspell
+# React app using the XCM SDK and PAPI
+npx create-paraspell@latest sdk react \
+  --name my-xcm-app \
+  --client papi \
+  --package-manager pnpm
+
+# Vue app using the XCM API and EVM origins
+npx create-paraspell@latest api vue \
+  --name my-xcm-api \
+  --evm \
+  --package-manager npm
+
+# Headless SDK server with swaps
+npx create-paraspell@latest sdk node \
+  --name my-xcm-server \
+  --client dedot \
+  --swap
 ```
 
-</details>
-
-<details><summary><b>Interactive mode (what it asks)</b></summary>
-<br>
-
-Running with no arguments prompts for, in order:
-
-1. **Project name**
-2. **Package manager** — `npm` / `yarn` / `pnpm` / `bun`
-3. **Framework** — React / Vue / Node.js
-4. **Project type** — XCM SDK or XCM API
-5. **Client** (SDK only) — Polkadot API / Polkadot.js / Dedot
-6. **Extensions** — EVM, Swap, Snowbridge (Snowbridge requires EVM)
-
-For the **Node.js** framework it additionally (optionally) prompts for a **Substrate mnemonic**, and — when EVM is enabled — an **EVM private key**. These are written only to the generated project's `.env` (gitignored, `chmod 600`), never logged or committed. Press Enter to skip and add them to `.env` yourself later. See [Security](#security).
-
-</details>
-
-<details><summary><b>For Agents & CI</b></summary>
-<br>
-
-Use `sdk` or `api` as the subcommand, plus `--name`. SDK projects also accept `--client` (defaults to `pjs`; on a TTY you're prompted for it if omitted).
-
-```bash
-npx create-paraspell@latest sdk react --name my-app --client pjs --package-manager pnpm
-npx create-paraspell@latest api vue --name my-api --package-manager npm
-npx create-paraspell@latest sdk node --name my-node --client dedot --evm
-```
+Non-interactive environments use sensible defaults and leave dependency
+installation as an explicit CI step.
 
 ```bash
 create-paraspell --help
@@ -106,96 +106,44 @@ create-paraspell sdk --help
 create-paraspell api --help
 ```
 
-On a TTY, omitting `--name` or `--client` (SDK) opens prompts. Without a TTY, sensible defaults apply.
+## A note about wallet secrets
 
-| Flag | Values | Default |
-|------|--------|---------|
-| `<framework>` positional / `--framework` | `react`, `vue`, `node` | `react` |
-| `--client` (SDK only) | `papi`, `pjs`, `dedot` | `pjs` |
-| `--evm`, `--swap`, `--snowbridge` | bare flag enables; `--no-evm` etc. disables | `false` |
-| `--package-manager` | `npm`, `yarn`, `pnpm`, `bun` | `pnpm` |
-| `--name`, `--out` | | `./<name>` in the current directory |
-| `--substrate-mnemonic` | (Node only) seed the generated `.env` | — |
-| `--private-key` | (Node + EVM or Snowbridge) seed the generated `.env` | — |
+Node.js projects can write a Substrate mnemonic and EVM private key to the
+generated `.env`. Wallet setup is optional, values are entered through masked
+prompts, and `.env` is gitignored.
 
-> Avoid passing `--substrate-mnemonic` / `--private-key` on a shared shell or in CI logs — they can leak into shell history. Prefer the interactive masked prompt, or edit the generated `.env` directly. See [Security](#security).
+Use a development account such as `//Alice`. The generated Node.js server can
+sign and submit live XCM transfers when you call `POST /`.
 
-</details>
+Avoid secret flags in shared shells or CI logs; command-line values may be saved
+in shell history. Prefer the interactive prompt or edit `.env` yourself. Read
+the full [security guide](SECURITY.md) before using funded accounts.
 
-## Security
-
-This CLI can prompt for wallet secrets to pre-fill a generated **Node.js** app:
-
-- A **Substrate mnemonic** (any Node.js app) and, with `--evm`, an **EVM private key**.
-- Entered secrets are written **only** to the generated project's `.env` — gitignored and created with `chmod 600` — and are never logged or committed.
-- The prompts are **optional** — press Enter to skip and add secrets to `.env` yourself later.
-- Use a **dev / throwaway account** (e.g. `//Alice`) for testing: generated Node apps sign and broadcast **live** XCM transfers on `POST /`.
-
-Found a vulnerability? See [SECURITY.md](SECURITY.md).
-
-<details><summary><b>Repository development</b></summary>
-<br>
-
-Clone this repo and run the compiled CLI locally — it takes the same `sdk` / `api` subcommands and flags as `create-paraspell` (pass `--out` to choose where the app is written):
+## Work on the CLI
 
 ```bash
 pnpm install
 pnpm build
-pnpm start            # run the built CLI locally
+pnpm start
 ```
 
-**Package layout:**
-
-```text
-├── dist/                     # built CLI (bin entry: dist/index.js)
-├── assets/                   # logos copied into generated projects
-└── src/                      # TypeScript CLI source
-    ├── index.ts              # entry → dist/
-    ├── run-cli.ts            # argv routing & agent flow
-    ├── interactive.ts        # interactive prompts
-    ├── generator/
-    │   ├── templates/        # typed SDK/API scaffold definitions
-    │   ├── context.ts        # typed synthesis context
-    │   ├── generate.ts       # file synthesis and asset output
-    │   ├── format-generated-file.ts
-    │   └── versions.ts       # centralized generated dependencies
-    └── shared/               # parsers, prompts, and CLI helpers
-```
-
-The synthesis path is TypeScript-native. Scaffold conditions and substitutions
-are checked by `tsc`; `ts-poet` composes TypeScript output, Prettier parses and
-formats every supported text format, `ts-morph` validates generated TypeScript,
-and `@vue/compiler-sfc` validates Vue components.
-
-**Updating dependency versions**
-
-To edit package versions see `src/generator/versions.ts` (`SDK_VERSION`, `PACKAGE_VERSIONS`).
-All scaffolded dependency versions — runtime and dev — are centralized there.
-
-**Publish:**
+Useful checks:
 
 ```bash
-pnpm run build
-pnpm pack
-pnpm publish --access public
+pnpm compile
+pnpm lint
+pnpm format:check
+pnpm test:all
 ```
 
-</details>
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and
+[SECURITY.md](SECURITY.md) for vulnerability reporting.
 
-<details><summary><b>Testing</b></summary>
-<br>
+## Links
 
-```bash
-pnpm build              # required before tests; emits dist/
-pnpm compile            # check the CLI for TypeScript errors
-pnpm lint               # run type-aware ESLint checks on src/
-pnpm format:check       # verify Prettier formatting in src/
-pnpm test               # scaffold variants + check structure
-pnpm test:build         # production build each variant (slow)
-pnpm test:all           # structure + build
-pnpm test:watch         # structure tests in watch mode
-pnpm test:generate      # regenerate generated/ only
-SKIP_GENERATE=1 pnpm test # skip scaffolding, reuse generated/
-```
+- [XCM SDK documentation](https://paraspell.github.io/docs/xcm-sdk/getting-started.html)
+- [XCM API documentation](https://paraspell.github.io/docs/xcm-api/getting-started.html)
+- [XCM Tools monorepo](https://github.com/paraspell/xcm-tools)
+- [ParaSpell website](https://paraspell.xyz)
 
-</details>
+MIT licensed.
