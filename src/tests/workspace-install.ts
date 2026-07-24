@@ -1,21 +1,21 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { runCommand } from "./run-project.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { runCommand } from './run-project.js';
 
 export const WORKSPACE_INSTALL_TIMEOUT_MS = 20 * 60 * 1000;
 
 const cliRoot = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../..",
+  '../..',
 );
 
 const getGeneratedRoot = (): string => {
-  return path.join(cliRoot, "generated");
+  return path.join(cliRoot, 'generated');
 };
 
 const GENERATED_WORKSPACE_PACKAGE = {
-  name: "paraspell-generated-workspace",
+  name: 'paraspell-generated-workspace',
   private: true,
 } as const;
 
@@ -40,12 +40,12 @@ const writeGeneratedWorkspace = (): void => {
   fs.mkdirSync(root, { recursive: true });
 
   fs.writeFileSync(
-    path.join(root, "pnpm-workspace.yaml"),
+    path.join(root, 'pnpm-workspace.yaml'),
     GENERATED_WORKSPACE_CONFIG,
   );
 
   fs.writeFileSync(
-    path.join(root, "package.json"),
+    path.join(root, 'package.json'),
     `${JSON.stringify(GENERATED_WORKSPACE_PACKAGE, null, 2)}\n`,
   );
 };
@@ -54,12 +54,12 @@ export const isInGeneratedWorkspace = (projectDir: string): boolean => {
   const generatedRoot = getGeneratedRoot();
   return (
     projectDir.startsWith(`${generatedRoot}${path.sep}`) &&
-    fs.existsSync(path.join(generatedRoot, "pnpm-workspace.yaml"))
+    fs.existsSync(path.join(generatedRoot, 'pnpm-workspace.yaml'))
   );
 };
 
 export const hasProjectDependencies = (projectDir: string): boolean => {
-  return fs.existsSync(path.join(projectDir, "node_modules"));
+  return fs.existsSync(path.join(projectDir, 'node_modules'));
 };
 
 let installPromise: Promise<void> | undefined;
@@ -72,8 +72,8 @@ export const ensureGeneratedWorkspaceInstall = (
       writeGeneratedWorkspace();
       const result = await runCommand(
         getGeneratedRoot(),
-        "pnpm",
-        ["install", "--no-frozen-lockfile"],
+        'pnpm',
+        ['install', '--no-frozen-lockfile'],
         timeoutMs,
       );
       if (!result.ok) {

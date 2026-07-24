@@ -1,10 +1,10 @@
 import path from 'node:path';
-import type { Framework, PackageManager } from './types.js';
+import type { TFramework, TPackageManager } from './types.js';
 
 export const printNextSteps = (
   outDir: string,
-  pm: PackageManager,
-  framework: Framework,
+  pm: TPackageManager,
+  framework: TFramework,
 ): void => {
   const cdPath = path.isAbsolute(outDir)
     ? outDir
@@ -15,4 +15,4 @@ export const printNextSteps = (
   } else {
     console.log(`  ${pm} start`);
   }
-}
+};

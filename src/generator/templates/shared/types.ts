@@ -1,67 +1,73 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type TypesFragmentId = Extract<FragmentId, `types/${string}`>;
+type TTypesFragmentId = Extract<TFragmentId, `types/${string}`>;
 
-export const createTypesFragments: FragmentFactory<TypesFragmentId> = (
+export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
   context,
   renderFragment,
 ) => {
-  const { framework, projectKind, client, sdkPackage, swap, evmWallet } =
-    context;
+  const {
+    framework,
+    projectKind,
+    client,
+    sdkPackage,
+    extensions: { swap },
+    evmWallet,
+  } = context;
 
   return {
-    "types/api.frontend": () => source`${
+    'types/api.frontend': () => source`${
       evmWallet
         ? source`
         import type { PolkadotSigner } from "polkadot-api";
         ${
-          framework === "vue"
+          framework === 'vue'
             ? source`
         import type { ComputedRef, Ref } from "vue";
         `
-            : ""
+            : ''
         }
         import type { WalletClient } from "viem";
         import type { EIP1193Provider } from "mipd";
         `
-        : ""
+        : ''
     }
         
-        ${renderFragment("types/common")}
-        ${renderFragment("types/api.shared")}
+        ${renderFragment('types/common')}
+        ${renderFragment('types/api.shared')}
         
-        export type FormValues = {
+        export type TFormValues = {
           from: string;
           to: string;
-          currency: AssetInfo;
+          currency: TAssetInfo;
           recipient: string;
           amount: string;${
             swap
               ? source`
           swapEnabled?: boolean;
-          currencyTo?: AssetInfo;
+          currencyTo?: TAssetInfo;
           exchange?: string[];`
-              : ""
+              : ''
           }
         };
         
         ${
           evmWallet
             ? source`
-        export type EvmOriginHelpers = {
+        export type TEvmOriginHelpers = {
           ensureEvmOriginChains: () => Promise<readonly string[]>;
           isEvmOrigin: (chain: string) => boolean;
         };
         
-        ${renderFragment("types/wallet.evm")}
+        ${renderFragment('types/wallet.evm')}
         `
-            : ""
+            : ''
         }
         `,
-    "types/api.node": () => source`${renderFragment("types/api.shared")}
+    'types/api.node': () => source`${renderFragment('types/api.shared')}
         
-        export type TransferParams = {
+        export type TTransferParams = {
           from: string;
           to: string;
           amount: string;
@@ -71,13 +77,13 @@ export const createTypesFragments: FragmentFactory<TypesFragmentId> = (
           exchange?: string[];
         };
         `,
-    "types/api.shared": () => source`export type AssetInfo = {
+    'types/api.shared': () => source`export type TAssetInfo = {
           symbol?: string;
           assetId?: string;
           location: object;
         };
         
-        export type ApiParams = {
+        export type TApiParams = {
           from?: string;
           to?: string;
           currency: { location: object; amount: string };
@@ -89,33 +95,33 @@ export const createTypesFragments: FragmentFactory<TypesFragmentId> = (
             currencyTo: { location: object };
             exchange?: string[];
           };`
-              : ""
+              : ''
           }
         };
         
-        export type ApiTransaction = {
+        export type TApiTransaction = {
           type: string;
           chain: string;
           tx: string;
         };
         
-        export type ApiErrorResponse = {
+        export type TApiErrorResponse = {
           message?: string;
         };
         `,
-    "types/common": () => source`export type WalletKind = "substrate" | "evm";
+    'types/common': () => source`export type TWalletKind = "substrate" | "evm";
         
-        export type WalletKindOption = {
-          value: WalletKind;
+        export type TWalletKindOption = {
+          value: TWalletKind;
           label: string;
         };
         
-        export const WALLET_KIND_OPTIONS: readonly WalletKindOption[] = [
+        export const WALLET_KIND_OPTIONS: readonly TWalletKindOption[] = [
           { value: "substrate", label: "Substrate" },
           { value: "evm", label: "EVM" },
         ];
         
-        export const parseWalletKind = (value: string): WalletKind => {
+        export const parseWalletKind = (value: string): TWalletKind => {
           const option = WALLET_KIND_OPTIONS.find((item) => item.value === value);
           if (!option) {
             throw new Error(\`Unsupported wallet kind: \${value}\`);
@@ -123,40 +129,40 @@ export const createTypesFragments: FragmentFactory<TypesFragmentId> = (
           return option.value;
         };
         
-        export type WalletAccountOption = {
+        export type TWalletAccountOption = {
           address: string;
           name?: string;
         };
         
-        export type EvmAccountOption = {
+        export type TEvmAccountOption = {
           address: string;
           label: string;
         };
         
-        export type EvmProviderOption = {
+        export type TEvmProviderOption = {
           uuid: string;
           label: string;
         };
         
-        export type SubstrateWalletConnection<TSigner> = {
+        export type TSubstrateWalletConnection<TSigner> = {
           address: string;
           signer: TSigner;
         };
         
-        export type WalletControlsSubstrateProps = {
+        export type TWalletControlsSubstrateProps = {
           extensionNames: string[];
           selectedExtensionName: string | undefined;
-          accounts: WalletAccountOption[];
+          accounts: TWalletAccountOption[];
           selectedAddress: string | undefined;
           onConnectClick: () => void;
           onExtensionChange: (name: string) => void;
           onAccountChange: (address: string) => void;
         };
         
-        export type WalletControlsEvmProps = {
-          providerOptions: EvmProviderOption[];
+        export type TWalletControlsEvmProps = {
+          providerOptions: TEvmProviderOption[];
           selectedProviderUuid: string | undefined;
-          accounts: EvmAccountOption[];
+          accounts: TEvmAccountOption[];
           selectedAddress: string | undefined;
           onConnectClick: () => void;
           onProviderChange: (uuid: string) => void;
@@ -164,38 +170,38 @@ export const createTypesFragments: FragmentFactory<TypesFragmentId> = (
           onDisconnect?: () => void;
         };
         `,
-    "types/sdk.frontend":
-      () => source`import type { TAssetInfo, TChain${swap ? source`, TExchangeChain` : ""} } from "${sdkPackage}";
+    'types/sdk.frontend':
+      () => source`import type { TAssetInfo, TChain${swap ? source`, TExchangeChain` : ''} } from "${sdkPackage}";
         ${
-          client === "papi" && evmWallet
+          client === 'papi' && evmWallet
             ? source`
         import type { PolkadotSigner } from "polkadot-api";
         `
-            : ""
+            : ''
         }${
-          (client === "pjs" || client === "dedot") && evmWallet
+          (client === 'pjs' || client === 'dedot') && evmWallet
             ? source`
         import type { Signer } from "@polkadot/api/types";
         `
-            : ""
+            : ''
         }${
           evmWallet
             ? source`${
-                framework === "vue"
+                framework === 'vue'
                   ? source`
         import type { ComputedRef, Ref } from "vue";
         `
-                  : ""
+                  : ''
               }
         import type { WalletClient } from "viem";
         import type { EIP1193Provider } from "mipd";
         `
-            : ""
+            : ''
         }
         
-        ${renderFragment("types/common")}
+        ${renderFragment('types/common')}
         
-        export type FormValues = {
+        export type TFormValues = {
           from: TChain;
           to: TChain;
           currencyOptionId: string;
@@ -207,22 +213,22 @@ export const createTypesFragments: FragmentFactory<TypesFragmentId> = (
           swapEnabled?: boolean;
           currencyTo?: TAssetInfo;
           exchange?: TExchangeChain[];`
-              : ""
+              : ''
           }
         };
         
         ${
           evmWallet
             ? source`
-        ${renderFragment("types/wallet.evm")}
+        ${renderFragment('types/wallet.evm')}
         `
-            : ""
+            : ''
         }
         `,
-    "types/sdk.node":
-      () => source`import type { TChain, TDestination, TLocation, TSubstrateChain } from "${sdkPackage}";
+    'types/sdk.node':
+      () => source`import type { TChain, TDestination, TLocation } from "${sdkPackage}";
         
-        export type TransferParams = {
+        export type TTransferParams = {
           from: TChain;
           to: TDestination;
           amount: string;
@@ -231,74 +237,74 @@ export const createTypesFragments: FragmentFactory<TypesFragmentId> = (
           currencyToLocation?: TLocation;
         };
         `,
-    "types/wallet.evm": () => source`export type WalletKindSelectorProps = {
-          activeWalletKind: ${framework === "vue" ? "Ref<WalletKind>" : "WalletKind"};
-          setActiveWalletKind: (kind: WalletKind) => void;
+    'types/wallet.evm': () => source`export type TWalletKindSelectorProps = {
+          activeWalletKind: ${framework === 'vue' ? 'Ref<TWalletKind>' : 'TWalletKind'};
+          setActiveWalletKind: (kind: TWalletKind) => void;
         };
         
-        export type SubstrateWalletBase<TSigner> = {
-          extensionNames: ${framework === "vue" ? "Ref<string[]> | string[]" : "string[]"};
+        export type TSubstrateWalletBase<TSigner> = {
+          extensionNames: ${framework === 'vue' ? 'Ref<string[]> | string[]' : 'string[]'};
           selectedExtensionName: ${
-            framework === "vue"
-              ? "Ref<string | undefined> | string | undefined"
-              : "string | undefined"
+            framework === 'vue'
+              ? 'Ref<string | undefined> | string | undefined'
+              : 'string | undefined'
           };
           accounts: ${
-            framework === "vue"
-              ? "Ref<WalletAccountOption[]> | WalletAccountOption[]"
-              : "WalletAccountOption[]"
+            framework === 'vue'
+              ? 'Ref<TWalletAccountOption[]> | TWalletAccountOption[]'
+              : 'TWalletAccountOption[]'
           };
           selectedAddress: ${
-            framework === "vue"
-              ? "Ref<string | undefined> | string | undefined"
-              : "string | undefined"
+            framework === 'vue'
+              ? 'Ref<string | undefined> | string | undefined'
+              : 'string | undefined'
           };
           connection: ${
-            framework === "vue"
-              ? "Ref<SubstrateWalletConnection<TSigner> | null> | SubstrateWalletConnection<TSigner> | null"
-              : "SubstrateWalletConnection<TSigner> | null"
+            framework === 'vue'
+              ? 'Ref<TSubstrateWalletConnection<TSigner> | null> | TSubstrateWalletConnection<TSigner> | null'
+              : 'TSubstrateWalletConnection<TSigner> | null'
           };
           discoverExtensions: () => Promise<void>;
           selectExtension: (name: string) => Promise<void>;
           selectAccountByAddress: (address: string) => void;
         };
         
-        export type WalletSubmitOptions<TSigner = unknown> =
+        export type TWalletSubmitOptions<TSigner = unknown> =
           | { kind: "evm"; walletClient: WalletClient; provider: EIP1193Provider }
           | { kind: "substrate"; signer: TSigner; senderAddress: string };
         
-        export type UseWalletWithEvmReturn<TSigner = unknown> = SubstrateWalletBase<TSigner> & {
-          activeWalletKind: ${framework === "vue" ? "Ref<WalletKind>" : "WalletKind"};
-          setActiveWalletKind: (kind: WalletKind) => void;
+        export type TUseWalletWithEvmReturn<TSigner = unknown> = TSubstrateWalletBase<TSigner> & {
+          activeWalletKind: ${framework === 'vue' ? 'Ref<TWalletKind>' : 'TWalletKind'};
+          setActiveWalletKind: (kind: TWalletKind) => void;
           buildSubmitOptions: (
-            from: ${projectKind === "sdk" ? "TChain" : "string"},
-          ) => WalletSubmitOptions<TSigner> | null;
-          submitTransfer: (formValues: FormValues) => Promise<boolean>;
+            from: ${projectKind === 'sdk' ? 'TChain' : 'string'},
+          ) => TWalletSubmitOptions<TSigner> | null;
+          submitTransfer: (formValues: TFormValues) => Promise<boolean>;
           evmAccounts: ${
-            framework === "vue"
-              ? "ComputedRef<EvmAccountOption[]>"
-              : "EvmAccountOption[]"
+            framework === 'vue'
+              ? 'ComputedRef<TEvmAccountOption[]>'
+              : 'TEvmAccountOption[]'
           };
           evmProviderOptions: ${
-            framework === "vue"
-              ? "Ref<EvmProviderOption[]> | EvmProviderOption[]"
-              : "EvmProviderOption[]"
+            framework === 'vue'
+              ? 'Ref<TEvmProviderOption[]> | TEvmProviderOption[]'
+              : 'TEvmProviderOption[]'
           };
           selectedEvmProviderUuid: ${
-            framework === "vue"
-              ? "ComputedRef<string | undefined> | string | undefined"
-              : "string | undefined"
+            framework === 'vue'
+              ? 'ComputedRef<string | undefined> | string | undefined'
+              : 'string | undefined'
           };
           discoverEvmProviders: () => Promise<void>;
           selectEvmProvider: (uuid: string) => Promise<void>;
           selectEvmAccount: (address: string) => void;
           disconnectEvm: () => void;
           getEvmWalletClient: (
-            origin: ${projectKind === "sdk" ? "TChain" : "string"},
+            origin: ${projectKind === 'sdk' ? 'TChain' : 'string'},
           ) => WalletClient | undefined;
         };
         
-        export type UseWalletReturn = UseWalletWithEvmReturn<${client === "papi" ? "PolkadotSigner" : "Signer"}>;
+        export type TUseWalletReturn = TUseWalletWithEvmReturn<${client === 'papi' ? 'PolkadotSigner' : 'Signer'}>;
         `,
   };
 };

@@ -1,37 +1,39 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type SpaFragmentId = Extract<FragmentId, `spa/${string}`>;
+type TSpaFragmentId = Extract<TFragmentId, `spa/${string}`>;
 
-export const createSpaFragments: FragmentFactory<SpaFragmentId> = (context) => {
+export const createSpaFragments: TFragmentFactory<TSpaFragmentId> = (
+  context,
+) => {
   const { framework, projectKind } = context;
 
   return {
-    "spa/App.css": () => source`#${framework === "react" ? "root" : "app"} {
+    'spa/App.css': () => source`#${framework === 'react' ? 'root' : 'app'} {
         ${
-          projectKind === "sdk"
+          projectKind === 'sdk'
             ? source`  width: 100%;
         `
-            : ""
+            : ''
         }  max-width: 1280px;
           margin: 0 auto;
           padding: 2rem;
           text-align: center;${
-            projectKind === "sdk"
+            projectKind === 'sdk'
               ? source`
           overflow-x: clip;
           box-sizing: border-box;`
-              : ""
+              : ''
           }
         }
         
         .header {
           display: flex;
           align-items: center;${
-            projectKind === "sdk"
+            projectKind === 'sdk'
               ? source`
           justify-content: center;`
-              : ""
+              : ''
           }
           gap: 20px;
           margin-bottom: 1.5em;
@@ -225,7 +227,7 @@ export const createSpaFragments: FragmentFactory<SpaFragmentId> = (context) => {
           white-space: pre-wrap;
         }
         `,
-    "spa/index.css": () => source`:root {
+    'spa/index.css': () => source`:root {
           font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
           line-height: 1.5;
           font-weight: 400;
@@ -245,10 +247,10 @@ export const createSpaFragments: FragmentFactory<SpaFragmentId> = (context) => {
           place-items: center;
           min-width: 320px;
           min-height: 100vh;${
-            projectKind === "sdk"
+            projectKind === 'sdk'
               ? source`
           overflow-x: clip;`
-              : ""
+              : ''
           }
         }
         
@@ -264,30 +266,30 @@ export const createSpaFragments: FragmentFactory<SpaFragmentId> = (context) => {
           margin: 0;
         }
         `,
-    "spa/index.html": () => source`<!DOCTYPE html>
+    'spa/index.html': () => source`<!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8" />
             <link rel="icon" type="image/svg+xml" href="/vite.svg" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>ParaSpell XCM ${projectKind === "api" ? "API" : "SDK"} - template</title>
+            <title>ParaSpell XCM ${projectKind === 'api' ? 'API' : 'SDK'} - template</title>
           </head>
           <body>
-            <div id="${framework === "react" ? "root" : "app"}"></div>
-            <script type="module" src="/src/main.${framework === "react" ? "tsx" : "ts"}"></script>
+            <div id="${framework === 'react' ? 'root' : 'app'}"></div>
+            <script type="module" src="/src/main.${framework === 'react' ? 'tsx' : 'ts'}"></script>
           </body>
         </html>
         `,
-    "spa/toError": () => source`const toError = (error: unknown): Error =>
+    'spa/toError': () => source`const toError = (error: unknown): Error =>
           error instanceof Error
             ? error
             : error instanceof ErrorEvent
               ? new Error(error.message)
               : new Error("An unknown error occurred");
         `,
-    "spa/vite-env.d": () => source`/// <reference types="vite/client" />
+    'spa/vite-env.d': () => source`/// <reference types="vite/client" />
         ${
-          framework === "vue"
+          framework === 'vue'
             ? source`
         
         declare module "*.vue" {
@@ -296,7 +298,7 @@ export const createSpaFragments: FragmentFactory<SpaFragmentId> = (context) => {
           export default component;
         }
         `
-            : ""
+            : ''
         }
         `,
   };

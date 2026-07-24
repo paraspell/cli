@@ -1,21 +1,21 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type WalletVueFragmentId = Extract<FragmentId, `wallet/${string}.vue`>;
+type TWalletVueFragmentId = Extract<TFragmentId, `wallet/${string}.vue`>;
 
-export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
-  context,
-) => {
+export const createWalletVueFragments: TFragmentFactory<
+  TWalletVueFragmentId
+> = (context) => {
   const { projectKind, client, sdkPackage } = context;
 
   return {
-    "wallet/SubstrateWalletControls.vue": () => source`<script setup lang="ts">
-        import type { WalletAccountOption } from "../../types";
+    'wallet/SubstrateWalletControls.vue': () => source`<script setup lang="ts">
+        import type { TWalletAccountOption } from "../../types";
         
         defineProps<{
           extensionNames: string[];
           selectedExtensionName: string | undefined;
-          accounts: WalletAccountOption[];
+          accounts: TWalletAccountOption[];
           selectedAddress: string | undefined;
         }>();
         
@@ -88,17 +88,17 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
           </div>
         </template>
         `,
-    "wallet/createWalletControls.vue":
+    'wallet/createWalletControls.vue':
       () => source`import { defineComponent, h, unref, type Component } from "vue";
         import EvmWalletControls from "../evm/EvmWalletControls.vue";
         import type {
-          UseWalletWithEvmReturn,
-          WalletControlsSubstrateProps,
+          TUseWalletWithEvmReturn,
+          TWalletControlsSubstrateProps,
         } from "../../types";
         
         export const createWalletControls = (SubstrateControls: Component) =>
           defineComponent(
-            (props: { wallet: UseWalletWithEvmReturn }) => {
+            (props: { wallet: TUseWalletWithEvmReturn }) => {
               return () => {
                 const wallet = props.wallet;
                 if (unref(wallet.activeWalletKind) === "evm") {
@@ -118,7 +118,7 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
                   });
                 }
         
-                const substrateProps: WalletControlsSubstrateProps = {
+                const substrateProps: TWalletControlsSubstrateProps = {
                   extensionNames: unref(wallet.extensionNames),
                   selectedExtensionName: unref(wallet.selectedExtensionName),
                   accounts: unref(wallet.accounts),
@@ -146,7 +146,7 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
             },
           );
         `,
-    "wallet/useExtensionWallet.vue":
+    'wallet/useExtensionWallet.vue':
       () => source`import { computed, ref, watch } from "vue";
         import {
           web3Accounts,
@@ -155,16 +155,16 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
         } from "@polkadot/extension-dapp";
         import type { Signer } from "@polkadot/api/types";
         import type {
-          SubstrateWalletConnection,
-          WalletAccountOption,
+          TSubstrateWalletConnection,
+          TWalletAccountOption,
         } from "../../types";
         
         const DAPP_ORIGIN = "ParaSpell XCM SDK";
         
-        export const use${client === "pjs" ? "Pjs" : "Dedot"}Wallet = () => {
+        export const use${client === 'pjs' ? 'Pjs' : 'Dedot'}Wallet = () => {
           const extensionNames = ref<string[]>([]);
           const selectedExtensionName = ref<string>();
-          const accounts = ref<WalletAccountOption[]>([]);
+          const accounts = ref<TWalletAccountOption[]>([]);
           const selectedAddress = ref<string>();
           const signer = ref<Signer | null>(null);
         
@@ -172,7 +172,7 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
             await web3Enable(DAPP_ORIGIN);
             const filtered = await web3Accounts({ extensions: [name] });
             const nextAccounts = filtered.map(
-              (account): WalletAccountOption => ({
+              (account): TWalletAccountOption => ({
                 address: account.address,
                 name: account.meta.name,
               }),
@@ -220,7 +220,7 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
             { immediate: true },
           );
         
-          const connection = computed((): SubstrateWalletConnection<Signer> | null => {
+          const connection = computed((): TSubstrateWalletConnection<Signer> | null => {
             if (!selectedAddress.value || !signer.value) return null;
             return { address: selectedAddress.value, signer: signer.value };
           });
@@ -242,7 +242,7 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
           };
         };
         `,
-    "wallet/usePapiWallet.vue":
+    'wallet/usePapiWallet.vue':
       () => source`import { computed, ref } from "vue";
         import {
           connectInjectedExtension,
@@ -251,7 +251,7 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
           type InjectedPolkadotAccount,
         } from "polkadot-api/pjs-signer";
         import type { PolkadotSigner } from "polkadot-api";
-        import type { SubstrateWalletConnection } from "../../types";
+        import type { TSubstrateWalletConnection } from "../../types";
         
         export const usePapiWallet = () => {
           const extensionNames = ref<string[]>([]);
@@ -261,7 +261,7 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
           const selectedAccount = ref<InjectedPolkadotAccount>();
           const selectedAddress = ref<string>();
         
-          const connection = computed((): SubstrateWalletConnection<PolkadotSigner> | null => {
+          const connection = computed((): TSubstrateWalletConnection<PolkadotSigner> | null => {
             if (!selectedAccount.value) return null;
             return {
               address: selectedAccount.value.address,
@@ -311,21 +311,21 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
           };
         };
         `,
-    "wallet/useWalletWithEvm.api.vue":
+    'wallet/useWalletWithEvm.api.vue':
       () => source`import type { PolkadotSigner } from "polkadot-api";
-        import type { FormValues } from "../../types";
+        import type { TFormValues } from "../../types";
         import { useEvmOriginChains } from "../../evm/useEvmOriginChains";
         import { submitUsingApi } from "../../submit/submitUsingApi";
         import { createWalletControls } from "../shared/createWalletControls";
         import { connectWalletAlert } from "../shared/submitTransfer";
         import { useWalletWithEvmCore } from "../shared/useWalletWithEvmCore";
-        import type { UseWalletReturn } from "../../types";
+        import type { TUseWalletReturn } from "../../types";
         import SubstrateWalletControls from "../shared/SubstrateWalletControls.vue";
         import { usePapiWallet } from "./usePapiWallet";
         
         export const WalletControls = createWalletControls(SubstrateWalletControls);
         
-        export const useWalletWithEvm = (): UseWalletReturn => {
+        export const useWalletWithEvm = (): TUseWalletReturn => {
           const { ensureEvmOriginChains, isEvmOrigin } = useEvmOriginChains();
           const papi = usePapiWallet();
         
@@ -340,7 +340,7 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
             selectAccountByAddress: papi.selectAccountByAddress,
           });
         
-          const submitTransfer = async (formValues: FormValues) => {
+          const submitTransfer = async (formValues: TFormValues) => {
             const options = core.buildSubmitOptions(formValues.from);
             if (!options) {
               connectWalletAlert(core);
@@ -357,20 +357,20 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
           return { ...core, submitTransfer };
         };
         `,
-    "wallet/useWalletWithEvm.sdk.vue": () => {
+    'wallet/useWalletWithEvm.sdk.vue': () => {
       const walletLabel =
-        client === "pjs" ? "Pjs" : client === "dedot" ? "Dedot" : "Papi";
-      const signerType = client === "papi" ? "PolkadotSigner" : "Signer";
+        client === 'pjs' ? 'Pjs' : client === 'dedot' ? 'Dedot' : 'Papi';
+      const signerType = client === 'papi' ? 'PolkadotSigner' : 'Signer';
 
       return source`
         import ${
-          client === "papi"
+          client === 'papi'
             ? source`type { PolkadotSigner } from "polkadot-api";
         `
             : source`type { Signer } from "@polkadot/api/types";
         `
         }
-        import type { FormValues } from "../../types";
+        import type { TFormValues } from "../../types";
         import { submitUsingSdk } from "../../xcm/${client}";
         import { createWalletControls } from "../shared/createWalletControls";
         import {
@@ -378,13 +378,13 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
           submitEvmIfNeeded,
         } from "../shared/submitTransfer";
         import { useWalletWithEvmCore } from "../shared/useWalletWithEvmCore";
-        import type { UseWalletReturn } from "../../types";
+        import type { TUseWalletReturn } from "../../types";
         import SubstrateWalletControls from "../shared/SubstrateWalletControls.vue";
         import { use${walletLabel}Wallet } from "./use${walletLabel}Wallet";
         
         export const WalletControls = createWalletControls(SubstrateWalletControls);
         
-        export const useWalletWithEvm = (): UseWalletReturn => {
+        export const useWalletWithEvm = (): TUseWalletReturn => {
           const ${client} = use${walletLabel}Wallet();
         
           const core = useWalletWithEvmCore<${signerType}>({
@@ -398,7 +398,7 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
             selectAccountByAddress: ${client}.selectAccountByAddress,
           });
         
-          const submitTransfer = async (formValues: FormValues) => {
+          const submitTransfer = async (formValues: TFormValues) => {
             const options = core.buildSubmitOptions(formValues.from);
             if (!options) {
               connectWalletAlert(core);
@@ -417,25 +417,25 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
         };
         `;
     },
-    "wallet/useWalletWithEvmCore.vue":
+    'wallet/useWalletWithEvmCore.vue':
       () => source`import { computed, ref, unref, watch } from "vue";
         ${
-          projectKind === "sdk"
+          projectKind === 'sdk'
             ? source`import type { TChain } from "${sdkPackage}";
         `
-            : ""
+            : ''
         }import { useEvmWallet } from "../evm/useEvmWallet";
         import type {
-          SubstrateWalletBase,
-          WalletKind,
-          WalletSubmitOptions,
+          TSubstrateWalletBase,
+          TWalletKind,
+          TWalletSubmitOptions,
         } from "../../types";
         
         export const useWalletWithEvmCore = <TSigner>(
-          substrate: SubstrateWalletBase<TSigner>,
+          substrate: TSubstrateWalletBase<TSigner>,
         ) => {
           const evm = useEvmWallet();
-          const activeWalletKind = ref<WalletKind>("substrate");
+          const activeWalletKind = ref<TWalletKind>("substrate");
         
           watch(
             () => ({
@@ -456,8 +456,8 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
           );
         
           const buildSubmitOptions = (
-            from: ${projectKind === "sdk" ? "TChain" : "string"},
-          ): WalletSubmitOptions<TSigner> | null => {
+            from: ${projectKind === 'sdk' ? 'TChain' : 'string'},
+          ): TWalletSubmitOptions<TSigner> | null => {
             if (activeWalletKind.value === "evm") {
               const walletClient = evm.getWalletClient(from);
               if (!walletClient || !evm.selectedProvider.value) return null;
@@ -487,7 +487,7 @@ export const createWalletVueFragments: FragmentFactory<WalletVueFragmentId> = (
               : unref(substrate.selectedAddress),
           );
         
-          const setActiveWalletKind = (kind: WalletKind) => {
+          const setActiveWalletKind = (kind: TWalletKind) => {
             activeWalletKind.value = kind;
           };
         

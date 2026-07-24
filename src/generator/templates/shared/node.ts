@@ -1,11 +1,11 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type NodeFragmentId = Extract<FragmentId, `node/${string}`>;
+type TNodeFragmentId = Extract<TFragmentId, `node/${string}`>;
 
-export const createNodeFragments: FragmentFactory<NodeFragmentId> = () => {
+export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = () => {
   return {
-    "node/getEvmSenderAddress":
+    'node/getEvmSenderAddress':
       () => source`export const getEvmSenderAddress = (origin: string): string => {
           const walletClient = getEvmWalletClient(origin);
           const account = walletClient.account;
@@ -15,7 +15,7 @@ export const createNodeFragments: FragmentFactory<NodeFragmentId> = () => {
           return account.address;
         };
         `,
-    "node/getEvmWalletClient": () => source`import {
+    'node/getEvmWalletClient': () => source`import {
           createWalletClient,
           http,
           isHex,
@@ -44,7 +44,7 @@ export const createNodeFragments: FragmentFactory<NodeFragmentId> = () => {
           });
         };
         `,
-    "node/substrate-keyring":
+    'node/substrate-keyring':
       () => source`import { Keyring } from "@polkadot/keyring";
         import type { KeyringPair } from "@polkadot/keyring/types";
         

@@ -5,28 +5,26 @@ export const SWAP_EXTENSION = 'swap-extension';
 export const EVM_EXTENSION = 'evm-extension';
 export const SNOWBRIDGE_EXTENSION = 'snowbridge-extension';
 
-export type ExtensionValue =
-  | typeof SWAP_EXTENSION
-  | typeof EVM_EXTENSION
-  | typeof SNOWBRIDGE_EXTENSION;
+export type TExtensionValue =
+  typeof SWAP_EXTENSION | typeof EVM_EXTENSION | typeof SNOWBRIDGE_EXTENSION;
 
-export type FeatureExtensionsDefaults = {
+export type TExtensionDefaults = {
   evm?: boolean;
   swap?: boolean;
   snowbridge?: boolean;
 };
 
-export const promptFeatureExtensions = async (
-  defaults: FeatureExtensionsDefaults = {},
-): Promise<ExtensionValue[]> => {
-  const initialValues: ExtensionValue[] = [];
+export const promptExtensions = async (
+  defaults: TExtensionDefaults = {},
+): Promise<TExtensionValue[]> => {
+  const initialValues: TExtensionValue[] = [];
   if (defaults.swap) initialValues.push(SWAP_EXTENSION);
   if (defaults.evm) initialValues.push(EVM_EXTENSION);
   if (defaults.snowbridge) initialValues.push(SNOWBRIDGE_EXTENSION);
 
   return ask(
-    multiselect<ExtensionValue>({
-      message: 'Select the desired additional features',
+    multiselect<TExtensionValue>({
+      message: 'Select the desired extensions',
       options: [
         {
           value: SWAP_EXTENSION,
@@ -48,4 +46,4 @@ export const promptFeatureExtensions = async (
       required: false,
     }),
   );
-}
+};

@@ -16,7 +16,7 @@ export const validateEvmPrivateKey = (value: string): true | string => {
   }
 
   return true;
-}
+};
 
 const isSubstrateSecret = (value: string): boolean =>
   SUBSTRATE_DEV_URI_PATTERN.test(value) || BIP39_MNEMONIC_PATTERN.test(value);
@@ -26,7 +26,7 @@ export const validateSubstrateMnemonic = (value: string): true | string => {
   if (!trimmed || isSubstrateSecret(trimmed)) return true;
 
   return 'Substrate mnemonic must be a BIP39 phrase (12–24 lowercase words) or a //Dev URI like //Alice.';
-}
+};
 
 export const validateNameInput = (name: string): true | string => {
   const trimmed = name.trim();
@@ -39,4 +39,4 @@ export const validateNameInput = (name: string): true | string => {
   return reason
     ? `Invalid project name: ${reason}`
     : `Invalid project name: ${name}`;
-}
+};

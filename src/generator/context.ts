@@ -1,27 +1,27 @@
-import { SDK_CLIENT_LABELS } from "../shared/types.js";
+import { SDK_CLIENT_LABELS } from '../shared/types.js';
 import type {
-  ClientMetaByClient,
-  GenerateAppParams,
-  TemplateContext,
-} from "./types.js";
-import { PACKAGE_VERSIONS, SDK_VERSION } from "./versions.js";
+  TClientMetaByClient,
+  TGenerateAppParams,
+  TTemplateContext,
+} from './types.js';
+import { PACKAGE_VERSIONS, SDK_VERSION } from './versions.js';
 
-const CLIENT_META: ClientMetaByClient = {
+const CLIENT_META: TClientMetaByClient = {
   papi: {
-    client: "papi",
-    sdkPackage: "@paraspell/sdk",
+    client: 'papi',
+    sdkPackage: '@paraspell/sdk',
     sdkVersion: SDK_VERSION,
     clientLabel: SDK_CLIENT_LABELS.papi,
   },
   pjs: {
-    client: "pjs",
-    sdkPackage: "@paraspell/sdk-pjs",
+    client: 'pjs',
+    sdkPackage: '@paraspell/sdk-pjs',
     sdkVersion: SDK_VERSION,
     clientLabel: SDK_CLIENT_LABELS.pjs,
   },
   dedot: {
-    client: "dedot",
-    sdkPackage: "@paraspell/sdk-dedot",
+    client: 'dedot',
+    sdkPackage: '@paraspell/sdk-dedot',
     sdkVersion: SDK_VERSION,
     clientLabel: SDK_CLIENT_LABELS.dedot,
   },
@@ -30,8 +30,8 @@ const CLIENT_META: ClientMetaByClient = {
 export const createTemplateContext = ({
   kind,
   opts,
-}: GenerateAppParams): TemplateContext => {
-  const client = kind === "sdk" ? opts.client : "papi";
+}: TGenerateAppParams): TTemplateContext => {
+  const client = kind === 'sdk' ? opts.client : 'papi';
   const clientMeta = CLIENT_META[client];
   const packageManager = opts.packageManager;
 
@@ -45,9 +45,7 @@ export const createTemplateContext = ({
     startCmd: `${packageManager} start`,
     framework: opts.framework,
     projectKind: kind,
-    evm: opts.evm,
-    swap: opts.swap,
-    snowbridge: opts.snowbridge,
-    evmWallet: opts.evm || opts.snowbridge,
+    extensions: opts.extensions,
+    evmWallet: opts.extensions.evm || opts.extensions.snowbridge,
   };
 };

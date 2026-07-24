@@ -3,18 +3,17 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-type GenerateApp = typeof import('./generator/generate.js').generateApp;
-type RunInteractive =
-  typeof import('./interactive.js').runInteractiveGenerate;
-type PromptGenerateOptions =
+type TGenerateApp = typeof import('./generator/generate.js').generateApp;
+type TRunInteractive = typeof import('./interactive.js').runInteractiveGenerate;
+type TPromptGenerateOptions =
   typeof import('./shared/prompt-options.js').promptGenerateOptions;
 
-const generateApp = vi.fn<GenerateApp>();
-const runInteractiveGenerate = vi.fn<RunInteractive>();
-const promptGenerateOptions = vi.fn<PromptGenerateOptions>();
+const generateApp = vi.fn<TGenerateApp>();
+const runInteractiveGenerate = vi.fn<TRunInteractive>();
+const promptGenerateOptions = vi.fn<TPromptGenerateOptions>();
 
 vi.mock('./generator/generate.js', () => ({
-  generateApp: (params: Parameters<GenerateApp>[0]) => generateApp(params),
+  generateApp: (params: Parameters<TGenerateApp>[0]) => generateApp(params),
 }));
 
 vi.mock('./interactive.js', () => ({
@@ -27,18 +26,18 @@ vi.mock('./shared/prompt-options.js', async (importOriginal) => {
   return {
     ...actual,
     promptGenerateOptions: (
-      input: Parameters<PromptGenerateOptions>[0],
-      options?: Parameters<PromptGenerateOptions>[1],
+      input: Parameters<TPromptGenerateOptions>[0],
+      options?: Parameters<TPromptGenerateOptions>[1],
     ) => promptGenerateOptions(input, options),
   };
 });
 
 const { runCli, runFromArgv } = await import('./run-cli.js');
 
-type ArgvContext = { root: string; consumer?: boolean };
-const runSdkFromArgv = (argv: string[], ctx: ArgvContext) =>
+type TArgvContext = { root: string; consumer?: boolean };
+const runSdkFromArgv = (argv: string[], ctx: TArgvContext) =>
   runFromArgv(['sdk', ...argv], ctx);
-const runApiFromArgv = (argv: string[], ctx: ArgvContext) =>
+const runApiFromArgv = (argv: string[], ctx: TArgvContext) =>
   runFromArgv(['api', ...argv], ctx);
 
 const consumerCtx = (root: string) => {
@@ -61,7 +60,11 @@ const SDK_FLAGS = [
 ] as const;
 
 const stubTty = (isTTY: boolean): void => {
-  vi.stubGlobal('process', { ...process, stdin: { isTTY }, exitCode: undefined });
+  vi.stubGlobal('process', {
+    ...process,
+    stdin: { isTTY },
+    exitCode: undefined,
+  });
 };
 
 const capturedText = (mock: { mock: { calls: unknown[][] } }): string => {
@@ -92,14 +95,14 @@ describe('runSdkFromArgv', () => {
     expect(generateApp).toHaveBeenCalledOnce();
     expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
       kind: 'sdk',
-      opts: expect.objectContaining({
+      opts: {
         framework: 'react',
         name: 'my-app',
         client: 'pjs',
         packageManager: 'npm',
-        evm: true,
+        extensions: { evm: true },
         out: path.join(tmpRoot, 'my-app'),
-      }),
+      },
     });
   });
 
@@ -108,7 +111,7 @@ describe('runSdkFromArgv', () => {
     await runSdkFromArgv([...SDK_FLAGS, '--out', outDir], consumerCtx(tmpRoot));
 
     expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
-      opts: expect.objectContaining({ out: outDir }),
+      opts: { out: outDir },
     });
   });
 
@@ -116,10 +119,10 @@ describe('runSdkFromArgv', () => {
     await runSdkFromArgv([...SDK_FLAGS], devCtx(tmpRoot));
 
     expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
-      opts: expect.objectContaining({
+      opts: {
         name: 'my-app',
         out: path.join(tmpRoot, 'generated', 'xcm-sdk', 'react', 'my-app'),
-      }),
+      },
     });
   });
 
@@ -161,9 +164,7 @@ describe('runSdkFromArgv', () => {
     promptGenerateOptions.mockResolvedValue({
       name: 'prompted-app',
       client: 'pjs',
-      evm: false,
-      swap: false,
-      snowbridge: false,
+      extensions: { evm: false, swap: false, snowbridge: false },
       packageManager: 'pnpm',
     });
 
@@ -171,7 +172,7 @@ describe('runSdkFromArgv', () => {
 
     expect(promptGenerateOptions).toHaveBeenCalledOnce();
     expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
-      opts: expect.objectContaining({ name: 'prompted-app' }),
+      opts: { name: 'prompted-app' },
     });
   });
 
@@ -211,9 +212,7 @@ describe('runSdkFromArgv', () => {
     promptGenerateOptions.mockResolvedValue({
       name: 'node-app',
       client: 'papi',
-      evm: true,
-      swap: false,
-      snowbridge: false,
+      extensions: { evm: true, swap: false, snowbridge: false },
       packageManager: 'pnpm',
       substrateMnemonic: '//Alice',
       privateKey:
@@ -269,11 +268,11 @@ describe('runApiFromArgv', () => {
     expect(generateApp).toHaveBeenCalledOnce();
     expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
       kind: 'api',
-      opts: expect.objectContaining({
+      opts: {
         framework: 'node',
         name: 'api-app',
         out: path.join(tmpRoot, 'api-app'),
-      }),
+      },
     });
   });
 });
@@ -331,7 +330,7 @@ describe('runCli', () => {
       expect(generateApp).toHaveBeenCalledOnce();
       expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
         kind: 'sdk',
-        opts: expect.objectContaining({ out: path.join(tmpRoot, 'my-app') }),
+        opts: { out: path.join(tmpRoot, 'my-app') },
       });
     } finally {
       fs.rmSync(tmpRoot, { recursive: true, force: true });

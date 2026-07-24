@@ -1,17 +1,19 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type EvmVueFragmentId = Extract<FragmentId, `evm/${string}.vue`>;
+type TEvmVueFragmentId = Extract<TFragmentId, `evm/${string}.vue`>;
 
-export const createEvmVueFragments: FragmentFactory<EvmVueFragmentId> = () => {
+export const createEvmVueFragments: TFragmentFactory<
+  TEvmVueFragmentId
+> = () => {
   return {
-    "evm/EvmWalletControls.vue": () => source`<script setup lang="ts">
-        import type { EvmAccountOption, EvmProviderOption } from "../../types";
+    'evm/EvmWalletControls.vue': () => source`<script setup lang="ts">
+        import type { TEvmAccountOption, TEvmProviderOption } from "../../types";
         
         defineProps<{
-          providerOptions: EvmProviderOption[];
+          providerOptions: TEvmProviderOption[];
           selectedProviderUuid: string | undefined;
-          accounts: EvmAccountOption[];
+          accounts: TEvmAccountOption[];
           selectedAddress: string | undefined;
         }>();
         
@@ -90,16 +92,16 @@ export const createEvmVueFragments: FragmentFactory<EvmVueFragmentId> = () => {
           </button>
         </template>
         `,
-    "evm/WalletKindSelector.vue": () => source`<script setup lang="ts">
+    'evm/WalletKindSelector.vue': () => source`<script setup lang="ts">
         import { parseWalletKind, WALLET_KIND_OPTIONS } from "../../types";
-        import type { WalletKind } from "../../types";
+        import type { TWalletKind } from "../../types";
         
         defineProps<{
-          activeWalletKind: WalletKind;
+          activeWalletKind: TWalletKind;
         }>();
         
         const emit = defineEmits<{
-          "update:activeWalletKind": [kind: WalletKind];
+          "update:activeWalletKind": [kind: TWalletKind];
         }>();
         
         const onWalletKindChange = (event: Event) => {
@@ -125,7 +127,7 @@ export const createEvmVueFragments: FragmentFactory<EvmVueFragmentId> = () => {
           </div>
         </template>
         `,
-    "evm/useEvmOriginChains.vue":
+    'evm/useEvmOriginChains.vue':
       () => source`import { onMounted, ref } from "vue";
         import { loadEvmOriginChains } from "./evmOrigins";
         
@@ -157,7 +159,7 @@ export const createEvmVueFragments: FragmentFactory<EvmVueFragmentId> = () => {
           return { chains, isEvmOrigin, ensureEvmOriginChains };
         };
         `,
-    "evm/useEvmWallet.vue":
+    'evm/useEvmWallet.vue':
       () => source`import { computed, onMounted, onUnmounted, ref } from "vue";
         import type { EIP6963ProviderDetail } from "mipd";
         import { getAddress, type WalletClient, isAddress } from "viem";
@@ -170,14 +172,14 @@ export const createEvmVueFragments: FragmentFactory<EvmVueFragmentId> = () => {
           toProviderOptions,
           truncateAddress,
         } from "../../evm/utils";
-        import type { EvmAccountOption, EvmProviderOption } from "../../types";
+        import type { TEvmAccountOption, TEvmProviderOption } from "../../types";
         
         export const useEvmWallet = () => {
           const providers = ref<readonly EIP6963ProviderDetail[]>(getEip6963Providers());
           const accounts = ref<string[]>([]);
           const selectedAddress = ref<string>();
           const selectedProvider = ref<EIP6963ProviderDetail>();
-          const providerOptions = ref<EvmProviderOption[]>([]);
+          const providerOptions = ref<TEvmProviderOption[]>([]);
         
           let unsubscribe: (() => void) | undefined;
         
@@ -203,7 +205,7 @@ export const createEvmVueFragments: FragmentFactory<EvmVueFragmentId> = () => {
               current && nextAccounts.includes(current) ? current : nextAccounts[0];
           };
         
-          const accountOptions = computed((): EvmAccountOption[] =>
+          const accountOptions = computed((): TEvmAccountOption[] =>
             accounts.value.map((address) => ({
               address,
               label: truncateAddress(address),

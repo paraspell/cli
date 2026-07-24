@@ -26,7 +26,7 @@ const runCli = async (
     ...result,
     code: result.ok ? 0 : 1,
   };
-}
+};
 
 describe('CLI subprocess', () => {
   const tmpDirs: string[] = [];
@@ -87,11 +87,15 @@ describe('CLI subprocess', () => {
       '--evm',
     ]);
     expect(result.ok).toBe(false);
-    expect(result.output).toMatch(/Invalid project name|Project name is required/);
+    expect(result.output).toMatch(
+      /Invalid project name|Project name is required/,
+    );
   });
 
   it('generates a sdk app from framework and flags', async () => {
-    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-cli-e2e-'));
+    const tmpRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'paraspell-cli-e2e-'),
+    );
     tmpDirs.push(tmpRoot);
     const projectName = 'cli-e2e-sdk-app';
     const outDir = path.join(tmpRoot, projectName);
@@ -119,7 +123,9 @@ describe('CLI subprocess', () => {
   });
 
   it('fails when the consumer target directory already exists', async () => {
-    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-cli-e2e-'));
+    const tmpRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'paraspell-cli-e2e-'),
+    );
     tmpDirs.push(tmpRoot);
     const projectName = 'existing-app';
     const outDir = path.join(tmpRoot, projectName);

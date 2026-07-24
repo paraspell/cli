@@ -1,29 +1,37 @@
-import type { GeneratedVariant } from './variants.js';
+import type { TGeneratedVariant } from './variants.js';
 import { installProject, runProjectScript } from './run-project.js';
 
-export interface TypecheckResult {
-  variant: GeneratedVariant;
+export interface TTypecheckResult {
+  variant: TGeneratedVariant;
   ok: boolean;
   steps: { name: string; ok: boolean; output: string }[];
 }
 
 export const typecheckVariant = async (
-  variant: GeneratedVariant,
+  variant: TGeneratedVariant,
   timeoutMs: number,
-): Promise<TypecheckResult> => {
-  const steps: TypecheckResult['steps'] = [];
+): Promise<TTypecheckResult> => {
+  const steps: TTypecheckResult['steps'] = [];
 
-  const { pm, step: install } = await installProject(variant.absPath, timeoutMs);
+  const { pm, step: install } = await installProject(
+    variant.absPath,
+    timeoutMs,
+  );
   steps.push(install);
   if (!install.ok) {
     return { variant, ok: false, steps };
   }
 
-  const typecheck = await runProjectScript(variant.absPath, pm, 'typecheck', timeoutMs);
+  const typecheck = await runProjectScript(
+    variant.absPath,
+    pm,
+    'typecheck',
+    timeoutMs,
+  );
   steps.push(typecheck);
   if (!typecheck.ok) {
     return { variant, ok: false, steps };
   }
 
   return { variant, ok: true, steps };
-}
+};

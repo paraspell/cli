@@ -1,16 +1,16 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type EvmReactFragmentId = Extract<FragmentId, `evm/${string}.react`>;
+type TEvmReactFragmentId = Extract<TFragmentId, `evm/${string}.react`>;
 
-export const createEvmReactFragments: FragmentFactory<
-  EvmReactFragmentId
+export const createEvmReactFragments: TFragmentFactory<
+  TEvmReactFragmentId
 > = () => {
   return {
-    "evm/EvmWalletControls.react": () => source`import type { FC } from "react";
-        import type { WalletControlsEvmProps } from "../../types";
+    'evm/EvmWalletControls.react': () => source`import type { FC } from "react";
+        import type { TWalletControlsEvmProps } from "../../types";
         
-        export const EvmWalletControls: FC<WalletControlsEvmProps> = ({
+        export const EvmWalletControls: FC<TWalletControlsEvmProps> = ({
           providerOptions,
           selectedProviderUuid,
           accounts,
@@ -69,15 +69,15 @@ export const createEvmReactFragments: FragmentFactory<
           </>
         );
         `,
-    "evm/WalletKindSelector.react":
+    'evm/WalletKindSelector.react':
       () => source`import type { FC } from "react";
         import {
           parseWalletKind,
           WALLET_KIND_OPTIONS,
-          type WalletKindSelectorProps,
+          type TWalletKindSelectorProps,
         } from "../../types";
         
-        export const WalletKindSelector: FC<WalletKindSelectorProps> = ({
+        export const WalletKindSelector: FC<TWalletKindSelectorProps> = ({
           activeWalletKind,
           setActiveWalletKind,
         }) => (
@@ -98,7 +98,7 @@ export const createEvmReactFragments: FragmentFactory<
           </div>
         );
         `,
-    "evm/useEvmOriginChains.react":
+    'evm/useEvmOriginChains.react':
       () => source`import { useCallback, useEffect, useRef, useState } from "react";
         import { loadEvmOriginChains } from "./evmOrigins";
         
@@ -133,7 +133,7 @@ export const createEvmReactFragments: FragmentFactory<
           return { chains, isEvmOrigin, ensureEvmOriginChains };
         };
         `,
-    "evm/useEvmWallet.react":
+    'evm/useEvmWallet.react':
       () => source`import { useCallback, useEffect, useMemo, useState } from "react";
         import { useSyncExternalStore } from "react";
         import type { EIP6963ProviderDetail } from "mipd";
@@ -147,7 +147,7 @@ export const createEvmReactFragments: FragmentFactory<
           toProviderOptions,
           truncateAddress,
         } from "../../evm/utils";
-        import type { EvmAccountOption, EvmProviderOption } from "../../types";
+        import type { TEvmAccountOption, TEvmProviderOption } from "../../types";
         
         export const useEvmWallet = () => {
           const providers = useSyncExternalStore(
@@ -159,7 +159,7 @@ export const createEvmReactFragments: FragmentFactory<
           const [selectedAddress, setSelectedAddress] = useState<string>();
           const [selectedProvider, setSelectedProvider] =
             useState<EIP6963ProviderDetail>();
-          const [providerOptions, setProviderOptions] = useState<EvmProviderOption[]>(
+          const [providerOptions, setProviderOptions] = useState<TEvmProviderOption[]>(
             [],
           );
         
@@ -185,7 +185,7 @@ export const createEvmReactFragments: FragmentFactory<
             };
           }, [selectedProvider]);
         
-          const accountOptions = useMemo((): EvmAccountOption[] => {
+          const accountOptions = useMemo((): TEvmAccountOption[] => {
             return accounts.map((address) => ({
               address,
               label: truncateAddress(address),

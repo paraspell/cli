@@ -1,23 +1,37 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { GeneratedVariant } from './variants.js';
+import type { TGeneratedVariant } from './variants.js';
 
-export interface StructureResult {
-  variant: GeneratedVariant;
+export interface TStructureResult {
+  variant: TGeneratedVariant;
   ok: boolean;
   errors: string[];
 }
 
 const fileExists = (root: string, rel: string): boolean => {
   return fs.existsSync(path.join(root, rel));
-}
+};
 
 const assertPackageDeps = (
   pkg: Record<string, Record<string, string> | undefined>,
-  variant: GeneratedVariant,
+  variant: TGeneratedVariant,
 ): string[] => {
   const errors: string[] = [];
   const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+  const devDeps = pkg.devDependencies ?? {};
+
+  for (const dependency of [
+    '@eslint/js',
+    'eslint',
+    'eslint-config-prettier',
+    'globals',
+    'prettier',
+    'typescript-eslint',
+  ]) {
+    if (!devDeps[dependency]) {
+      errors.push(`Missing dev dependency ${dependency}`);
+    }
+  }
 
   if (variant.kind === 'sdk') {
     if (variant.client === 'pjs' && !deps['@paraspell/sdk-pjs']) {
@@ -38,9 +52,11 @@ const assertPackageDeps = (
       errors.push('Missing dependency @paraspell/sdk-dedot');
     }
     if (variant.client !== 'papi' && deps['@paraspell/sdk']) {
-      errors.push('Unexpected dependency @paraspell/sdk when client is not papi');
+      errors.push(
+        'Unexpected dependency @paraspell/sdk when client is not papi',
+      );
     }
-    if (variant.swap && !deps['@paraspell/swap']) {
+    if (variant.extensions.swap && !deps['@paraspell/swap']) {
       errors.push('Missing dependency @paraspell/swap');
     }
   }
@@ -60,11 +76,12 @@ const assertPackageDeps = (
     }
   }
 
-  const evmWallet = variant.evm || variant.snowbridge;
+  const evmWallet = variant.extensions.evm || variant.extensions.snowbridge;
 
-  if (variant.evm) {
+  if (variant.extensions.evm) {
     if (variant.kind === 'sdk') {
-      if (!deps['@paraspell/evm']) errors.push('Missing dependency @paraspell/evm');
+      if (!deps['@paraspell/evm'])
+        errors.push('Missing dependency @paraspell/evm');
     }
   } else if (deps['@paraspell/evm']) {
     errors.push('Unexpected dependency @paraspell/evm when evm=false');
@@ -83,12 +100,14 @@ const assertPackageDeps = (
     errors.push('Unexpected dependency dotenv for non-node framework');
   }
 
-  if (variant.snowbridge) {
+  if (variant.extensions.snowbridge) {
     if (variant.kind === 'sdk' && !deps['@paraspell/evm-snowbridge']) {
       errors.push('Missing dependency @paraspell/evm-snowbridge');
     }
   } else if (deps['@paraspell/evm-snowbridge']) {
-    errors.push('Unexpected dependency @paraspell/evm-snowbridge when snowbridge=false');
+    errors.push(
+      'Unexpected dependency @paraspell/evm-snowbridge when snowbridge=false',
+    );
   }
 
   if (variant.kind === 'api') {
@@ -97,27 +116,44 @@ const assertPackageDeps = (
       errors.push('Unexpected dependency @paraspell/sdk in api project');
     }
     if (deps['@paraspell/descriptors']) {
-      errors.push('Unexpected dependency @paraspell/descriptors in api project');
+      errors.push(
+        'Unexpected dependency @paraspell/descriptors in api project',
+      );
     }
     if (deps['@paraspell/evm']) {
       errors.push('Unexpected dependency @paraspell/evm in api project');
     }
     if (deps['@paraspell/evm-snowbridge']) {
-      errors.push('Unexpected dependency @paraspell/evm-snowbridge in api project');
+      errors.push(
+        'Unexpected dependency @paraspell/evm-snowbridge in api project',
+      );
     }
   }
 
   return errors;
-}
+};
 
-const assertConditionalFiles = (variant: GeneratedVariant, root: string): string[] => {
+const assertConditionalFiles = (
+  variant: TGeneratedVariant,
+  root: string,
+): string[] => {
   const errors: string[] = [];
   const isWeb = variant.framework === 'react' || variant.framework === 'vue';
-  const evmWallet = variant.evm || variant.snowbridge;
+  const evmWallet = variant.extensions.evm || variant.extensions.snowbridge;
 
   if (!fileExists(root, 'package.json')) {
     errors.push('Missing package.json');
     return errors;
+  }
+
+  for (const rel of [
+    'eslint.config.js',
+    '.prettierignore',
+    '.prettierrc.json',
+  ]) {
+    if (!fileExists(root, rel)) {
+      errors.push(`Missing ${rel}`);
+    }
   }
 
   if (variant.framework === 'node') {
@@ -132,12 +168,19 @@ const assertConditionalFiles = (variant: GeneratedVariant, root: string): string
     }
     if (evmWallet !== fileExists(root, 'src/evm.ts')) {
       errors.push(
-        evmWallet ? 'Missing src/evm.ts' : 'Unexpected src/evm.ts when wallet origins are disabled',
+        evmWallet
+          ? 'Missing src/evm.ts'
+          : 'Unexpected src/evm.ts when wallet origins are disabled',
       );
     }
-    if (variant.kind === 'api' && evmWallet !== fileExists(root, 'src/evmOrigins.ts')) {
+    if (
+      variant.kind === 'api' &&
+      evmWallet !== fileExists(root, 'src/evmOrigins.ts')
+    ) {
       errors.push(
-        evmWallet ? 'Missing src/evmOrigins.ts' : 'Unexpected src/evmOrigins.ts when wallet origins are disabled',
+        evmWallet
+          ? 'Missing src/evmOrigins.ts'
+          : 'Unexpected src/evmOrigins.ts when wallet origins are disabled',
       );
     }
     if (variant.kind === 'sdk' && !fileExists(root, 'src/isEvmOrigin.ts')) {
@@ -145,7 +188,9 @@ const assertConditionalFiles = (variant: GeneratedVariant, root: string): string
     }
     if (evmWallet !== fileExists(root, 'src/getViemChain.ts')) {
       errors.push(
-        evmWallet ? 'Missing src/getViemChain.ts' : 'Unexpected src/getViemChain.ts when wallet origins are disabled',
+        evmWallet
+          ? 'Missing src/getViemChain.ts'
+          : 'Unexpected src/getViemChain.ts when wallet origins are disabled',
       );
     }
     return errors;
@@ -171,7 +216,9 @@ const assertConditionalFiles = (variant: GeneratedVariant, root: string): string
         const shouldExist = variant.client === client;
         if (shouldExist !== fileExists(root, rel)) {
           errors.push(
-            shouldExist ? `Missing ${rel}` : `Unexpected ${rel} for client=${variant.client}`,
+            shouldExist
+              ? `Missing ${rel}`
+              : `Unexpected ${rel} for client=${variant.client}`,
           );
         }
       }
@@ -194,7 +241,10 @@ const assertConditionalFiles = (variant: GeneratedVariant, root: string): string
           errors.push(`Missing ${rel}`);
         }
       }
-      if (variant.kind === 'api' && !fileExists(root, 'src/evm/evmOrigins.ts')) {
+      if (
+        variant.kind === 'api' &&
+        !fileExists(root, 'src/evm/evmOrigins.ts')
+      ) {
         errors.push('Missing src/evm/evmOrigins.ts');
       }
       if (
@@ -203,10 +253,16 @@ const assertConditionalFiles = (variant: GeneratedVariant, root: string): string
       ) {
         errors.push('Missing src/evm/useEvmOriginChains.ts');
       }
-      if (variant.kind === 'sdk' && !fileExists(root, 'src/xcm/evmTransfer.ts')) {
+      if (
+        variant.kind === 'sdk' &&
+        !fileExists(root, 'src/xcm/evmTransfer.ts')
+      ) {
         errors.push('Missing src/xcm/evmTransfer.ts');
       }
-      if (variant.kind === 'api' && fileExists(root, 'src/xcm/evmTransfer.ts')) {
+      if (
+        variant.kind === 'api' &&
+        fileExists(root, 'src/xcm/evmTransfer.ts')
+      ) {
         errors.push('Unexpected src/xcm/evmTransfer.ts in api project');
       }
     } else {
@@ -224,9 +280,9 @@ const assertConditionalFiles = (variant: GeneratedVariant, root: string): string
         'src/swap/useExchangeChains.ts',
       ];
       for (const rel of swapFiles) {
-        if (variant.swap !== fileExists(root, rel)) {
+        if (variant.extensions.swap !== fileExists(root, rel)) {
           errors.push(
-            variant.swap
+            variant.extensions.swap
               ? `Missing ${rel}`
               : `Unexpected ${rel} when swap is disabled`,
           );
@@ -236,9 +292,12 @@ const assertConditionalFiles = (variant: GeneratedVariant, root: string): string
   }
 
   return errors;
-}
+};
 
-const assertNodeEnv = async (variant: GeneratedVariant, root: string): Promise<string[]> => {
+const assertNodeEnv = async (
+  variant: TGeneratedVariant,
+  root: string,
+): Promise<string[]> => {
   const errors: string[] = [];
   if (variant.framework !== 'node') return errors;
 
@@ -252,14 +311,20 @@ const assertNodeEnv = async (variant: GeneratedVariant, root: string): Promise<s
   if (!content.includes('SUBSTRATE_MNEMONIC=')) {
     errors.push('.env must include SUBSTRATE_MNEMONIC=');
   }
-  const evmWallet = variant.evm || variant.snowbridge;
+  const evmWallet = variant.extensions.evm || variant.extensions.snowbridge;
   const envLines = content.split('\n').filter((line) => line.length > 0);
-  const hasEvmPrivateKey = envLines.some((line) => line.startsWith('PRIVATE_KEY='));
+  const hasEvmPrivateKey = envLines.some((line) =>
+    line.startsWith('PRIVATE_KEY='),
+  );
   if (evmWallet && !hasEvmPrivateKey) {
-    errors.push('.env must include PRIVATE_KEY= when EVM or Snowbridge wallet origins are enabled');
+    errors.push(
+      '.env must include PRIVATE_KEY= when EVM or Snowbridge wallet origins are enabled',
+    );
   }
   if (!evmWallet && hasEvmPrivateKey) {
-    errors.push('Unexpected PRIVATE_KEY= in .env when wallet origins are disabled');
+    errors.push(
+      'Unexpected PRIVATE_KEY= in .env when wallet origins are disabled',
+    );
   }
 
   const indexPath = path.join(root, 'src/index.ts');
@@ -271,32 +336,42 @@ const assertNodeEnv = async (variant: GeneratedVariant, root: string): Promise<s
   }
 
   return errors;
-}
+};
 
 export const assertVariantStructure = async (
-  variant: GeneratedVariant,
-): Promise<StructureResult> => {
+  variant: TGeneratedVariant,
+): Promise<TStructureResult> => {
   const errors: string[] = [];
   const root = variant.absPath;
 
   if (!fs.existsSync(root)) {
-    return { variant, ok: false, errors: [`Directory does not exist: ${root}`] };
+    return {
+      variant,
+      ok: false,
+      errors: [`Directory does not exist: ${root}`],
+    };
   }
 
   errors.push(...assertConditionalFiles(variant, root));
 
   try {
-    const raw = await fs.promises.readFile(path.join(root, 'package.json'), 'utf8');
-    const pkg = JSON.parse(raw) as Record<string, Record<string, string> | undefined>;
+    const raw = await fs.promises.readFile(
+      path.join(root, 'package.json'),
+      'utf8',
+    );
+    const pkg = JSON.parse(raw) as Record<
+      string,
+      Record<string, string> | undefined
+    >;
     errors.push(...assertPackageDeps(pkg, variant));
 
-    const scripts = pkg.scripts as Record<string, string> | undefined;
+    const scripts = pkg.scripts;
     if (!scripts?.typecheck) errors.push('Missing script: typecheck');
-    if (variant.framework === 'node') {
-      if (!scripts?.build) errors.push('Missing script: build');
-    } else {
-      if (!scripts?.build) errors.push('Missing script: build');
-      if (!scripts?.lint) errors.push('Missing script: lint');
+    if (!scripts?.build) errors.push('Missing script: build');
+    for (const script of ['lint', 'lint:fix', 'format', 'format:check']) {
+      if (!scripts?.[script]) {
+        errors.push(`Missing script: ${script}`);
+      }
     }
   } catch {
     if (!errors.some((e) => e.includes('package.json'))) {
@@ -307,4 +382,4 @@ export const assertVariantStructure = async (
   errors.push(...(await assertNodeEnv(variant, root)));
 
   return { variant, ok: errors.length === 0, errors };
-}
+};

@@ -1,42 +1,41 @@
 import {
   EVM_EXTENSION,
-  promptFeatureExtensions,
+  promptExtensions,
   SNOWBRIDGE_EXTENSION,
   SWAP_EXTENSION,
-} from "./feature-extensions-checkbox.js";
+} from './extensions-checkbox.js';
 import {
   promptEvmPrivateKey,
   promptSubstrateMnemonic,
-} from "./prompt-secrets.js";
-import { promptClient, promptName, promptPackageManager } from "./prompts.js";
-import type {
-  FeatureFlags,
-  ProjectType,
-  ResolveInput,
-  ResolvedOptions,
-} from "./types.js";
+} from './prompt-secrets.js';
+import { promptClient, promptName, promptPackageManager } from './prompts.js';
+import {
+  EXTENSION_KEYS,
+  type TExtensions,
+  type TProjectType,
+  type TResolveInput,
+  type TResolvedOptions,
+} from './types.js';
 import {
   validateEvmPrivateKey,
   validateNameInput,
   validateSubstrateMnemonic,
-} from "./validate.js";
+} from './validate.js';
 
-export type NameValidator = (name: string) => true | string;
+export type TNameValidator = (name: string) => true | string;
 
-type PromptGenerateOptions = {
-  validateName?: NameValidator;
+type TPromptGenerateOptions = {
+  validateName?: TNameValidator;
 };
 
-const DEFAULT_NAME: Record<ProjectType, string> = {
-  sdk: "my-xcm-app",
-  api: "my-xcm-api-app",
+const DEFAULT_NAME: Record<TProjectType, string> = {
+  sdk: 'my-xcm-app',
+  api: 'my-xcm-api-app',
 };
 
-const featuresProvided = (input: ResolveInput): boolean => {
-  return (
-    input.evm !== undefined ||
-    input.swap !== undefined ||
-    input.snowbridge !== undefined
+const extensionsProvided = (input: TResolveInput): boolean => {
+  return EXTENSION_KEYS.some(
+    (extension) => input.extensions[extension] !== undefined,
   );
 };
 
@@ -48,7 +47,7 @@ const validSecret = (
   return validate(value) === true ? value : undefined;
 };
 
-export const hasRejectedSecrets = (input: ResolveInput): boolean => {
+export const hasRejectedSecrets = (input: TResolveInput): boolean => {
   return (
     (input.privateKey !== undefined &&
       validateEvmPrivateKey(input.privateKey) !== true) ||
@@ -57,19 +56,17 @@ export const hasRejectedSecrets = (input: ResolveInput): boolean => {
   );
 };
 
-const resolveFeatures = async (input: ResolveInput): Promise<FeatureFlags> => {
-  if (featuresProvided(input)) {
+const resolveExtensions = async (
+  input: TResolveInput,
+): Promise<TExtensions> => {
+  if (extensionsProvided(input)) {
     return {
-      evm: input.evm ?? false,
-      swap: input.swap ?? false,
-      snowbridge: input.snowbridge ?? false,
+      evm: input.extensions.evm ?? false,
+      swap: input.extensions.swap ?? false,
+      snowbridge: input.extensions.snowbridge ?? false,
     };
   }
-  const selected = await promptFeatureExtensions({
-    evm: input.evm,
-    swap: input.swap,
-    snowbridge: input.snowbridge,
-  });
+  const selected = await promptExtensions(input.extensions);
   return {
     evm: selected.includes(EVM_EXTENSION),
     swap: selected.includes(SWAP_EXTENSION),
@@ -94,9 +91,9 @@ const resolveSecret = async (
 };
 
 export const promptGenerateOptions = async (
-  input: ResolveInput,
-  options: PromptGenerateOptions = {},
-): Promise<ResolvedOptions> => {
+  input: TResolveInput,
+  options: TPromptGenerateOptions = {},
+): Promise<TResolvedOptions> => {
   const name =
     input.name ??
     (await promptName(
@@ -105,19 +102,19 @@ export const promptGenerateOptions = async (
     ));
 
   const packageManager =
-    input.packageManager ?? (await promptPackageManager("pnpm"));
+    input.packageManager ?? (await promptPackageManager('pnpm'));
 
   const client =
-    input.kind === "sdk"
-      ? (input.client ?? (await promptClient("pjs")))
+    input.kind === 'sdk'
+      ? (input.client ?? (await promptClient('pjs')))
       : undefined;
 
-  const features = await resolveFeatures(input);
-  const isNode = input.framework === "node";
+  const extensions = await resolveExtensions(input);
+  const isNode = input.framework === 'node';
 
   const substrateMnemonic = await resolveSecret(
     input.substrateMnemonic,
-    "--substrate-mnemonic",
+    '--substrate-mnemonic',
     validateSubstrateMnemonic,
     promptSubstrateMnemonic,
     isNode,
@@ -125,50 +122,48 @@ export const promptGenerateOptions = async (
 
   const privateKey = await resolveSecret(
     input.privateKey,
-    "--private-key",
+    '--private-key',
     validateEvmPrivateKey,
     promptEvmPrivateKey,
-    isNode && (features.evm || features.snowbridge),
+    isNode && (extensions.evm || extensions.snowbridge),
   );
 
   return {
     name,
     client,
-    evm: features.evm,
-    swap: features.swap,
-    snowbridge: features.snowbridge,
+    extensions,
     packageManager,
     privateKey,
     substrateMnemonic,
   };
 };
 
-export const applyGenerateDefaults = (input: ResolveInput): ResolvedOptions => {
+export const applyGenerateDefaults = (
+  input: TResolveInput,
+): TResolvedOptions => {
   const name = input.name ?? DEFAULT_NAME[input.kind];
-  const packageManager = input.packageManager ?? "pnpm";
-  const client = input.kind === "sdk" ? (input.client ?? "pjs") : undefined;
+  const packageManager = input.packageManager ?? 'pnpm';
+  const client = input.kind === 'sdk' ? (input.client ?? 'pjs') : undefined;
 
-  const features: FeatureFlags = {
-    evm: input.evm ?? false,
-    swap: input.swap ?? false,
-    snowbridge: input.snowbridge ?? false,
+  const extensions: TExtensions = {
+    evm: input.extensions.evm ?? false,
+    swap: input.extensions.swap ?? false,
+    snowbridge: input.extensions.snowbridge ?? false,
   };
-  const isNode = input.framework === "node";
+  const isNode = input.framework === 'node';
 
   const substrateMnemonic = isNode
     ? validSecret(input.substrateMnemonic, validateSubstrateMnemonic)
     : undefined;
   const privateKey =
-    isNode && (features.evm || features.snowbridge)
+    isNode && (extensions.evm || extensions.snowbridge)
       ? validSecret(input.privateKey, validateEvmPrivateKey)
       : undefined;
 
   return {
     name,
     client,
-    evm: features.evm,
-    swap: features.swap,
-    snowbridge: features.snowbridge,
+    extensions,
     packageManager,
     privateKey,
     substrateMnemonic,

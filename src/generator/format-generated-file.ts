@@ -1,8 +1,8 @@
-import path from "node:path";
-import { parse as parseVue } from "@vue/compiler-sfc";
-import { format } from "prettier";
-import { Project, ts } from "ts-morph";
-import type { Code } from "ts-poet";
+import path from 'node:path';
+import { parse as parseVue } from '@vue/compiler-sfc';
+import { format } from 'prettier';
+import { Project, ts } from 'ts-morph';
+import type { Code } from 'ts-poet';
 
 const typeScriptProject = new Project({
   useInMemoryFileSystem: true,
@@ -17,19 +17,19 @@ const typeScriptProject = new Project({
 });
 
 const PRETTIER_PARSERS: Record<string, string> = {
-  ".css": "css",
-  ".html": "html",
-  ".js": "babel",
-  ".json": "json",
-  ".md": "markdown",
-  ".ts": "typescript",
-  ".tsx": "typescript",
-  ".vue": "vue",
+  '.css': 'css',
+  '.html': 'html',
+  '.js': 'babel',
+  '.json': 'json',
+  '.md': 'markdown',
+  '.ts': 'typescript',
+  '.tsx': 'typescript',
+  '.vue': 'vue',
 };
 
 const validateTypeScript = (relativePath: string, source: string): void => {
   const projectPath = path.posix.join(
-    "/generated",
+    '/generated',
     relativePath.split(path.sep).join(path.posix.sep),
   );
   const sourceFile = typeScriptProject.createSourceFile(projectPath, source, {
@@ -42,9 +42,9 @@ const validateTypeScript = (relativePath: string, source: string): void => {
   if (diagnostics.length > 0) {
     const details = diagnostics
       .map((diagnostic) =>
-        ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+        ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
       )
-      .join("\n");
+      .join('\n');
     throw new Error(
       `Invalid generated TypeScript in ${relativePath}:\n${details}`,
     );
@@ -55,8 +55,8 @@ const validateVue = (relativePath: string, source: string): void => {
   const { errors } = parseVue(source, { filename: relativePath });
   if (errors.length > 0) {
     const details = errors
-      .map((error) => (typeof error === "string" ? error : error.message))
-      .join("\n");
+      .map((error) => (typeof error === 'string' ? error : error.message))
+      .join('\n');
     throw new Error(
       `Invalid generated Vue SFC in ${relativePath}:\n${details}`,
     );
@@ -71,7 +71,7 @@ export const formatGeneratedFile = async (
   const parser = PRETTIER_PARSERS[extension];
   const source = sourceCode
     .toString({ format: false, path: relativePath })
-    .replace(/^\n/, "");
+    .replace(/^\n/, '');
   if (!parser) return source;
 
   let formatted: string;
@@ -83,9 +83,9 @@ export const formatGeneratedFile = async (
     });
   }
 
-  if (extension === ".ts" || extension === ".tsx") {
+  if (extension === '.ts' || extension === '.tsx') {
     validateTypeScript(relativePath, formatted);
-  } else if (extension === ".vue") {
+  } else if (extension === '.vue') {
     validateVue(relativePath, formatted);
   }
 

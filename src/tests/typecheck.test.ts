@@ -12,7 +12,9 @@ describe('generated project typecheck', () => {
     const failed = result.steps.find((step) => !step.ok);
     expect(
       result.ok,
-      failed ? `${failed.name} failed for ${variant.id}:\n${failed.output}` : '',
+      failed
+        ? `${failed.name} failed for ${variant.id}:\n${failed.output}`
+        : '',
     ).toBe(true);
   });
 });

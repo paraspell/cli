@@ -1,18 +1,17 @@
-import type { TemplateContext, TemplateFile } from "../types.js";
-import type { FragmentRenderer } from "./shared/contracts.js";
-import { source } from "./source.js";
+import type { TTemplateContext, TTemplateFile } from '../types.js';
+import type { TFragmentRenderer } from './shared/contracts.js';
+import { source } from './source.js';
 
 export const createXcmApiNodeTemplates = (
-  context: TemplateContext,
-  renderFragment: FragmentRenderer,
-): readonly TemplateFile[] => {
+  context: TTemplateContext,
+  renderFragment: TFragmentRenderer,
+): readonly TTemplateFile[] => {
   const {
     projectName,
+    packageManager,
     installCmd,
     startCmd,
-    evm,
-    swap,
-    snowbridge,
+    extensions: { evm, swap, snowbridge },
     evmWallet,
     polkadotApi,
     polkadotKeyring,
@@ -25,11 +24,17 @@ export const createXcmApiNodeTemplates = (
     typesNode,
     tsx,
     typescript,
+    eslintJs,
+    eslint,
+    eslintConfigPrettier,
+    globals,
+    prettier,
+    typescriptEslint,
   } = context;
 
   return [
     {
-      path: ".gitignore",
+      path: '.gitignore',
       skip: false,
       render: () => source`node_modules
         dist
@@ -44,17 +49,17 @@ export const createXcmApiNodeTemplates = (
         `,
     },
     {
-      path: "LICENSE",
+      path: 'LICENSE',
       skip: false,
-      render: () => source`${renderFragment("LICENSE")}
+      render: () => source`${renderFragment('LICENSE')}
         `,
     },
     {
-      path: "README.md",
+      path: 'README.md',
       skip: false,
       render: () => source`# ParaSpell XCM API — Node.js example
         
-        Headless example: build transfers via the [XCM API](https://github.com/paraspell/xcm-tools/tree/main/apps/xcm-api), then sign with **Polkadot API** (substrate)${evmWallet ? source` or **viem** (EVM origins)` : ""}.
+        Headless example: build transfers via the [XCM API](https://github.com/paraspell/xcm-tools/tree/main/apps/xcm-api), then sign with **Polkadot API** (substrate)${evmWallet ? source` or **viem** (EVM origins)` : ''}.
         
         By default it calls the public ParaSpell API at \`https://api.paraspell.xyz/v1\` (see \`src/consts.ts\`). For production, consider [deploying your own API](https://paraspell.github.io/docs/xcm-api/deploy-api-yourself.html).
         
@@ -68,7 +73,7 @@ export const createXcmApiNodeTemplates = (
           evmWallet
             ? source`
         | \`PRIVATE_KEY\` | EVM routes: \`0x\`-prefixed hex for viem |`
-            : ""
+            : ''
         }
         | \`PORT\` | Optional. HTTP port (default \`3000\`) |
         
@@ -84,26 +89,38 @@ export const createXcmApiNodeTemplates = (
         
         > **Heads up:** the generated example signs and broadcasts a **live** XCM transfer on \`POST /\`. Use a dev/throwaway account while testing. Keep wallet secrets in \`.env\` (gitignored) — never on the command line or in version control.
         
-        ## Features
-        
-        | Feature | Behavior |
+        ## Extensions
+
+        | Extension | Behavior |
         |---------|----------|
         | Base | \`POST /x-transfers\` + PAPI \`signSubmitAndWatch\` |${
           swap
             ? source`
         | Swap | \`swapOptions\` on API request |`
-            : ""
+            : ''
         }${
           evmWallet
             ? source`
         | EVM | \`POST /evm-x-transfer\` + viem \`sendTransaction\` |`
-            : ""
+            : ''
         }${
           snowbridge
             ? source`
         | Snowbridge | \`Ethereum\` origins via API |`
-            : ""
+            : ''
         }
+
+        ## Scripts
+
+        | Command | Description |
+        |---------|-------------|
+        | \`${packageManager} start\` | Start the server |
+        | \`${packageManager} run build\` | Compile the project |
+        | \`${packageManager} run typecheck\` | Check TypeScript types |
+        | \`${packageManager} run lint\` | Lint the project |
+        | \`${packageManager} run lint:fix\` | Fix auto-fixable lint issues |
+        | \`${packageManager} run format\` | Format the project with Prettier |
+        | \`${packageManager} run format:check\` | Check Prettier formatting |
         
         ## Docs
         
@@ -116,7 +133,7 @@ export const createXcmApiNodeTemplates = (
         `,
     },
     {
-      path: "package.json",
+      path: 'package.json',
       skip: false,
       render: () => source`{
           "name": "${projectName}",
@@ -126,7 +143,11 @@ export const createXcmApiNodeTemplates = (
           "scripts": {
             "start": "tsx src/index.ts",
             "build": "tsc",
-            "typecheck": "tsc --noEmit"
+            "typecheck": "tsc --noEmit",
+            "lint": "eslint . --max-warnings 0",
+            "lint:fix": "eslint . --fix",
+            "format": "prettier . --write",
+            "format:check": "prettier . --check"
           },
           "dependencies": {
             "axios": "${axios}",
@@ -138,52 +159,58 @@ export const createXcmApiNodeTemplates = (
               evmWallet
                 ? source`,
             "viem": "${viem}"`
-                : ""
+                : ''
             }
           },
           "devDependencies": {
+            "@eslint/js": "${eslintJs}",
             "@types/express": "${typesExpress}",
             "@types/node": "${typesNode}",
+            "eslint": "${eslint}",
+            "eslint-config-prettier": "${eslintConfigPrettier}",
+            "globals": "${globals}",
+            "prettier": "${prettier}",
             "tsx": "${tsx}",
-            "typescript": "${typescript}"
+            "typescript": "${typescript}",
+            "typescript-eslint": "${typescriptEslint}"
           }
         }
         `,
     },
     {
-      path: "src/consts.ts",
+      path: 'src/consts.ts',
       skip: false,
-      render: () => source`${renderFragment("api/consts")}
+      render: () => source`${renderFragment('api/consts')}
         `,
     },
     {
-      path: "src/evm.ts",
+      path: 'src/evm.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("node/getEvmWalletClient")}
-        ${renderFragment("node/getEvmSenderAddress")}
+      render: () => source`${renderFragment('node/getEvmWalletClient')}
+        ${renderFragment('node/getEvmSenderAddress')}
         export { fetchEvmOriginChains, isEvmOrigin } from "./evmOrigins.js";
         `,
     },
     {
-      path: "src/evmOrigins.ts",
+      path: 'src/evmOrigins.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/evmOrigins.api.node")}
+      render: () => source`${renderFragment('evm/evmOrigins.api.node')}
         `,
     },
     {
-      path: "src/fetchFromApi.ts",
+      path: 'src/fetchFromApi.ts',
       skip: false,
-      render: () => source`${renderFragment("api/fetchFromApi")}
+      render: () => source`${renderFragment('api/fetchFromApi')}
         `,
     },
     {
-      path: "src/getViemChain.ts",
+      path: 'src/getViemChain.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/getViemChain")}
+      render: () => source`${renderFragment('evm/getViemChain')}
         `,
     },
     {
-      path: "src/index.ts",
+      path: 'src/index.ts',
       skip: false,
       render: () => source`import "dotenv/config";
         import { cryptoWaitReady } from "@polkadot/util-crypto";
@@ -213,13 +240,13 @@ export const createXcmApiNodeTemplates = (
         `,
     },
     {
-      path: "src/submitEvmTx.ts",
+      path: 'src/submitEvmTx.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("api/submitEvmTx")}
+      render: () => source`${renderFragment('api/submitEvmTx')}
         `,
     },
     {
-      path: "src/submitSubstrate.ts",
+      path: 'src/submitSubstrate.ts',
       skip: false,
       render: () => source`import axios from "axios";
         import { createWsClient } from "polkadot-api/ws";
@@ -229,10 +256,10 @@ export const createXcmApiNodeTemplates = (
           getSignerFromSecret,
           getSubstrateMnemonic,
         } from "./substrate.js";
-        import type { ApiTransaction } from "./types.js";
+        import type { TApiTransaction } from "./types.js";
         
         const submitApiTransaction = async (
-          apiTx: ApiTransaction,
+          apiTx: TApiTransaction,
         ): Promise<string> => {
           const response = await axios.get<string[]>(
             \`\${API_URL}/chains/\${apiTx.chain}/ws-endpoints\`,
@@ -265,7 +292,7 @@ export const createXcmApiNodeTemplates = (
         };
         
         export const submitSubstrateTransfers = async (
-          transactions: ApiTransaction[],
+          transactions: TApiTransaction[],
         ): Promise<string[]> => {
           const hashes: string[] = [];
           for (const apiTx of transactions) {
@@ -276,11 +303,11 @@ export const createXcmApiNodeTemplates = (
         `,
     },
     {
-      path: "src/substrate.ts",
+      path: 'src/substrate.ts',
       skip: false,
       render: () => source`import { Binary } from "polkadot-api";
         import { getPolkadotSigner } from "polkadot-api/signer";
-        ${renderFragment("node/substrate-keyring")}
+        ${renderFragment('node/substrate-keyring')}
         
         export const getSubstrateSenderAddress = async (
           secret: string,
@@ -301,11 +328,11 @@ export const createXcmApiNodeTemplates = (
         `,
     },
     {
-      path: "src/transfer.ts",
+      path: 'src/transfer.ts',
       skip: false,
       render: () => source`import axios from "axios";
         import { API_URL } from "./consts.js";
-        import { fetchFromApi${evmWallet ? source`, fetchFromEvmApi` : ""} } from "./fetchFromApi.js";
+        import { fetchFromApi${evmWallet ? source`, fetchFromEvmApi` : ''} } from "./fetchFromApi.js";
         import { submitSubstrateTransfers } from "./submitSubstrate.js";
         ${
           evmWallet
@@ -317,19 +344,19 @@ export const createXcmApiNodeTemplates = (
         } from "./evm.js";
         import { submitEvmTx } from "./submitEvmTx.js";
         `
-            : ""
+            : ''
         }import { getSubstrateMnemonic, getSubstrateSenderAddress } from "./substrate.js";
         import type {
-          AssetInfo,
-          ApiErrorResponse,
-          ApiParams,
-          TransferParams,
+          TAssetInfo,
+          TApiErrorResponse,
+          TApiParams,
+          TTransferParams,
         } from "./types.js";
         
-        ${renderFragment("api/buildApiParams")}
+        ${renderFragment('api/buildApiParams')}
         
-        const defaults: TransferParams = {
-          from: "${snowbridge ? "Ethereum" : evm ? "Moonbeam" : "Astar"}",
+        const defaults: TTransferParams = {
+          from: "${snowbridge ? 'Ethereum' : evm ? 'Moonbeam' : 'Astar'}",
           to: "Hydration",
           amount: "0.1",
           recipient: "//Bob",
@@ -341,7 +368,7 @@ export const createXcmApiNodeTemplates = (
           destination: string,
         ): Promise<object> => {
           try {
-            const response = await axios.get<AssetInfo[]>(
+            const response = await axios.get<TAssetInfo[]>(
               \`\${API_URL}/supported-assets?origin=\${origin}&destination=\${destination}\`,
             );
             const assets = response.data;
@@ -362,7 +389,7 @@ export const createXcmApiNodeTemplates = (
             }
             return nativeAsset.location;
           } catch (error) {
-            if (axios.isAxiosError<ApiErrorResponse>(error)) {
+            if (axios.isAxiosError<TApiErrorResponse>(error)) {
               const message = error.response?.data.message;
               const serverMessage = message ? \` Server response: \${message}\` : "";
               throw new Error(\`Error while resolving asset.\${serverMessage}\`, {
@@ -381,7 +408,7 @@ export const createXcmApiNodeTemplates = (
           destination: string,
         ): Promise<object> => {
           try {
-            const response = await axios.get<AssetInfo[]>(
+            const response = await axios.get<TAssetInfo[]>(
               \`\${API_URL}/supported-assets?origin=\${origin}&destination=\${destination}\`,
             );
             const assets = response.data;
@@ -396,7 +423,7 @@ export const createXcmApiNodeTemplates = (
               }
               return asset.location;
             }
-            const targetSymbol = "${evm ? "USDC" : "DOT"}";
+            const targetSymbol = "${evm ? 'USDC' : 'DOT'}";
             const asset = assets.find((entry) => entry.symbol === targetSymbol);
             if (!asset) {
               throw new Error(
@@ -405,7 +432,7 @@ export const createXcmApiNodeTemplates = (
             }
             return asset.location;
           } catch (error) {
-            if (axios.isAxiosError<ApiErrorResponse>(error)) {
+            if (axios.isAxiosError<TApiErrorResponse>(error)) {
               const message = error.response?.data.message;
               const serverMessage = message ? \` Server response: \${message}\` : "";
               throw new Error(\`Error while resolving swap asset.\${serverMessage}\`, {
@@ -417,7 +444,7 @@ export const createXcmApiNodeTemplates = (
         };
         
         `
-            : ""
+            : ''
         }export const transferViaApi = async (): Promise<string | string[]> => {
           const params = defaults;
           const currencyLocation = await resolveCurrencyLocation(
@@ -434,7 +461,7 @@ export const createXcmApiNodeTemplates = (
             params.to,
           );
         `
-            : ""
+            : ''
         }
         ${
           evmWallet
@@ -456,7 +483,7 @@ export const createXcmApiNodeTemplates = (
                     ? source`
                 currencyToLocation,
                 params.exchange,`
-                    : ""
+                    : ''
                 }
               ),
             );
@@ -464,7 +491,7 @@ export const createXcmApiNodeTemplates = (
             return txHash;
           }
         `
-            : ""
+            : ''
         }
           const mnemonic = getSubstrateMnemonic();
           const sender = await getSubstrateSenderAddress(mnemonic);
@@ -481,7 +508,7 @@ export const createXcmApiNodeTemplates = (
                   ? source`
               currencyToLocation,
               params.exchange,`
-                  : ""
+                  : ''
               }
             ),
           );
@@ -490,13 +517,13 @@ export const createXcmApiNodeTemplates = (
         `,
     },
     {
-      path: "src/types.ts",
+      path: 'src/types.ts',
       skip: false,
-      render: () => source`${renderFragment("types/api.node")}
+      render: () => source`${renderFragment('types/api.node')}
         `,
     },
     {
-      path: "tsconfig.json",
+      path: 'tsconfig.json',
       skip: false,
       render: () => source`{
           "compilerOptions": {
