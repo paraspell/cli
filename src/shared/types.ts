@@ -11,7 +11,7 @@ export const SDK_CLIENTS = ["papi", "pjs", "dedot"] as const;
 export type SdkClient = (typeof SDK_CLIENTS)[number];
 
 export const SDK_CLIENT_LABELS: Record<SdkClient, string> = {
-  papi: "Polkadot API",
+  papi: "Polkadot API (PAPI)",
   pjs: "Polkadot JS",
   dedot: "Dedot",
 };

@@ -1,8 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { intro, outro } from "@clack/prompts";
-import terminalImage from "terminal-image";
 import {
   EVM_EXTENSION,
   promptFeatureExtensions,
@@ -25,32 +23,8 @@ import {
 import type { SdkClient } from "./shared/types.js";
 import { validateNameInput } from "./shared/validate.js";
 
-const preferNativeTerminalImage = (): boolean => {
-  const program = process.env.TERM_PROGRAM?.toLowerCase() ?? "";
-  return program !== "vscode" && program !== "cursor";
-};
-
-const renderBanner = async (): Promise<void> => {
-  try {
-    const iconPath = path.join(
-      fileURLToPath(new URL("../assets", import.meta.url)),
-      "paraspell-icon.png",
-    );
-    const buffer = await fs.promises.readFile(iconPath);
-    const image = await terminalImage.buffer(buffer, {
-      width: "40%",
-      height: "40%",
-      preferNativeRender: preferNativeTerminalImage(),
-    });
-    console.log(image);
-  } catch {
-    // Decorative banner unavailable; continue without it.
-  }
-};
-
 export const runInteractiveGenerate = async (): Promise<void> => {
-  await renderBanner();
-  intro("Welcome to the Paraspell CLI");
+  intro("Welcome to ParaSpell✨ CLI");
 
   const projectName = await promptName("my-app", (name) => {
     const base = validateNameInput(name);

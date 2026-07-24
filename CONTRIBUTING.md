@@ -12,8 +12,7 @@ Thanks for helping improve `create-paraspell`!
 ```bash
 pnpm install
 pnpm build       # build the CLI into dist/
-pnpm execute     # run the built CLI locally
-pnpm generate    # interactive flow using the compiled CLI
+pnpm start       # run the built CLI locally
 ```
 
 ## Project layout
