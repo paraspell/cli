@@ -43,6 +43,7 @@ pnpm lint        # run type-aware ESLint checks on src/
 pnpm format:check # verify Prettier formatting in src/
 pnpm build       # build the CLI into dist/
 pnpm test        # run unit tests colocated with source files
+pnpm test -- --coverage # enforce 90% unit-test coverage
 pnpm test:e2e    # run end-to-end tests from e2e/
 ```
 
