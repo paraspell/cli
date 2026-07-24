@@ -1,69 +1,71 @@
-import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { buildApplication, buildCommand, run } from "@stricli/core";
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { buildApplication, buildCommand, run } from '@stricli/core';
 import {
   frameworkPositional,
   packageManagerFlag,
-} from "./shared/cli-params.js";
-import { generateApp } from "./generator/generate.js";
+} from './shared/cli-params.js';
+import { generateApp } from './generator/generate.js';
 import {
-  FEATURE_KEYS,
+  EXTENSION_KEYS,
   FRAMEWORKS,
   SDK_CLIENTS,
-  type FeatureFlags,
-  type Framework,
-  type PackageManager,
-  type ProjectType,
-  type SdkClient,
-} from "./shared/types.js";
+  type TExtensions,
+  type TFramework,
+  type TPackageManager,
+  type TProjectType,
+  type TSdkClient,
+} from './shared/types.js';
 
-export const FEATURE_COMBOS: readonly FeatureFlags[] = [false, true].flatMap(
-  (evm) =>
-    [false, true].flatMap((snowbridge) =>
-      [false, true].map((swap) => ({ evm, swap, snowbridge })),
-    ),
+export const EXTENSION_COMBINATIONS: readonly TExtensions[] = [
+  false,
+  true,
+].flatMap((evm) =>
+  [false, true].flatMap((snowbridge) =>
+    [false, true].map((swap) => ({ evm, swap, snowbridge })),
+  ),
 );
 
-export const featureSuffix = (combo: FeatureFlags): string => {
-  return FEATURE_KEYS.filter((key) => combo[key]).join("-");
+export const extensionSuffix = (extensions: TExtensions): string => {
+  return EXTENSION_KEYS.filter((key) => extensions[key]).join('-');
 };
 
-export const apiExampleName = (combo: FeatureFlags): string => {
-  return featureSuffix(combo) || "base";
+export const apiExampleName = (extensions: TExtensions): string => {
+  return extensionSuffix(extensions) || 'base';
 };
 
 export const sdkExampleDir = (
-  client: SdkClient,
-  combo: FeatureFlags,
+  client: TSdkClient,
+  extensions: TExtensions,
 ): string => {
-  const suffix = featureSuffix(combo);
+  const suffix = extensionSuffix(extensions);
   return suffix ? `${client}-${suffix}` : client;
 };
 
-const cliRoot = fileURLToPath(new URL("../", import.meta.url));
+const cliRoot = fileURLToPath(new URL('../', import.meta.url));
 const generateExamples = async (
-  kind: ProjectType | undefined,
-  framework: Framework | undefined,
-  packageManager: PackageManager = "pnpm",
+  kind: TProjectType | undefined,
+  framework: TFramework | undefined,
+  packageManager: TPackageManager = 'pnpm',
 ): Promise<void> => {
-  const frameworks: readonly Framework[] = framework ? [framework] : FRAMEWORKS;
+  const frameworks: readonly TFramework[] = framework
+    ? [framework]
+    : FRAMEWORKS;
 
-  if (!kind || kind === "sdk") {
+  if (!kind || kind === 'sdk') {
     for (const fw of frameworks) {
       for (const client of SDK_CLIENTS) {
-        for (const combo of FEATURE_COMBOS) {
-          const name = sdkExampleDir(client, combo);
+        for (const extensions of EXTENSION_COMBINATIONS) {
+          const name = sdkExampleDir(client, extensions);
           await generateApp({
-            kind: "sdk",
+            kind: 'sdk',
             opts: {
               framework: fw,
               name,
               client,
-              evm: combo.evm,
-              swap: combo.swap,
-              snowbridge: combo.snowbridge,
+              extensions,
               packageManager,
-              out: path.join(cliRoot, "generated", "xcm-sdk", fw, name),
+              out: path.join(cliRoot, 'generated', 'xcm-sdk', fw, name),
             },
           });
         }
@@ -71,19 +73,17 @@ const generateExamples = async (
     }
   }
 
-  if (!kind || kind === "api") {
+  if (!kind || kind === 'api') {
     for (const fw of frameworks) {
-      for (const combo of FEATURE_COMBOS) {
-        const name = apiExampleName(combo);
+      for (const extensions of EXTENSION_COMBINATIONS) {
+        const name = apiExampleName(extensions);
         await generateApp({
-          kind: "api",
+          kind: 'api',
           opts: {
             framework: fw,
             name: `xcm-api-${name}`,
-            out: path.join(cliRoot, "generated", "xcm-api", fw, name),
-            evm: combo.evm,
-            swap: combo.swap,
-            snowbridge: combo.snowbridge,
+            out: path.join(cliRoot, 'generated', 'xcm-api', fw, name),
+            extensions,
             packageManager,
           },
         });
@@ -93,18 +93,18 @@ const generateExamples = async (
 };
 
 const command = buildCommand<
-  { packageManager?: PackageManager; kind?: ProjectType },
-  [Framework?]
+  { packageManager?: TPackageManager; kind?: TProjectType },
+  [TFramework?]
 >({
-  docs: { brief: "Generate ParaSpell XCM SDK and API example apps" },
+  docs: { brief: 'Generate ParaSpell XCM SDK and API example apps' },
   parameters: {
     positional: frameworkPositional,
     flags: {
       packageManager: packageManagerFlag,
       kind: {
-        kind: "enum",
-        values: ["sdk", "api"],
-        brief: "Which examples to generate (defaults to both)",
+        kind: 'enum',
+        values: ['sdk', 'api'],
+        brief: 'Which examples to generate (defaults to both)',
         optional: true,
       },
     },
@@ -119,10 +119,10 @@ const command = buildCommand<
 });
 
 const app = buildApplication(command, {
-  name: "generate-examples",
-  scanner: { caseStyle: "allow-kebab-for-camel" },
+  name: 'generate-examples',
+  scanner: { caseStyle: 'allow-kebab-for-camel' },
 });
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   await run(app, process.argv.slice(2), { process });
 }

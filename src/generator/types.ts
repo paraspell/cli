@@ -1,73 +1,72 @@
-import type { Code } from "ts-poet";
+import type { Code } from 'ts-poet';
 import type {
-  ApiGenerateOptions,
-  Framework,
-  PackageManager,
-  ProjectType,
-  SdkGenerateOptions,
-  SdkClient,
-} from "../shared/types.js";
-import type { PackageVersions } from "./versions.js";
+  TApiGenerateOptions,
+  TExtensions,
+  TFramework,
+  TPackageManager,
+  TProjectType,
+  TSdkClient,
+  TSdkGenerateOptions,
+} from '../shared/types.js';
+import type { TPackageVersions } from './versions.js';
 
 export const TEMPLATE_SET_IDS = [
-  "xcm-api-node",
-  "xcm-api-react",
-  "xcm-api-vue",
-  "xcm-sdk-node",
-  "xcm-sdk-react",
-  "xcm-sdk-vue",
+  'xcm-api-node',
+  'xcm-api-react',
+  'xcm-api-vue',
+  'xcm-sdk-node',
+  'xcm-sdk-react',
+  'xcm-sdk-vue',
 ] as const;
 
-export type TemplateSetId = (typeof TEMPLATE_SET_IDS)[number];
+export type TTemplateSetId = (typeof TEMPLATE_SET_IDS)[number];
 
-export interface FrameworkMeta {
-  templateSet: TemplateSetId;
+export interface TFrameworkMeta {
+  templateSet: TTemplateSetId;
   label: string;
   logoFile?: string;
 }
 
-export type GenerateAppParams =
+export type TGenerateAppParams =
   | {
-      kind: "sdk";
-      opts: SdkGenerateOptions;
+      kind: 'sdk';
+      opts: TSdkGenerateOptions;
     }
   | {
-      kind: "api";
-      opts: ApiGenerateOptions;
+      kind: 'api';
+      opts: TApiGenerateOptions;
     };
 
-export type SdkPackage =
-  "@paraspell/sdk" | "@paraspell/sdk-pjs" | "@paraspell/sdk-dedot";
+export type TSdkPackage =
+  '@paraspell/sdk' | '@paraspell/sdk-pjs' | '@paraspell/sdk-dedot';
 
-export interface ClientMeta {
-  client: SdkClient;
-  sdkPackage: SdkPackage;
+export interface TClientMeta {
+  client: TSdkClient;
+  sdkPackage: TSdkPackage;
   sdkVersion: string;
   clientLabel: string;
 }
 
-export type ClientMetaByClient = {
-  [Client in SdkClient]: Omit<ClientMeta, "client"> & {
+export type TClientMetaByClient = {
+  [Client in TSdkClient]: Omit<TClientMeta, 'client'> & {
     client: Client;
   };
 };
 
-export type TemplateContext = PackageVersions &
-  ClientMeta & {
+export type TTemplateContext = TPackageVersions &
+  TClientMeta & {
     projectName: string;
-    packageManager: PackageManager;
+    packageManager: TPackageManager;
     installCmd: string;
     devCmd: string;
     startCmd: string;
-    framework: Framework;
-    projectKind: ProjectType;
-    evm: boolean;
-    swap: boolean;
-    snowbridge: boolean;
+    framework: TFramework;
+    projectKind: TProjectType;
+    extensions: TExtensions;
     evmWallet: boolean;
   };
 
-export interface TemplateFile {
+export interface TTemplateFile {
   path: string;
   skip: boolean;
   render: () => Code;

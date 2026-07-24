@@ -1,0 +1,119 @@
+import type { TTemplateContext, TTemplateFile } from '../types.js';
+import { source } from './source.js';
+
+const renderReactEslintConfig = () => source`
+  import js from "@eslint/js";
+  import eslintConfigPrettier from "eslint-config-prettier/flat";
+  import globals from "globals";
+  import reactHooks from "eslint-plugin-react-hooks";
+  import reactRefresh from "eslint-plugin-react-refresh";
+  import tseslint from "typescript-eslint";
+
+  export default tseslint.config(
+    { ignores: ["dist"] },
+    {
+      extends: [js.configs.recommended, ...tseslint.configs.recommended],
+      files: ["**/*.{ts,tsx}"],
+      languageOptions: {
+        ecmaVersion: 2020,
+        globals: globals.browser,
+      },
+      plugins: {
+        "react-hooks": reactHooks,
+        "react-refresh": reactRefresh,
+      },
+      rules: {
+        ...reactHooks.configs.recommended.rules,
+        "react-refresh/only-export-components": [
+          "warn",
+          { allowConstantExport: true },
+        ],
+      },
+    },
+    eslintConfigPrettier,
+  );
+`;
+
+const renderVueEslintConfig = () => source`
+  import js from "@eslint/js";
+  import eslintConfigPrettier from "eslint-config-prettier/flat";
+  import globals from "globals";
+  import tseslint from "typescript-eslint";
+  import pluginVue from "eslint-plugin-vue";
+  import vueParser from "vue-eslint-parser";
+
+  export default tseslint.config(
+    { ignores: ["dist"] },
+    js.configs.recommended,
+    ...tseslint.configs.recommended,
+    ...pluginVue.configs["flat/recommended"],
+    {
+      files: ["**/*.{ts,vue}"],
+      languageOptions: {
+        ecmaVersion: 2020,
+        globals: globals.browser,
+      },
+    },
+    {
+      files: ["**/*.vue"],
+      languageOptions: {
+        parser: vueParser,
+        parserOptions: {
+          parser: tseslint.parser,
+          extraFileExtensions: [".vue"],
+        },
+      },
+    },
+    eslintConfigPrettier,
+  );
+`;
+
+const renderNodeEslintConfig = () => source`
+  import js from "@eslint/js";
+  import eslintConfigPrettier from "eslint-config-prettier/flat";
+  import globals from "globals";
+  import tseslint from "typescript-eslint";
+
+  export default tseslint.config(
+    { ignores: ["dist"] },
+    {
+      extends: [js.configs.recommended, ...tseslint.configs.recommended],
+      files: ["**/*.ts"],
+      languageOptions: {
+        ecmaVersion: 2022,
+        globals: globals.node,
+      },
+    },
+    eslintConfigPrettier,
+  );
+`;
+
+export const createQualityTemplates = (
+  context: TTemplateContext,
+): readonly TTemplateFile[] => [
+  {
+    path: 'eslint.config.js',
+    skip: false,
+    render:
+      context.framework === 'react'
+        ? renderReactEslintConfig
+        : context.framework === 'vue'
+          ? renderVueEslintConfig
+          : renderNodeEslintConfig,
+  },
+  {
+    path: '.prettierrc.json',
+    skip: false,
+    render: () => source`{
+      "singleQuote": false
+    }
+    `,
+  },
+  {
+    path: '.prettierignore',
+    skip: false,
+    render: () => source`dist
+      node_modules
+    `,
+  },
+];

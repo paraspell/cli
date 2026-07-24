@@ -1,18 +1,17 @@
-import type { TemplateContext, TemplateFile } from "../types.js";
-import type { FragmentRenderer } from "./shared/contracts.js";
-import { source } from "./source.js";
+import type { TTemplateContext, TTemplateFile } from '../types.js';
+import type { TFragmentRenderer } from './shared/contracts.js';
+import { source } from './source.js';
 
 export const createXcmApiReactTemplates = (
-  context: TemplateContext,
-  renderFragment: FragmentRenderer,
-): readonly TemplateFile[] => {
+  context: TTemplateContext,
+  renderFragment: TFragmentRenderer,
+): readonly TTemplateFile[] => {
   const {
     projectName,
     packageManager,
     installCmd,
     devCmd,
-    swap,
-    snowbridge,
+    extensions: { swap, snowbridge },
     evmWallet,
     polkadotApi,
     viem,
@@ -21,7 +20,9 @@ export const createXcmApiReactTemplates = (
     typescript,
     eslintJs,
     eslint,
+    eslintConfigPrettier,
     globals,
+    prettier,
     typescriptEslint,
     vite,
     typesReact,
@@ -35,7 +36,7 @@ export const createXcmApiReactTemplates = (
 
   return [
     {
-      path: ".gitignore",
+      path: '.gitignore',
       skip: false,
       render: () => source`# Logs
         *.log
@@ -63,13 +64,13 @@ export const createXcmApiReactTemplates = (
         `,
     },
     {
-      path: "LICENSE",
+      path: 'LICENSE',
       skip: false,
-      render: () => source`${renderFragment("LICENSE")}
+      render: () => source`${renderFragment('LICENSE')}
         `,
     },
     {
-      path: "README.md",
+      path: 'README.md',
       skip: false,
       render: () => source`# ParaSpell XCM API⚡️ starter template
         
@@ -85,7 +86,7 @@ export const createXcmApiReactTemplates = (
             evmWallet
               ? source`
           - **EVM:** an EIP-1193 wallet such as [MetaMask](https://metamask.io/) (for EVM-origin transfers).`
-              : ""
+              : ''
           }
         - A funded account on the origin chain. This app submits **live** transfers — use a small amount and a test/throwaway account.
         
@@ -99,17 +100,17 @@ export const createXcmApiReactTemplates = (
           evmWallet
             ? source`
         **EVM** is enabled — use the wallet selector to switch between a Substrate wallet and an EVM wallet (e.g. MetaMask) depending on the origin chain.`
-            : ""
+            : ''
         }${
           swap
             ? source`
         **Swap** is enabled — toggle *Add Swap* to also convert to a different currency on the destination.`
-            : ""
+            : ''
         }${
           snowbridge
             ? source`
         **Snowbridge** is enabled — \`Ethereum\` origins route across the bridge.`
-            : ""
+            : ''
         }
         
         ## Scripts
@@ -120,6 +121,9 @@ export const createXcmApiReactTemplates = (
         | \`${packageManager} run build\` | Production build |
         | \`${packageManager} run preview\` | Preview the production build locally |
         | \`${packageManager} run lint\` | Lint the project |
+        | \`${packageManager} run lint:fix\` | Fix auto-fixable lint issues |
+        | \`${packageManager} run format\` | Format the project with Prettier |
+        | \`${packageManager} run format:check\` | Check Prettier formatting |
         
         ## Get Support
         
@@ -133,46 +137,13 @@ export const createXcmApiReactTemplates = (
         `,
     },
     {
-      path: "eslint.config.js",
+      path: 'index.html',
       skip: false,
-      render: () => source`import js from '@eslint/js'
-        import globals from 'globals'
-        import reactHooks from 'eslint-plugin-react-hooks'
-        import reactRefresh from 'eslint-plugin-react-refresh'
-        import tseslint from 'typescript-eslint'
-        
-        export default tseslint.config(
-          { ignores: ['dist'] },
-          {
-            extends: [js.configs.recommended, ...tseslint.configs.recommended],
-            files: ['**/*.{ts,tsx}'],
-            languageOptions: {
-              ecmaVersion: 2020,
-              globals: globals.browser,
-            },
-            plugins: {
-              'react-hooks': reactHooks,
-              'react-refresh': reactRefresh,
-            },
-            rules: {
-              ...reactHooks.configs.recommended.rules,
-              'react-refresh/only-export-components': [
-                'warn',
-                { allowConstantExport: true },
-              ],
-            },
-          },
-        )
+      render: () => source`${renderFragment('spa/index.html')}
         `,
     },
     {
-      path: "index.html",
-      skip: false,
-      render: () => source`${renderFragment("spa/index.html")}
-        `,
-    },
-    {
-      path: "package.json",
+      path: 'package.json',
       skip: false,
       render: () => source`{
           "name": "${projectName}",
@@ -183,7 +154,10 @@ export const createXcmApiReactTemplates = (
             "dev": "vite",
             "build": "tsc -b && vite build",
             "typecheck": "tsc -b --noEmit",
-            "lint": "eslint .",
+            "lint": "eslint . --max-warnings 0",
+            "lint:fix": "eslint . --fix",
+            "format": "prettier . --write",
+            "format:check": "prettier . --check",
             "preview": "vite preview"
           },
           "dependencies": {
@@ -193,7 +167,7 @@ export const createXcmApiReactTemplates = (
                 ? source`,
             "mipd": "${mipd}",
             "viem": "${viem}"`
-                : ""
+                : ''
             }
           },
           "devDependencies": {
@@ -202,9 +176,11 @@ export const createXcmApiReactTemplates = (
             "@types/react-dom": "${typesReactDom}",
             "@vitejs/plugin-react": "${vitejsPluginReact}",
             "eslint": "${eslint}",
+            "eslint-config-prettier": "${eslintConfigPrettier}",
             "eslint-plugin-react-hooks": "${eslintPluginReactHooks}",
             "eslint-plugin-react-refresh": "${eslintPluginReactRefresh}",
             "globals": "${globals}",
+            "prettier": "${prettier}",
             "react": "${react}",
             "react-dom": "${reactDom}",
             "typescript": "${typescript}",
@@ -215,13 +191,13 @@ export const createXcmApiReactTemplates = (
         `,
     },
     {
-      path: "src/App.css",
+      path: 'src/App.css',
       skip: false,
-      render: () => source`${renderFragment("spa/App.css")}
+      render: () => source`${renderFragment('spa/App.css')}
         `,
     },
     {
-      path: "src/App.tsx",
+      path: 'src/App.tsx',
       skip: false,
       render: () => source`import "./App.css";
         import XcmTransfer from "./XcmTransfer";
@@ -260,12 +236,12 @@ export const createXcmApiReactTemplates = (
         `,
     },
     {
-      path: "src/XcmTransfer.tsx",
+      path: 'src/XcmTransfer.tsx',
       skip: false,
       render:
         () => source`import { useCallback, useState, type FC } from "react";
         import TransferForm from "./XcmTransferForm";
-        import type { FormValues } from "./types";
+        import type { TFormValues } from "./types";
         ${
           evmWallet
             ? source`
@@ -280,7 +256,7 @@ export const createXcmApiReactTemplates = (
         import { submitUsingApi } from "./submit/submitUsingApi";
         `
         }
-        ${renderFragment("spa/toError")}
+        ${renderFragment('spa/toError')}
         const XcmTransfer: FC = () => {
           const [errorVisible, setErrorVisible] = useState(false);
           const [error, setError] = useState<Error | null>(null);
@@ -316,7 +292,7 @@ export const createXcmApiReactTemplates = (
           `
           }
         
-          const onSubmit = async (formValues: FormValues) => {
+          const onSubmit = async (formValues: TFormValues) => {
             setLoading(true);
             setErrorVisible(false);
         
@@ -395,26 +371,26 @@ export const createXcmApiReactTemplates = (
         `,
     },
     {
-      path: "src/XcmTransferForm.tsx",
+      path: 'src/XcmTransferForm.tsx',
       skip: false,
       render: () => source`import axios from "axios";
         import { useState, useMemo, FormEvent, FC, useEffect } from "react";
         import { API_URL } from "./consts";
-        import type { AssetInfo, FormValues } from "./types";${
+        import type { TAssetInfo, TFormValues } from "./types";${
           swap
             ? source`
         import { useExchangeChains } from "./swap";`
-            : ""
+            : ''
         }
         
-        type Props = {
-          onSubmit: (values: FormValues) => void;
+        type TProps = {
+          onSubmit: (values: TFormValues) => void;
           loading: boolean;
           originChain: string;
           onOriginChange: (origin: string) => void;
         };
         
-        const TransferForm: FC<Props> = ({
+        const TransferForm: FC<TProps> = ({
           onSubmit,
           loading,
           originChain,
@@ -422,11 +398,11 @@ export const createXcmApiReactTemplates = (
         }) => {
           const [chains, setChains] = useState<string[]>([]);
           const [destinationChain, setDestinationChain] = useState("Hydration");
-          const [supportedAssets, setSupportedAssets] = useState<AssetInfo[]>([]);
+          const [supportedAssets, setSupportedAssets] = useState<TAssetInfo[]>([]);
           const [currencyOptionId, setCurrencyOptionId] = useState("");
           ${
             swap
-              ? source`const [supportedSwapAssets, setSupportedSwapAssets] = useState<AssetInfo[]>([]);
+              ? source`const [supportedSwapAssets, setSupportedSwapAssets] = useState<TAssetInfo[]>([]);
           const [currencyToOptionId, setCurrencyToOptionId] = useState("");
           const [swapEnabled, setSwapEnabled] = useState(false);
           const [exchange, setExchange] = useState<string[]>([]);
@@ -435,7 +411,7 @@ export const createXcmApiReactTemplates = (
             exchange.length > 0 ? exchange : [AUTO_EXCHANGE_VALUE];
           const { chains: exchangeChains } = useExchangeChains();
           `
-              : ""
+              : ''
           }const [recipient, setRecipient] = useState(
             "5F5586mfsnM6durWRLptYt3jSUs55KEmahdodQ5tQMr9iY96",
           );
@@ -451,7 +427,7 @@ export const createXcmApiReactTemplates = (
         
           useEffect(() => {
             const fetchAssets = async () => {
-              const response = await axios.get<AssetInfo[]>(
+              const response = await axios.get<TAssetInfo[]>(
                 \`\${API_URL}/supported-assets?origin=\${originChain}&destination=\${destinationChain}\`,
               );
               setSupportedAssets(response.data);
@@ -469,7 +445,7 @@ export const createXcmApiReactTemplates = (
             let cancelled = false;
         
             const fetchSwapAssets = async () => {
-              const response = await axios.get<AssetInfo[]>(
+              const response = await axios.get<TAssetInfo[]>(
                 \`\${API_URL}/supported-assets?origin=\${destinationChain}&destination=\${originChain}\`,
               );
               if (!cancelled) {
@@ -484,12 +460,12 @@ export const createXcmApiReactTemplates = (
           }, [originChain, destinationChain, swapEnabled]);
         
           `
-              : ""
+              : ''
           }
           const currencyMap = useMemo(
             () =>
               supportedAssets.reduce(
-                (map: Record<string, AssetInfo>, asset: AssetInfo) => {
+                (map: Record<string, TAssetInfo>, asset: TAssetInfo) => {
                   const key = \`\${asset.symbol ?? "NO_SYMBOL"}-\${JSON.stringify(asset.location)}\`;
                   map[key] = asset;
                   return map;
@@ -520,7 +496,7 @@ export const createXcmApiReactTemplates = (
           const currencyToMap = useMemo(
             () =>
               supportedSwapAssets.reduce(
-                (map: Record<string, AssetInfo>, asset: AssetInfo) => {
+                (map: Record<string, TAssetInfo>, asset: TAssetInfo) => {
                   const key = \`\${asset.symbol ?? "NO_SYMBOL"}-\${JSON.stringify(asset.location)}\`;
                   map[key] = asset;
                   return map;
@@ -551,7 +527,7 @@ export const createXcmApiReactTemplates = (
             setExchange(exchanges.length > 0 ? exchanges : []);
           };
         `
-            : ""
+            : ''
         }
         
           const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -560,14 +536,14 @@ export const createXcmApiReactTemplates = (
         ${
           swap
             ? source`
-            let selectedCurrencyTo: AssetInfo | undefined;
+            let selectedCurrencyTo: TAssetInfo | undefined;
             if (swapEnabled) {
               if (!selectedCurrencyToOptionId) return;
               selectedCurrencyTo = currencyToMap[selectedCurrencyToOptionId];
               if (!selectedCurrencyTo) return;
             }
         `
-            : ""
+            : ''
         }
         
             onSubmit({
@@ -581,7 +557,7 @@ export const createXcmApiReactTemplates = (
               swapEnabled,
               currencyTo: selectedCurrencyTo,
               exchange: swapEnabled ? exchange : undefined,`
-                  : ""
+                  : ''
               }
             });
           };
@@ -708,7 +684,7 @@ export const createXcmApiReactTemplates = (
                   )}
                 </>
               `
-                  : ""
+                  : ''
               }
         
               <button type="submit" disabled={loading}>
@@ -722,67 +698,67 @@ export const createXcmApiReactTemplates = (
         `,
     },
     {
-      path: "src/consts.ts",
+      path: 'src/consts.ts',
       skip: false,
-      render: () => source`${renderFragment("api/consts")}
+      render: () => source`${renderFragment('api/consts')}
         `,
     },
     {
-      path: "src/evm/eip6963.ts",
+      path: 'src/evm/eip6963.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/eip6963.ts")}
+      render: () => source`${renderFragment('evm/eip6963.ts')}
         `,
     },
     {
-      path: "src/evm/evmOrigins.ts",
+      path: 'src/evm/evmOrigins.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/evmOrigins.api.frontend")}
+      render: () => source`${renderFragment('evm/evmOrigins.api.frontend')}
         `,
     },
     {
-      path: "src/evm/evmWalletClient.ts",
+      path: 'src/evm/evmWalletClient.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/evmWalletClient")}
+      render: () => source`${renderFragment('evm/evmWalletClient')}
         `,
     },
     {
-      path: "src/evm/getViemChain.ts",
+      path: 'src/evm/getViemChain.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/getViemChain")}
+      render: () => source`${renderFragment('evm/getViemChain')}
         `,
     },
     {
-      path: "src/evm/index.ts",
+      path: 'src/evm/index.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/index.api")}
+      render: () => source`${renderFragment('evm/index.api')}
         `,
     },
     {
-      path: "src/evm/useEvmOriginChains.ts",
+      path: 'src/evm/useEvmOriginChains.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/useEvmOriginChains.react")}
+      render: () => source`${renderFragment('evm/useEvmOriginChains.react')}
         `,
     },
     {
-      path: "src/evm/utils.ts",
+      path: 'src/evm/utils.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/utils.ts")}
+      render: () => source`${renderFragment('evm/utils.ts')}
         `,
     },
     {
-      path: "src/fetchFromApi.ts",
+      path: 'src/fetchFromApi.ts',
       skip: false,
-      render: () => source`${renderFragment("api/fetchFromApi")}
+      render: () => source`${renderFragment('api/fetchFromApi')}
         `,
     },
     {
-      path: "src/index.css",
+      path: 'src/index.css',
       skip: false,
-      render: () => source`${renderFragment("spa/index.css")}
+      render: () => source`${renderFragment('spa/index.css')}
         `,
     },
     {
-      path: "src/main.tsx",
+      path: 'src/main.tsx',
       skip: false,
       render: () => source`import { StrictMode } from 'react'
         import { createRoot } from 'react-dom/client'
@@ -802,91 +778,91 @@ export const createXcmApiReactTemplates = (
         `,
     },
     {
-      path: "src/requireAsset.ts",
+      path: 'src/requireAsset.ts',
       skip: false,
-      render: () => source`${renderFragment("requireAsset")}
+      render: () => source`${renderFragment('requireAsset')}
         `,
     },
     {
-      path: "src/submit/submitEvmTx.ts",
+      path: 'src/submit/submitEvmTx.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("api/submitEvmTx")}
+      render: () => source`${renderFragment('api/submitEvmTx')}
         `,
     },
     {
-      path: "src/submit/submitUsingApi.ts",
+      path: 'src/submit/submitUsingApi.ts',
       skip: false,
-      render: () => source`${renderFragment("api/submitUsingApi")}
+      render: () => source`${renderFragment('api/submitUsingApi')}
         `,
     },
     {
-      path: "src/swap/exchangeChains.ts",
+      path: 'src/swap/exchangeChains.ts',
       skip: Boolean(!swap),
-      render: () => source`${renderFragment("swap/exchangeChains.api.frontend")}
+      render: () => source`${renderFragment('swap/exchangeChains.api.frontend')}
         `,
     },
     {
-      path: "src/swap/index.ts",
+      path: 'src/swap/index.ts',
       skip: Boolean(!swap),
-      render: () => source`${renderFragment("swap/index.api")}
+      render: () => source`${renderFragment('swap/index.api')}
         `,
     },
     {
-      path: "src/swap/useExchangeChains.ts",
+      path: 'src/swap/useExchangeChains.ts',
       skip: Boolean(!swap),
-      render: () => source`${renderFragment("swap/useExchangeChains.react")}
+      render: () => source`${renderFragment('swap/useExchangeChains.react')}
         `,
     },
     {
-      path: "src/types.ts",
+      path: 'src/types.ts',
       skip: false,
-      render: () => source`${renderFragment("types/api.frontend")}
+      render: () => source`${renderFragment('types/api.frontend')}
         `,
     },
     {
-      path: "src/utils.ts",
+      path: 'src/utils.ts',
       skip: false,
-      render: () => source`${renderFragment("api/utils")}
+      render: () => source`${renderFragment('api/utils')}
         `,
     },
     {
-      path: "src/vite-env.d.ts",
+      path: 'src/vite-env.d.ts',
       skip: false,
-      render: () => source`${renderFragment("spa/vite-env.d")}
+      render: () => source`${renderFragment('spa/vite-env.d')}
         `,
     },
     {
-      path: "src/wallet/evm/EvmWalletControls.tsx",
+      path: 'src/wallet/evm/EvmWalletControls.tsx',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/EvmWalletControls.react")}
+      render: () => source`${renderFragment('evm/EvmWalletControls.react')}
         `,
     },
     {
-      path: "src/wallet/evm/WalletKindSelector.tsx",
+      path: 'src/wallet/evm/WalletKindSelector.tsx',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/WalletKindSelector.react")}
+      render: () => source`${renderFragment('evm/WalletKindSelector.react')}
         `,
     },
     {
-      path: "src/wallet/evm/index.ts",
+      path: 'src/wallet/evm/index.ts',
       skip: Boolean(!evmWallet),
       render:
         () => source`export { EvmWalletControls } from "./EvmWalletControls";
-        export type { WalletControlsEvmProps } from "../../types";
+        export type { TWalletControlsEvmProps } from "../../types";
         export { useEvmWallet } from "./useEvmWallet";
-        export type { EvmAccountOption, EvmProviderOption } from "../../types";
+        export type { TEvmAccountOption, TEvmProviderOption } from "../../types";
         export { WalletKindSelector } from "./WalletKindSelector";
-        export type { WalletKind, WalletKindSelectorProps } from "../../types";
+        export type { TWalletKind, TWalletKindSelectorProps } from "../../types";
         `,
     },
     {
-      path: "src/wallet/evm/useEvmWallet.ts",
+      path: 'src/wallet/evm/useEvmWallet.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("evm/useEvmWallet.react")}
+      render: () => source`${renderFragment('evm/useEvmWallet.react')}
         `,
     },
     {
-      path: "src/wallet/papi/index.ts",
+      path: 'src/wallet/papi/index.ts',
       skip: false,
       render: () => source`export { usePapiWallet } from "./usePapiWallet";
         export { SubstrateWalletControls } from "../shared/SubstrateWalletControls";
@@ -898,54 +874,54 @@ export const createXcmApiReactTemplates = (
           WalletControls,
         } from "./useWalletWithEvm";
         export { WalletKindSelector } from "../evm/WalletKindSelector";
-        export type { UseWalletReturn, WalletKind, WalletKindSelectorProps } from "../../types";
+        export type { TUseWalletReturn, TWalletKind, TWalletKindSelectorProps } from "../../types";
         `
-            : ""
+            : ''
         }
         `,
     },
     {
-      path: "src/wallet/papi/usePapiWallet.ts",
+      path: 'src/wallet/papi/usePapiWallet.ts',
       skip: false,
-      render: () => source`${renderFragment("wallet/usePapiWallet.react")}
+      render: () => source`${renderFragment('wallet/usePapiWallet.react')}
         `,
     },
     {
-      path: "src/wallet/papi/useWalletWithEvm.ts",
+      path: 'src/wallet/papi/useWalletWithEvm.ts',
       skip: Boolean(!evmWallet),
       render:
-        () => source`${renderFragment("wallet/useWalletWithEvm.api.react")}
+        () => source`${renderFragment('wallet/useWalletWithEvm.api.react')}
         `,
     },
     {
-      path: "src/wallet/shared/SubstrateWalletControls.tsx",
+      path: 'src/wallet/shared/SubstrateWalletControls.tsx',
       skip: false,
       render:
-        () => source`${renderFragment("wallet/SubstrateWalletControls.react")}
+        () => source`${renderFragment('wallet/SubstrateWalletControls.react')}
         `,
     },
     {
-      path: "src/wallet/shared/createWalletControls.tsx",
+      path: 'src/wallet/shared/createWalletControls.tsx',
       skip: Boolean(!evmWallet),
       render:
-        () => source`${renderFragment("wallet/createWalletControls.react")}
+        () => source`${renderFragment('wallet/createWalletControls.react')}
         `,
     },
     {
-      path: "src/wallet/shared/submitTransfer.ts",
+      path: 'src/wallet/shared/submitTransfer.ts',
       skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment("wallet/connectWalletAlert")}
+      render: () => source`${renderFragment('wallet/connectWalletAlert')}
         `,
     },
     {
-      path: "src/wallet/shared/useWalletWithEvmCore.ts",
+      path: 'src/wallet/shared/useWalletWithEvmCore.ts',
       skip: Boolean(!evmWallet),
       render:
-        () => source`${renderFragment("wallet/useWalletWithEvmCore.react")}
+        () => source`${renderFragment('wallet/useWalletWithEvmCore.react')}
         `,
     },
     {
-      path: "tsconfig.app.json",
+      path: 'tsconfig.app.json',
       skip: false,
       render: () => source`{
           "compilerOptions": {
@@ -972,7 +948,7 @@ export const createXcmApiReactTemplates = (
         `,
     },
     {
-      path: "tsconfig.json",
+      path: 'tsconfig.json',
       skip: false,
       render: () => source`{
           "files": [],
@@ -984,7 +960,7 @@ export const createXcmApiReactTemplates = (
         `,
     },
     {
-      path: "tsconfig.node.json",
+      path: 'tsconfig.node.json',
       skip: false,
       render: () => source`{
           "compilerOptions": {
@@ -1009,7 +985,7 @@ export const createXcmApiReactTemplates = (
         `,
     },
     {
-      path: "vite.config.ts",
+      path: 'vite.config.ts',
       skip: false,
       render: () => source`import { defineConfig } from 'vite'
         import react from '@vitejs/plugin-react'

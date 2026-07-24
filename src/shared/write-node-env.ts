@@ -1,9 +1,9 @@
-import fs from "node:fs";
-import path from "node:path";
+import fs from 'node:fs';
+import path from 'node:path';
 
 const formatEnvValue = (value: string): string => {
   if (/[\s#"'\\]/.test(value)) {
-    return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
   }
   return value;
 };
@@ -16,15 +16,15 @@ export const writeNodeEnv = async (
     evmWallet?: boolean;
   } = {},
 ): Promise<void> => {
-  const substrateValue = options.substrateMnemonic ?? "";
+  const substrateValue = options.substrateMnemonic ?? '';
   const lines = [`SUBSTRATE_MNEMONIC=${formatEnvValue(substrateValue)}`];
   if (options.evmWallet) {
-    const evmValue = options.privateKey ?? "";
+    const evmValue = options.privateKey ?? '';
     lines.push(`PRIVATE_KEY=${formatEnvValue(evmValue)}`);
   }
 
-  const envPath = path.join(outDir, ".env");
-  await fs.promises.writeFile(envPath, `${lines.join("\n")}\n`, {
+  const envPath = path.join(outDir, '.env');
+  await fs.promises.writeFile(envPath, `${lines.join('\n')}\n`, {
     mode: 0o600,
   });
 };

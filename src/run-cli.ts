@@ -1,5 +1,5 @@
-import fs from "node:fs";
-import path from "node:path";
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   type Application,
   buildApplication,
@@ -9,55 +9,55 @@ import {
   type FlagParametersForType,
   help,
   run,
-} from "@stricli/core";
-import { generateApp } from "./generator/generate.js";
-import { runInteractiveGenerate } from "./interactive.js";
+} from '@stricli/core';
+import { generateApp } from './generator/generate.js';
+import { runInteractiveGenerate } from './interactive.js';
 import {
   frameworkPositional,
   packageManagerFlag,
-} from "./shared/cli-params.js";
-import { printNextSteps } from "./shared/next-steps.js";
+} from './shared/cli-params.js';
+import { printNextSteps } from './shared/next-steps.js';
 import {
   applyGenerateDefaults,
   hasRejectedSecrets,
-  type NameValidator,
+  type TNameValidator,
   promptGenerateOptions,
-} from "./shared/prompt-options.js";
+} from './shared/prompt-options.js';
 import {
   FRAMEWORKS,
   SDK_CLIENTS,
-  type Framework,
-  type PackageManager,
-  type ProjectType,
-  type ResolveInput,
-  type SdkClient,
-} from "./shared/types.js";
-import { validateNameInput } from "./shared/validate.js";
+  type TExtensions,
+  type TFramework,
+  type TPackageManager,
+  type TProjectType,
+  type TResolveInput,
+  type TSdkClient,
+} from './shared/types.js';
+import { validateNameInput } from './shared/validate.js';
 
-interface AppContext extends CommandContext {
+interface TAppContext extends CommandContext {
   root: string;
   consumer: boolean;
 }
 
-export type RunContext = {
+export type TRunContext = {
   root: string;
   consumer?: boolean;
 };
 
-type SharedFlags = {
+type TSharedFlags = {
   name?: string;
-  framework?: Framework;
-  evm?: boolean;
-  swap?: boolean;
-  snowbridge?: boolean;
-  packageManager?: PackageManager;
+  framework?: TFramework;
+  extensions: Partial<TExtensions>;
+  packageManager?: TPackageManager;
   out?: string;
   privateKey?: string;
   substrateMnemonic?: string;
 };
 
-type SdkFlags = SharedFlags & { client?: SdkClient };
-type ApiFlags = SharedFlags;
+type TCliSharedFlags = Omit<TSharedFlags, 'extensions'> & Partial<TExtensions>;
+type TSdkFlags = TCliSharedFlags & { client?: TSdkClient };
+type TApiFlags = TCliSharedFlags;
 
 const identity = (value: string): string => value;
 
@@ -69,72 +69,72 @@ const parseNameArg = (value: string): string => {
 
 const sharedFlagParams = {
   name: {
-    kind: "parsed",
+    kind: 'parsed',
     parse: parseNameArg,
-    brief: "Project name",
+    brief: 'Project name',
     optional: true,
   },
   framework: {
-    kind: "enum",
+    kind: 'enum',
     values: FRAMEWORKS,
-    brief: "Target framework: react | vue | node",
+    brief: 'Target framework: react | vue | node',
     optional: true,
   },
-  evm: { kind: "boolean", brief: "Enable EVM origin chains", optional: true },
+  evm: { kind: 'boolean', brief: 'Enable EVM origin chains', optional: true },
   swap: {
-    kind: "boolean",
-    brief: "Enable cross-chain swaps (@paraspell/swap)",
+    kind: 'boolean',
+    brief: 'Enable cross-chain swaps (@paraspell/swap)',
     optional: true,
   },
   snowbridge: {
-    kind: "boolean",
-    brief: "Enable Snowbridge transfers",
+    kind: 'boolean',
+    brief: 'Enable Snowbridge transfers',
     optional: true,
   },
   packageManager: packageManagerFlag,
   out: {
-    kind: "parsed",
+    kind: 'parsed',
     parse: identity,
-    brief: "Output directory",
+    brief: 'Output directory',
     optional: true,
   },
   privateKey: {
-    kind: "parsed",
+    kind: 'parsed',
     parse: identity,
-    brief: "EVM wallet key for node when using EVM or Snowbridge origins",
+    brief: 'EVM wallet key for node when using EVM or Snowbridge origins',
     optional: true,
   },
   substrateMnemonic: {
-    kind: "parsed",
+    kind: 'parsed',
     parse: identity,
-    brief: "Substrate mnemonic or //Dev URI for node",
+    brief: 'Substrate mnemonic or //Dev URI for node',
     optional: true,
   },
-} as const satisfies FlagParametersForType<SharedFlags>;
+} as const satisfies FlagParametersForType<TCliSharedFlags>;
 
 const sdkFlagParams = {
   ...sharedFlagParams,
   client: {
-    kind: "enum",
+    kind: 'enum',
     values: SDK_CLIENTS,
-    brief: "JS client: papi | pjs | dedot",
+    brief: 'JS client: papi | pjs | dedot',
     optional: true,
   },
-} as const satisfies FlagParametersForType<SdkFlags>;
+} as const satisfies FlagParametersForType<TSdkFlags>;
 
 const resolveOut = (root: string, out: string): string =>
   path.isAbsolute(out) ? out : path.join(root, out);
 
 const defaultInternalOut = (
   root: string,
-  kind: ProjectType,
-  framework: Framework,
+  kind: TProjectType,
+  framework: TFramework,
   name: string,
 ): string =>
   path.join(
     root,
-    "generated",
-    kind === "sdk" ? "xcm-sdk" : "xcm-api",
+    'generated',
+    kind === 'sdk' ? 'xcm-sdk' : 'xcm-api',
     framework,
     name,
   );
@@ -150,7 +150,7 @@ const assertConsumerProject = (name: string, outDir: string): void => {
 const makeConsumerNameValidator = (
   root: string,
   outFlag: string | undefined,
-): NameValidator => {
+): TNameValidator => {
   return (name) => {
     const base = validateNameInput(name);
     if (base !== true) return base;
@@ -162,21 +162,23 @@ const makeConsumerNameValidator = (
 };
 
 const runGenerate = async (
-  kind: ProjectType,
-  ctx: AppContext,
-  flags: SdkFlags,
-  positionalFramework?: Framework,
+  kind: TProjectType,
+  ctx: TAppContext,
+  flags: TSdkFlags,
+  positionalFramework?: TFramework,
 ): Promise<Error | void> => {
   try {
-    const framework = flags.framework ?? positionalFramework ?? "react";
-    const input: ResolveInput = {
+    const framework = flags.framework ?? positionalFramework ?? 'react';
+    const input: TResolveInput = {
       kind,
       framework,
       name: flags.name,
-      client: kind === "sdk" ? flags.client : undefined,
-      evm: flags.evm,
-      swap: flags.swap,
-      snowbridge: flags.snowbridge,
+      client: kind === 'sdk' ? flags.client : undefined,
+      extensions: {
+        evm: flags.evm,
+        swap: flags.swap,
+        snowbridge: flags.snowbridge,
+      },
       packageManager: flags.packageManager,
       privateKey: flags.privateKey,
       substrateMnemonic: flags.substrateMnemonic,
@@ -185,7 +187,7 @@ const runGenerate = async (
     const rejectedSecrets = hasRejectedSecrets(input);
     if (rejectedSecrets && !process.stdin.isTTY) {
       throw new Error(
-        "Invalid --private-key or --substrate-mnemonic value. Fix the flag value, or omit it and run on a TTY to enter secrets interactively.",
+        'Invalid --private-key or --substrate-mnemonic value. Fix the flag value, or omit it and run on a TTY to enter secrets interactively.',
       );
     }
 
@@ -209,9 +211,7 @@ const runGenerate = async (
     const opts = {
       framework,
       name: resolved.name,
-      evm: resolved.evm,
-      swap: resolved.swap,
-      snowbridge: resolved.snowbridge,
+      extensions: resolved.extensions,
       packageManager: resolved.packageManager,
       out,
       privateKey: resolved.privateKey,
@@ -219,10 +219,10 @@ const runGenerate = async (
     };
 
     await generateApp(
-      kind === "sdk"
+      kind === 'sdk'
         ? {
             kind,
-            opts: { ...opts, client: resolved.client ?? "pjs" },
+            opts: { ...opts, client: resolved.client ?? 'pjs' },
           }
         : { kind, opts },
     );
@@ -235,44 +235,44 @@ const runGenerate = async (
   }
 };
 
-const createApp = (): Application<AppContext> => {
-  const sdk = buildCommand<SdkFlags, [Framework?], AppContext>({
-    docs: { brief: "Scaffold a ParaSpell XCM SDK starter app" },
+const createApp = (): Application<TAppContext> => {
+  const sdk = buildCommand<TSdkFlags, [TFramework?], TAppContext>({
+    docs: { brief: 'Scaffold a ParaSpell XCM SDK starter app' },
     parameters: { positional: frameworkPositional, flags: sdkFlagParams },
     func(flags, framework) {
-      return runGenerate("sdk", this, flags, framework);
+      return runGenerate('sdk', this, flags, framework);
     },
   });
 
-  const api = buildCommand<ApiFlags, [Framework?], AppContext>({
-    docs: { brief: "Scaffold a ParaSpell XCM API starter app" },
+  const api = buildCommand<TApiFlags, [TFramework?], TAppContext>({
+    docs: { brief: 'Scaffold a ParaSpell XCM API starter app' },
     parameters: { positional: frameworkPositional, flags: sharedFlagParams },
     func(flags, framework) {
-      return runGenerate("api", this, flags, framework);
+      return runGenerate('api', this, flags, framework);
     },
   });
 
   const routes = buildRouteMap({
     routes: { sdk, api },
     docs: {
-      brief: "Scaffold ParaSpell XCM SDK and XCM API starter apps",
+      brief: 'Scaffold ParaSpell XCM SDK and XCM API starter apps',
     },
   });
 
   return buildApplication(
     routes,
     {
-      name: "create-paraspell",
-      scanner: { caseStyle: "allow-kebab-for-camel" },
+      name: 'create-paraspell',
+      scanner: { caseStyle: 'allow-kebab-for-camel' },
     },
     {
       help: help({
-        alias: "h",
-        brief: "Print help information and exit",
+        alias: 'h',
+        brief: 'Print help information and exit',
         formatting: {
           useAliasInUsageLine: false,
           onlyRequiredInUsageLine: false,
-          caseStyle: "convert-camel-to-kebab",
+          caseStyle: 'convert-camel-to-kebab',
         },
       }),
     },
@@ -281,7 +281,7 @@ const createApp = (): Application<AppContext> => {
 
 const app = createApp();
 
-export const runFromArgv = (rawArgv: string[], ctx: RunContext) => {
+export const runFromArgv = (rawArgv: string[], ctx: TRunContext) => {
   return run(app, rawArgv, {
     process,
     root: ctx.root,

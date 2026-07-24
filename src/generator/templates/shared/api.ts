@@ -1,16 +1,20 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type ApiFragmentId = Extract<FragmentId, `api/${string}`>;
+type TApiFragmentId = Extract<TFragmentId, `api/${string}`>;
 
-export const createApiFragments: FragmentFactory<ApiFragmentId> = (
+export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
   context,
   renderFragment,
 ) => {
-  const { framework, swap, evmWallet } = context;
+  const {
+    framework,
+    extensions: { swap },
+    evmWallet,
+  } = context;
 
   return {
-    "api/buildApiParams": () => source`const buildApiParams = (
+    'api/buildApiParams': () => source`const buildApiParams = (
           from: string | undefined,
           to: string | undefined,
           recipient: string,
@@ -21,9 +25,9 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
               ? source`
           currencyToLocation?: object,
           exchange?: string[],`
-              : ""
+              : ''
           }
-        ): ApiParams => ({
+        ): TApiParams => ({
           from,
           to,
           recipient,
@@ -42,32 +46,32 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
                 },
               }
             : {}),`
-              : ""
+              : ''
           }
         });
         `,
-    "api/consts":
+    'api/consts':
       () => source`export const API_URL = "https://api.paraspell.xyz/v1";
         `,
-    "api/fetchFromApi": () => source`import axios from "axios";
+    'api/fetchFromApi': () => source`import axios from "axios";
         ${
           evmWallet
             ? source`import type { Hex } from "viem";
         `
-            : ""
-        }import { API_URL } from "./consts${framework === "node" ? source`.js` : ""}";
-        import type { ApiParams, ApiTransaction, ApiErrorResponse } from "./types${framework === "node" ? source`.js` : ""}";
+            : ''
+        }import { API_URL } from "./consts${framework === 'node' ? source`.js` : ''}";
+        import type { TApiParams, TApiTransaction, TApiErrorResponse } from "./types${framework === 'node' ? source`.js` : ''}";
         
         const postToApi = async <T>(
           url: string,
-          params: ApiParams,
+          params: TApiParams,
           errorContext: string,
         ): Promise<T> => {
           try {
             const response = await axios.post<T>(url, params);
             return response.data;
           } catch (error) {
-            if (axios.isAxiosError<ApiErrorResponse>(error)) {
+            if (axios.isAxiosError<TApiErrorResponse>(error)) {
               const message = error.response?.data.message;
               const serverMessage = message ? \` Server response: \${message}\` : "";
               throw new Error(\`Error while \${errorContext}.\${serverMessage}\`, {
@@ -78,18 +82,18 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
           }
         };
         
-        export const fetchFromApi = (params: ApiParams): Promise<ApiTransaction[]> =>
+        export const fetchFromApi = (params: TApiParams): Promise<TApiTransaction[]> =>
           postToApi(\`\${API_URL}/x-transfers\`, params, "fetching data");
         
         ${
           evmWallet
-            ? source`export const fetchFromEvmApi = (params: ApiParams): Promise<Hex> =>
+            ? source`export const fetchFromEvmApi = (params: TApiParams): Promise<Hex> =>
           postToApi(\`\${API_URL}/evm-x-transfer\`, params, "fetching EVM transaction");
         `
-            : ""
+            : ''
         }
         `,
-    "api/submitEvmTx": () => source`import {
+    'api/submitEvmTx': () => source`import {
           createPublicClient,
           http,
           parseTransaction,
@@ -142,35 +146,35 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
           });
         };
         `,
-    "api/submitUsingApi": () => source`import axios from "axios";
+    'api/submitUsingApi': () => source`import axios from "axios";
         import { Binary } from "polkadot-api";
         import type { PolkadotSigner } from "polkadot-api";
         import { createWsClient } from "polkadot-api/ws";
         import { API_URL } from "../consts";
-        import { fetchFromApi${evmWallet ? source`, fetchFromEvmApi` : ""} } from "../fetchFromApi";
-        import { requireCurrency${swap ? source`, requireSwapCurrencyTo` : ""} } from "../requireAsset";
+        import { fetchFromApi${evmWallet ? source`, fetchFromEvmApi` : ''} } from "../fetchFromApi";
+        import { requireCurrency${swap ? source`, requireSwapCurrencyTo` : ''} } from "../requireAsset";
         ${
           evmWallet
             ? source`import { submitEvmTx } from "./submitEvmTx";
         `
-            : ""
+            : ''
         }import { submitTransaction } from "../utils";
         import type {
-          ApiParams,
-          ApiTransaction,
-          FormValues${
+          TApiParams,
+          TApiTransaction,
+          TFormValues${
             evmWallet
               ? source`,
-          EvmOriginHelpers,
-          WalletSubmitOptions`
-              : ""
+          TEvmOriginHelpers,
+          TWalletSubmitOptions`
+              : ''
           },
         } from "../types";
         
-        ${renderFragment("api/buildApiParams")}
+        ${renderFragment('api/buildApiParams')}
         
         const submitApiTransaction = async (
-          apiTx: ApiTransaction,
+          apiTx: TApiTransaction,
           signer: PolkadotSigner,
         ) => {
           const response = await axios.get<string[]>(
@@ -191,9 +195,9 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
           evmWallet
             ? source`
         export const submitUsingApi = async (
-          formValues: FormValues,
-          options: WalletSubmitOptions<PolkadotSigner>,
-          evmOrigins: EvmOriginHelpers,
+          formValues: TFormValues,
+          options: TWalletSubmitOptions<PolkadotSigner>,
+          evmOrigins: TEvmOriginHelpers,
         ): Promise<void> => {
           const currency = requireCurrency(formValues.currency);
         ${
@@ -203,7 +207,7 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
             formValues.currencyTo,
           );
         `
-            : ""
+            : ''
         }
         
           await evmOrigins.ensureEvmOriginChains();
@@ -232,7 +236,7 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
                   ? swapCurrencyTo.location
                   : undefined,
                 formValues.exchange,`
-                    : ""
+                    : ''
                 }
               ),
             );
@@ -258,7 +262,7 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
                 ? swapCurrencyTo.location
                 : undefined,
               formValues.exchange,`
-                  : ""
+                  : ''
               }
             ),
           );
@@ -270,7 +274,7 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
         `
             : source`
         export const submitUsingApi = async (
-          formValues: FormValues,
+          formValues: TFormValues,
           signer: PolkadotSigner,
           senderAddress: string,
         ): Promise<void> => {
@@ -282,7 +286,7 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
             formValues.currencyTo,
           );
         `
-            : ""
+            : ''
         }
         
           const transactions = await fetchFromApi(
@@ -299,7 +303,7 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
                 ? swapCurrencyTo.location
                 : undefined,
               formValues.exchange,`
-                  : ""
+                  : ''
               }
             ),
           );
@@ -311,7 +315,7 @@ export const createApiFragments: FragmentFactory<ApiFragmentId> = (
         `
         }
         `,
-    "api/utils": () => source`import {
+    'api/utils': () => source`import {
           InvalidTxError,
           type PolkadotSigner,
           type Transaction,

@@ -1,12 +1,12 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { writeNodeEnv } from "../shared/write-node-env.js";
-import { createTemplateContext } from "./context.js";
-import { formatGeneratedFile } from "./format-generated-file.js";
-import { API_FRAMEWORKS, SDK_FRAMEWORKS } from "./frameworks.js";
-import { createTemplateFiles } from "./templates/index.js";
-import type { FrameworkMeta, GenerateAppParams } from "./types.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { writeNodeEnv } from '../shared/write-node-env.js';
+import { createTemplateContext } from './context.js';
+import { formatGeneratedFile } from './format-generated-file.js';
+import { API_FRAMEWORKS, SDK_FRAMEWORKS } from './frameworks.js';
+import { createTemplateFiles } from './templates/index.js';
+import type { TFrameworkMeta, TGenerateAppParams } from './types.js';
 
 const resolveOutputPath = (
   outputRoot: string,
@@ -30,7 +30,7 @@ const resolveOutputPath = (
 };
 
 const copyLogo = async (
-  meta: FrameworkMeta,
+  meta: TFrameworkMeta,
   outputRoot: string,
 ): Promise<void> => {
   if (!meta.logoFile) return;
@@ -42,17 +42,17 @@ const copyLogo = async (
     throw new Error(`Missing generator asset: ${logoSource}`);
   }
 
-  const logoDestination = path.join(outputRoot, "public", meta.logoFile);
+  const logoDestination = path.join(outputRoot, 'public', meta.logoFile);
   await fs.promises.mkdir(path.dirname(logoDestination), { recursive: true });
   await fs.promises.copyFile(logoSource, logoDestination);
 };
 
 export const generateApp = async (
-  params: GenerateAppParams,
+  params: TGenerateAppParams,
 ): Promise<void> => {
   const { kind, opts } = params;
   const meta =
-    kind === "sdk"
+    kind === 'sdk'
       ? SDK_FRAMEWORKS[opts.framework]
       : API_FRAMEWORKS[opts.framework];
   const context = createTemplateContext(params);
@@ -75,20 +75,20 @@ export const generateApp = async (
   await Promise.all(
     generatedFiles.map(async ({ destination, source }) => {
       await fs.promises.mkdir(path.dirname(destination), { recursive: true });
-      await fs.promises.writeFile(destination, source, "utf8");
+      await fs.promises.writeFile(destination, source, 'utf8');
     }),
   );
 
   await copyLogo(meta, opts.out);
 
-  if (opts.framework === "node") {
+  if (opts.framework === 'node') {
     await writeNodeEnv(opts.out, {
-      evmWallet: opts.evm || opts.snowbridge,
+      evmWallet: opts.extensions.evm || opts.extensions.snowbridge,
       privateKey: opts.privateKey,
       substrateMnemonic: opts.substrateMnemonic,
     });
   }
 
-  const label = kind === "sdk" ? "XCM SDK" : "XCM API";
+  const label = kind === 'sdk' ? 'XCM SDK' : 'XCM API';
   console.log(`\nGenerated ${meta.label} ${label} app at ${opts.out}`);
 };

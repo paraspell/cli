@@ -31,7 +31,7 @@ create-paraspell ✨ — scaffold XCM starter apps
 
 ## Quick start
 
-Run the CLI in any empty folder (interactive prompts guide you through type, framework, client, and features):
+Run the CLI in any empty folder (interactive prompts guide you through type, framework, client, and extensions):
 
 ```bash
 pnpm create paraspell
@@ -83,7 +83,7 @@ Running with no arguments prompts for, in order:
 3. **Framework** — React / Vue / Node.js
 4. **Project type** — XCM SDK or XCM API
 5. **Client** (SDK only) — Polkadot API / Polkadot.js / Dedot
-6. **Feature extensions** — EVM, Swap, Snowbridge (Snowbridge requires EVM)
+6. **Extensions** — EVM, Swap, Snowbridge (Snowbridge requires EVM)
 
 For the **Node.js** framework it additionally (optionally) prompts for a **Substrate mnemonic**, and — when EVM is enabled — an **EVM private key**. These are written only to the generated project's `.env` (gitignored, `chmod 600`), never logged or committed. Press Enter to skip and add them to `.env` yourself later. See [Security](#security).
 
@@ -188,6 +188,8 @@ pnpm publish --access public
 ```bash
 pnpm build              # required before tests; emits dist/
 pnpm compile            # check the CLI for TypeScript errors
+pnpm lint               # run type-aware ESLint checks on src/
+pnpm format:check       # verify Prettier formatting in src/
 pnpm test               # scaffold variants + check structure
 pnpm test:build         # production build each variant (slow)
 pnpm test:all           # structure + build

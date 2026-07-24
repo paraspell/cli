@@ -6,15 +6,15 @@ import {
   isInGeneratedWorkspace,
 } from './workspace-install.js';
 
-export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
+export type TPackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
-export interface CommandStep {
+export interface TCommandStep {
   name: string;
   ok: boolean;
   output: string;
 }
 
-const detectPackageManager = (projectDir: string): PackageManager => {
+const detectPackageManager = (projectDir: string): TPackageManager => {
   try {
     const pkg = JSON.parse(
       fs.readFileSync(path.join(projectDir, 'package.json'), 'utf8'),
@@ -27,9 +27,9 @@ const detectPackageManager = (projectDir: string): PackageManager => {
     /* fall through */
   }
   return 'pnpm';
-}
+};
 
-const installArgs = (pm: PackageManager): [string, string[]] => {
+const installArgs = (pm: TPackageManager): [string, string[]] => {
   switch (pm) {
     case 'npm':
       return ['npm', ['install', '--no-audit', '--no-fund']];
@@ -40,9 +40,9 @@ const installArgs = (pm: PackageManager): [string, string[]] => {
     default:
       return ['pnpm', ['install']];
   }
-}
+};
 
-const runArgs = (pm: PackageManager, script: string): [string, string[]] => {
+const runArgs = (pm: TPackageManager, script: string): [string, string[]] => {
   switch (pm) {
     case 'npm':
       return ['npm', ['run', script]];
@@ -53,7 +53,7 @@ const runArgs = (pm: PackageManager, script: string): [string, string[]] => {
     default:
       return ['pnpm', ['run', script]];
   }
-}
+};
 
 export const runCommand = (
   cwd: string,
@@ -95,15 +95,18 @@ export const runCommand = (
       resolve({ ok: false, output: `${output}\n${err.message}` });
     });
   });
-}
+};
 
 export const installProject = async (
   projectDir: string,
   timeoutMs: number,
-): Promise<{ pm: PackageManager; step: CommandStep }> => {
+): Promise<{ pm: TPackageManager; step: TCommandStep }> => {
   const pm = detectPackageManager(projectDir);
 
-  if (isInGeneratedWorkspace(projectDir) && hasProjectDependencies(projectDir)) {
+  if (
+    isInGeneratedWorkspace(projectDir) &&
+    hasProjectDependencies(projectDir)
+  ) {
     return {
       pm,
       step: {
@@ -115,20 +118,25 @@ export const installProject = async (
   }
 
   const [installCmd, installArgv] = installArgs(pm);
-  const install = await runCommand(projectDir, installCmd, installArgv, timeoutMs);
+  const install = await runCommand(
+    projectDir,
+    installCmd,
+    installArgv,
+    timeoutMs,
+  );
   return {
     pm,
     step: { name: 'install', ok: install.ok, output: install.output },
   };
-}
+};
 
 export const runProjectScript = async (
   projectDir: string,
-  pm: PackageManager,
+  pm: TPackageManager,
   script: string,
   timeoutMs: number,
-): Promise<CommandStep> => {
+): Promise<TCommandStep> => {
   const [cmd, argv] = runArgs(pm, script);
   const result = await runCommand(projectDir, cmd, argv, timeoutMs);
   return { name: script, ok: result.ok, output: result.output };
-}
+};

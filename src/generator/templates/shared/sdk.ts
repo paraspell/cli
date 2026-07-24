@@ -1,14 +1,19 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type SdkFragmentId = Extract<FragmentId, `sdk/${string}`>;
+type TSdkFragmentId = Extract<TFragmentId, `sdk/${string}`>;
 
-export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
-  const { sdkPackage, swap } = context;
+export const createSdkFragments: TFragmentFactory<TSdkFragmentId> = (
+  context,
+) => {
+  const {
+    sdkPackage,
+    extensions: { swap },
+  } = context;
 
   return {
-    "sdk/useCurrencyOptions.react":
-      () => source`import type { TAssetInfo, TChain${swap ? source`, TExchangeInput` : ""} } from "${sdkPackage}";
+    'sdk/useCurrencyOptions.react':
+      () => source`import type { TAssetInfo, TChain${swap ? source`, TExchangeInput` : ''} } from "${sdkPackage}";
         import { getSupportedAssets } from "${sdkPackage}";${
           swap
             ? source`
@@ -16,7 +21,7 @@ export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
           getSupportedAssetsFrom,
           getSupportedAssetsTo,
         } from "@paraspell/swap";`
-            : ""
+            : ''
         }
         import { useMemo } from "react";
         
@@ -27,7 +32,7 @@ export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
               ? source`
           swapEnabled: boolean,
           exchange?: TExchangeInput,`
-              : ""
+              : ''
           }
         ) => {
           const supportedAssets = useMemo(
@@ -40,7 +45,7 @@ export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
                 : source`
               getSupportedAssets(from, to)`
             },
-            [from, to${swap ? source`, swapEnabled, exchange` : ""}],
+            [from, to${swap ? source`, swapEnabled, exchange` : ''}],
           );${
             swap
               ? source`
@@ -49,7 +54,7 @@ export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
             () => (swapEnabled ? getSupportedAssetsTo(exchange, to) : []),
             [swapEnabled, exchange, to],
           );`
-              : ""
+              : ''
           }
         
           const currencyMap = useMemo(
@@ -113,7 +118,7 @@ export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
               })),
             [currencyToMap],
           );`
-              : ""
+              : ''
           }
         
           return {
@@ -123,16 +128,16 @@ export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
                 ? source`
             currencyToOptions,
             currencyToMap,`
-                : ""
+                : ''
             }
           };
         };
         
         export default useCurrencyOptions;
         `,
-    "sdk/useCurrencyOptions.vue": () => source`import type { Ref } from "vue";
+    'sdk/useCurrencyOptions.vue': () => source`import type { Ref } from "vue";
         import { computed } from "vue";
-        import type { TAssetInfo, TChain${swap ? source`, TExchangeInput` : ""} } from "${sdkPackage}";
+        import type { TAssetInfo, TChain${swap ? source`, TExchangeInput` : ''} } from "${sdkPackage}";
         import { getSupportedAssets } from "${sdkPackage}";${
           swap
             ? source`
@@ -140,7 +145,7 @@ export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
           getSupportedAssetsFrom,
           getSupportedAssetsTo,
         } from "@paraspell/swap";`
-            : ""
+            : ''
         }
         
         const assetKey = (asset: TAssetInfo): string =>
@@ -156,7 +161,7 @@ export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
               ? source`
           swapEnabled: Ref<boolean>,
           exchange: Ref<TExchangeInput | undefined>,`
-              : ""
+              : ''
           }
         ) => {
           const supportedAssets = computed(
@@ -176,7 +181,7 @@ export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
           const supportedAssetsTo = computed(() =>
             swapEnabled.value ? getSupportedAssetsTo(exchange.value, to.value) : [],
           );`
-              : ""
+              : ''
           }
         
           const currencyMap = computed(() =>
@@ -222,7 +227,7 @@ export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
               }\`,
             })),
           );`
-              : ""
+              : ''
           }
         
           return {
@@ -232,7 +237,7 @@ export const createSdkFragments: FragmentFactory<SdkFragmentId> = (context) => {
                 ? source`
             currencyToOptions,
             currencyToMap,`
-                : ""
+                : ''
             }
           };
         };

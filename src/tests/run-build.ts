@@ -1,19 +1,22 @@
-import type { GeneratedVariant } from './variants.js';
+import type { TGeneratedVariant } from './variants.js';
 import { installProject, runProjectScript } from './run-project.js';
 
-export interface BuildResult {
-  variant: GeneratedVariant;
+export interface TBuildResult {
+  variant: TGeneratedVariant;
   ok: boolean;
   steps: { name: string; ok: boolean; output: string }[];
 }
 
 export const buildVariant = async (
-  variant: GeneratedVariant,
+  variant: TGeneratedVariant,
   timeoutMs: number,
-): Promise<BuildResult> => {
-  const steps: BuildResult['steps'] = [];
+): Promise<TBuildResult> => {
+  const steps: TBuildResult['steps'] = [];
 
-  const { pm, step: install } = await installProject(variant.absPath, timeoutMs);
+  const { pm, step: install } = await installProject(
+    variant.absPath,
+    timeoutMs,
+  );
   steps.push(install);
   if (!install.ok) {
     return { variant, ok: false, steps };
@@ -21,11 +24,16 @@ export const buildVariant = async (
 
   const scripts =
     variant.framework === 'node'
-      ? (['typecheck', 'build'])
-      : (['build', 'lint']);
+      ? ['typecheck', 'build', 'lint', 'format:check']
+      : ['build', 'lint', 'format:check'];
 
   for (const script of scripts) {
-    const result = await runProjectScript(variant.absPath, pm, script, timeoutMs);
+    const result = await runProjectScript(
+      variant.absPath,
+      pm,
+      script,
+      timeoutMs,
+    );
     steps.push(result);
     if (!result.ok) {
       return { variant, ok: false, steps };
@@ -33,4 +41,4 @@ export const buildVariant = async (
   }
 
   return { variant, ok: true, steps };
-}
+};

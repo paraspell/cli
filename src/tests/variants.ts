@@ -1,36 +1,40 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  FEATURE_COMBOS,
+  EXTENSION_COMBINATIONS,
   apiExampleName,
   sdkExampleDir,
 } from '../generate-examples.js';
 import { FRAMEWORKS, SDK_CLIENTS } from '../shared/types.js';
 import type {
-  FeatureFlags,
-  Framework,
-  ProjectType,
-  SdkClient,
+  TExtensions,
+  TFramework,
+  TProjectType,
+  TSdkClient,
 } from '../shared/types.js';
 
-export interface GeneratedVariant extends FeatureFlags {
+export interface TGeneratedVariant {
   id: string;
-  kind: ProjectType;
-  framework: Framework;
+  kind: TProjectType;
+  framework: TFramework;
   dir: string;
   absPath: string;
-  client?: SdkClient;
+  client?: TSdkClient;
+  extensions: TExtensions;
 }
 
-const cliRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const cliRoot = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../..',
+);
 
-export const listVariants = (): GeneratedVariant[] => {
-  const variants: GeneratedVariant[] = [];
+export const listVariants = (): TGeneratedVariant[] => {
+  const variants: TGeneratedVariant[] = [];
 
   for (const framework of FRAMEWORKS) {
     for (const client of SDK_CLIENTS) {
-      for (const combo of FEATURE_COMBOS) {
-        const dir = sdkExampleDir(client, combo);
+      for (const extensions of EXTENSION_COMBINATIONS) {
+        const dir = sdkExampleDir(client, extensions);
         variants.push({
           id: `sdk/${framework}/${dir}`,
           kind: 'sdk',
@@ -38,29 +42,25 @@ export const listVariants = (): GeneratedVariant[] => {
           dir,
           absPath: path.join(cliRoot, 'generated', 'xcm-sdk', framework, dir),
           client,
-          evm: combo.evm,
-          swap: combo.swap,
-          snowbridge: combo.snowbridge,
+          extensions,
         });
       }
     }
   }
 
   for (const framework of FRAMEWORKS) {
-    for (const combo of FEATURE_COMBOS) {
-      const dir = apiExampleName(combo);
+    for (const extensions of EXTENSION_COMBINATIONS) {
+      const dir = apiExampleName(extensions);
       variants.push({
         id: `api/${framework}/${dir}`,
         kind: 'api',
         framework,
         dir,
         absPath: path.join(cliRoot, 'generated', 'xcm-api', framework, dir),
-        evm: combo.evm,
-        swap: combo.swap,
-        snowbridge: combo.snowbridge,
+        extensions,
       });
     }
   }
 
   return variants;
-}
+};

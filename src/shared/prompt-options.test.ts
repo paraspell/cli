@@ -17,16 +17,16 @@ vi.mock('@clack/prompts', () => ({
   isCancel: vi.fn(() => false),
 }));
 
-vi.mock('./feature-extensions-checkbox.js', () => ({
+vi.mock('./extensions-checkbox.js', () => ({
   EVM_EXTENSION: 'evm-extension',
   SWAP_EXTENSION: 'swap-extension',
   SNOWBRIDGE_EXTENSION: 'snowbridge-extension',
-  promptFeatureExtensions: vi.fn(async () => [] as string[]),
+  promptExtensions: vi.fn(() => Promise.resolve<string[]>([])),
 }));
 
 vi.mock('./prompt-secrets.js', () => ({
-  promptSubstrateMnemonic: vi.fn(async () => '//Alice'),
-  promptEvmPrivateKey: vi.fn(async () => VALID_PRIVATE_KEY),
+  promptSubstrateMnemonic: vi.fn(() => Promise.resolve('//Alice')),
+  promptEvmPrivateKey: vi.fn(() => Promise.resolve(VALID_PRIVATE_KEY)),
 }));
 
 const mockedText = vi.mocked(text);
@@ -39,13 +39,12 @@ describe('promptGenerateOptions', () => {
 
   it('prompts for every missing sdk option', async () => {
     mockedText.mockResolvedValue('prompted-app');
-    mockedSelect
-      .mockResolvedValueOnce('npm')
-      .mockResolvedValueOnce('pjs');
+    mockedSelect.mockResolvedValueOnce('npm').mockResolvedValueOnce('pjs');
 
     const result = await promptGenerateOptions({
       kind: 'sdk',
       framework: 'react',
+      extensions: {},
     });
 
     expect(mockedText).toHaveBeenCalledOnce();
@@ -54,9 +53,7 @@ describe('promptGenerateOptions', () => {
       name: 'prompted-app',
       packageManager: 'npm',
       client: 'pjs',
-      evm: false,
-      swap: false,
-      snowbridge: false,
+      extensions: { evm: false, swap: false, snowbridge: false },
     });
   });
 
@@ -67,7 +64,7 @@ describe('promptGenerateOptions', () => {
       name: 'given-app',
       packageManager: 'npm',
       client: 'papi',
-      evm: true,
+      extensions: { evm: true },
     });
 
     expect(mockedText).not.toHaveBeenCalled();
@@ -76,7 +73,7 @@ describe('promptGenerateOptions', () => {
       name: 'given-app',
       packageManager: 'npm',
       client: 'papi',
-      evm: true,
+      extensions: { evm: true },
     });
   });
 
@@ -87,9 +84,7 @@ describe('promptGenerateOptions', () => {
     const result = await promptGenerateOptions({
       kind: 'api',
       framework: 'react',
-      evm: false,
-      swap: false,
-      snowbridge: false,
+      extensions: { evm: false, swap: false, snowbridge: false },
     });
 
     expect(mockedSelect).toHaveBeenCalledOnce();
@@ -99,12 +94,16 @@ describe('promptGenerateOptions', () => {
 
 describe('applyGenerateDefaults', () => {
   it('fills sdk defaults for missing options', () => {
-    expect(applyGenerateDefaults({ kind: 'sdk', framework: 'react' })).toEqual({
+    expect(
+      applyGenerateDefaults({
+        kind: 'sdk',
+        framework: 'react',
+        extensions: {},
+      }),
+    ).toEqual({
       name: 'my-xcm-app',
       client: 'pjs',
-      evm: false,
-      swap: false,
-      snowbridge: false,
+      extensions: { evm: false, swap: false, snowbridge: false },
       packageManager: 'pnpm',
       privateKey: undefined,
       substrateMnemonic: undefined,
@@ -112,7 +111,11 @@ describe('applyGenerateDefaults', () => {
   });
 
   it('uses the api default name and no client', () => {
-    const result = applyGenerateDefaults({ kind: 'api', framework: 'react' });
+    const result = applyGenerateDefaults({
+      kind: 'api',
+      framework: 'react',
+      extensions: {},
+    });
     expect(result.name).toBe('my-xcm-api-app');
     expect(result.client).toBeUndefined();
   });
@@ -121,7 +124,7 @@ describe('applyGenerateDefaults', () => {
     const result = applyGenerateDefaults({
       kind: 'sdk',
       framework: 'node',
-      evm: true,
+      extensions: { evm: true },
       substrateMnemonic: '//Alice',
       privateKey: VALID_PRIVATE_KEY,
     });
@@ -133,6 +136,7 @@ describe('applyGenerateDefaults', () => {
     const result = applyGenerateDefaults({
       kind: 'sdk',
       framework: 'react',
+      extensions: {},
       substrateMnemonic: '//Alice',
       privateKey: VALID_PRIVATE_KEY,
     });
@@ -144,23 +148,32 @@ describe('applyGenerateDefaults', () => {
 describe('hasRejectedSecrets', () => {
   it('flags invalid secrets', () => {
     expect(
-      hasRejectedSecrets({ kind: 'sdk', framework: 'node', privateKey: 'bad' }),
+      hasRejectedSecrets({
+        kind: 'sdk',
+        framework: 'node',
+        extensions: {},
+        privateKey: 'bad',
+      }),
     ).toBe(true);
     expect(
       hasRejectedSecrets({
         kind: 'sdk',
         framework: 'node',
+        extensions: {},
         substrateMnemonic: 'definitely not a mnemonic',
       }),
     ).toBe(true);
   });
 
   it('accepts valid or absent secrets', () => {
-    expect(hasRejectedSecrets({ kind: 'sdk', framework: 'node' })).toBe(false);
+    expect(
+      hasRejectedSecrets({ kind: 'sdk', framework: 'node', extensions: {} }),
+    ).toBe(false);
     expect(
       hasRejectedSecrets({
         kind: 'sdk',
         framework: 'node',
+        extensions: {},
         privateKey: VALID_PRIVATE_KEY,
         substrateMnemonic: '//Alice',
       }),

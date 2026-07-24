@@ -2,15 +2,19 @@ import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { select, text } from '@clack/prompts';
 
-type GenerateApp = typeof import('./generator/generate.js').generateApp;
+type TGenerateApp = typeof import('./generator/generate.js').generateApp;
 
 const VALID_PRIVATE_KEY =
   '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
-const generateApp = vi.fn<GenerateApp>();
-const promptFeatureExtensions = vi.fn(async (_defaults?: unknown) => [] as string[]);
-const promptSubstrateMnemonic = vi.fn(async () => undefined as string | undefined);
-const promptEvmPrivateKey = vi.fn(async () => undefined as string | undefined);
+const generateApp = vi.fn<TGenerateApp>();
+const promptExtensions = vi.fn(() => Promise.resolve<string[]>([]));
+const promptSubstrateMnemonic = vi.fn(() =>
+  Promise.resolve<string | undefined>(undefined),
+);
+const promptEvmPrivateKey = vi.fn(() =>
+  Promise.resolve<string | undefined>(undefined),
+);
 
 vi.mock('@clack/prompts', () => ({
   intro: vi.fn(),
@@ -22,15 +26,14 @@ vi.mock('@clack/prompts', () => ({
 }));
 
 vi.mock('./generator/generate.js', () => ({
-  generateApp: (params: Parameters<GenerateApp>[0]) => generateApp(params),
+  generateApp: (params: Parameters<TGenerateApp>[0]) => generateApp(params),
 }));
 
-vi.mock('./shared/feature-extensions-checkbox.js', () => ({
+vi.mock('./shared/extensions-checkbox.js', () => ({
   EVM_EXTENSION: 'evm-extension',
   SWAP_EXTENSION: 'swap-extension',
   SNOWBRIDGE_EXTENSION: 'snowbridge-extension',
-  promptFeatureExtensions: (defaults?: unknown) =>
-    promptFeatureExtensions(defaults),
+  promptExtensions: () => promptExtensions(),
 }));
 
 vi.mock('./shared/prompt-secrets.js', () => ({
@@ -46,7 +49,7 @@ describe('runInteractiveGenerate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     generateApp.mockResolvedValue(undefined);
-    promptFeatureExtensions.mockResolvedValue([]);
+    promptExtensions.mockResolvedValue([]);
     promptSubstrateMnemonic.mockResolvedValue(undefined);
     promptEvmPrivateKey.mockResolvedValue(undefined);
     vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -62,24 +65,20 @@ describe('runInteractiveGenerate', () => {
 
     await runInteractiveGenerate();
 
-    expect(mockedSelect).toHaveBeenNthCalledWith(
-      4,
-      expect.objectContaining({
-        options: expect.arrayContaining([
-          { value: 'papi', label: 'Polkadot API (PAPI)' },
-        ]),
-      }),
-    );
+    expect(mockedSelect.mock.calls[3]?.[0].options).toContainEqual({
+      value: 'papi',
+      label: 'Polkadot API (PAPI)',
+    });
     expect(generateApp).toHaveBeenCalledOnce();
     expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
       kind: 'sdk',
-      opts: expect.objectContaining({
+      opts: {
         framework: 'react',
         name: 'wizard-app',
         client: 'papi',
         packageManager: 'npm',
         out: path.join(process.cwd(), 'wizard-app'),
-      }),
+      },
     });
   });
 
@@ -96,18 +95,18 @@ describe('runInteractiveGenerate', () => {
     expect(generateApp).toHaveBeenCalledOnce();
     expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
       kind: 'api',
-      opts: expect.objectContaining({ framework: 'vue', name: 'api-wizard' }),
+      opts: { framework: 'vue', name: 'api-wizard' },
     });
   });
 
-  it('prompts for node secrets when EVM features are enabled', async () => {
+  it('prompts for node secrets when EVM extensions are enabled', async () => {
     mockedText.mockResolvedValue('node-app');
     mockedSelect
       .mockResolvedValueOnce('pnpm')
       .mockResolvedValueOnce('node')
       .mockResolvedValueOnce('sdk')
       .mockResolvedValueOnce('papi');
-    promptFeatureExtensions.mockResolvedValue(['evm-extension']);
+    promptExtensions.mockResolvedValue(['evm-extension']);
     promptSubstrateMnemonic.mockResolvedValue('//Alice');
     promptEvmPrivateKey.mockResolvedValue(VALID_PRIVATE_KEY);
 
@@ -117,12 +116,12 @@ describe('runInteractiveGenerate', () => {
     expect(promptEvmPrivateKey).toHaveBeenCalledOnce();
     expect(generateApp.mock.calls[0]?.[0]).toMatchObject({
       kind: 'sdk',
-      opts: expect.objectContaining({
+      opts: {
         framework: 'node',
-        evm: true,
+        extensions: { evm: true },
         substrateMnemonic: '//Alice',
         privateKey: VALID_PRIVATE_KEY,
-      }),
+      },
     });
   });
 });

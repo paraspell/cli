@@ -23,7 +23,9 @@ describe('validateEvmPrivateKey', () => {
   it('rejects invalid keys', () => {
     expect(validateEvmPrivateKey('0xabc')).toMatch(/64 characters/);
     expect(validateEvmPrivateKey('abc')).toMatch(/64 characters/);
-    expect(validateEvmPrivateKey('0x' + 'g'.repeat(64))).toMatch(/64 characters/);
+    expect(validateEvmPrivateKey('0x' + 'g'.repeat(64))).toMatch(
+      /64 characters/,
+    );
   });
 });
 
@@ -42,8 +44,12 @@ describe('validateSubstrateMnemonic', () => {
   });
 
   it('rejects values that are not a BIP39 phrase or //Dev URI', () => {
-    expect(validateSubstrateMnemonic(VALID_PRIVATE_KEY)).toMatch(/BIP39 phrase/);
+    expect(validateSubstrateMnemonic(VALID_PRIVATE_KEY)).toMatch(
+      /BIP39 phrase/,
+    );
     expect(validateSubstrateMnemonic('seed')).toMatch(/BIP39 phrase/);
-    expect(validateSubstrateMnemonic('not a valid mnemonic')).toMatch(/BIP39 phrase/);
+    expect(validateSubstrateMnemonic('not a valid mnemonic')).toMatch(
+      /BIP39 phrase/,
+    );
   });
 });

@@ -1,11 +1,11 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type SwapFragmentId = Extract<FragmentId, `swap/${string}`>;
+type TSwapFragmentId = Extract<TFragmentId, `swap/${string}`>;
 
-export const createSwapFragments: FragmentFactory<SwapFragmentId> = () => {
+export const createSwapFragments: TFragmentFactory<TSwapFragmentId> = () => {
   return {
-    "swap/exchangeChains.api.frontend": () => source`import axios from "axios";
+    'swap/exchangeChains.api.frontend': () => source`import axios from "axios";
         import { API_URL } from "../consts";
         
         export const loadExchangeChains = async (): Promise<readonly string[]> => {
@@ -13,10 +13,10 @@ export const createSwapFragments: FragmentFactory<SwapFragmentId> = () => {
           return response.data;
         };
         `,
-    "swap/index.api":
+    'swap/index.api':
       () => source`export { useExchangeChains } from "./useExchangeChains";
         `,
-    "swap/useExchangeChains.react":
+    'swap/useExchangeChains.react':
       () => source`import { useCallback, useEffect, useRef, useState } from "react";
         import { loadExchangeChains } from "./exchangeChains";
         
@@ -46,7 +46,7 @@ export const createSwapFragments: FragmentFactory<SwapFragmentId> = () => {
           return { chains };
         };
         `,
-    "swap/useExchangeChains.vue":
+    'swap/useExchangeChains.vue':
       () => source`import { onMounted, ref } from "vue";
         import { loadExchangeChains } from "./exchangeChains";
         

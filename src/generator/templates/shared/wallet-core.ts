@@ -1,20 +1,20 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type WalletCoreFragmentId = Exclude<
-  Extract<FragmentId, `wallet/${string}`>,
+type TWalletCoreFragmentId = Exclude<
+  Extract<TFragmentId, `wallet/${string}`>,
   `wallet/${string}.react` | `wallet/${string}.vue`
 >;
 
-export const createWalletCoreFragments: FragmentFactory<
-  WalletCoreFragmentId
+export const createWalletCoreFragments: TFragmentFactory<
+  TWalletCoreFragmentId
 > = (_context, renderFragment) => {
   return {
-    "wallet/connectWalletAlert":
-      () => source`import type { WalletKind } from "../../types";
+    'wallet/connectWalletAlert':
+      () => source`import type { TWalletKind } from "../../types";
         
         export const connectWalletAlert = (wallet: {
-          activeWalletKind: WalletKind;
+          activeWalletKind: TWalletKind;
         }): void => {
           alert(
             wallet.activeWalletKind === "evm"
@@ -23,16 +23,16 @@ export const createWalletCoreFragments: FragmentFactory<
           );
         };
         `,
-    "wallet/submitTransfer.sdk":
-      () => source`${renderFragment("wallet/connectWalletAlert")}
+    'wallet/submitTransfer.sdk':
+      () => source`${renderFragment('wallet/connectWalletAlert')}
         
-        import type { FormValues } from "../../types";
+        import type { TFormValues } from "../../types";
         import { submitEvmTransferFromForm } from "../../xcm/evmTransfer";
-        import type { WalletSubmitOptions } from "../../types";
+        import type { TWalletSubmitOptions } from "../../types";
         
         export const submitEvmIfNeeded = async (
-          formValues: FormValues,
-          options: WalletSubmitOptions,
+          formValues: TFormValues,
+          options: TWalletSubmitOptions,
         ): Promise<boolean> => {
           if (options.kind !== "evm") return false;
           await submitEvmTransferFromForm(

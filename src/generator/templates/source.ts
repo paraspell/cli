@@ -1,9 +1,9 @@
-import { code, type Code } from "ts-poet";
+import { code, type Code } from 'ts-poet';
 
-const SOURCE_INDENT = "        ";
+const SOURCE_INDENT = '        ';
 
 const stripSourceIndent = (value: string): string =>
-  value.replaceAll(`\n${SOURCE_INDENT}`, "\n");
+  value.replaceAll(`\n${SOURCE_INDENT}`, '\n');
 
 const stripTemplateIndent = (
   strings: TemplateStringsArray,
@@ -11,7 +11,7 @@ const stripTemplateIndent = (
   const stripped = strings.map(
     stripSourceIndent,
   ) as unknown as TemplateStringsArray;
-  Object.defineProperty(stripped, "raw", {
+  Object.defineProperty(stripped, 'raw', {
     value: strings.raw.map(stripSourceIndent),
   });
   return stripped;

@@ -40,14 +40,16 @@ with ts-morph. Vue SFCs are additionally validated with `@vue/compiler-sfc`.
 ```bash
 pnpm build       # required before tests; emits dist/
 pnpm compile     # check the CLI for TypeScript errors
+pnpm lint        # run type-aware ESLint checks on src/
+pnpm format:check # verify Prettier formatting in src/
 pnpm test        # scaffold all variants + assert structure/deps (fast)
 pnpm test:build  # install + build every generated variant (slow)
 pnpm test:all    # structure + build
 ```
 
-Please run `pnpm compile` and `pnpm test` before opening a PR. For scaffold changes,
-`pnpm test:build` (or a targeted subset, e.g. `TEST_FRAMEWORK=react pnpm test:build`) is
-recommended.
+Please run `pnpm compile`, `pnpm lint`, `pnpm format:check`, and `pnpm test`
+before opening a PR. For scaffold changes, `pnpm test:build` (or a targeted
+subset, e.g. `TEST_FRAMEWORK=react pnpm test:build`) is recommended.
 
 ## Releasing
 

@@ -1,64 +1,62 @@
-export const FRAMEWORKS = ["react", "vue", "node"] as const;
-export type Framework = (typeof FRAMEWORKS)[number];
+export const FRAMEWORKS = ['react', 'vue', 'node'] as const;
+export type TFramework = (typeof FRAMEWORKS)[number];
 
-export const PACKAGE_MANAGERS = ["npm", "yarn", "pnpm", "bun"] as const;
-export type PackageManager = (typeof PACKAGE_MANAGERS)[number];
+export const PACKAGE_MANAGERS = ['npm', 'yarn', 'pnpm', 'bun'] as const;
+export type TPackageManager = (typeof PACKAGE_MANAGERS)[number];
 
-export const PROJECT_TYPES = ["sdk", "api"] as const;
-export type ProjectType = (typeof PROJECT_TYPES)[number];
+export const PROJECT_TYPES = ['sdk', 'api'] as const;
+export type TProjectType = (typeof PROJECT_TYPES)[number];
 
-export const SDK_CLIENTS = ["papi", "pjs", "dedot"] as const;
-export type SdkClient = (typeof SDK_CLIENTS)[number];
+export const SDK_CLIENTS = ['papi', 'pjs', 'dedot'] as const;
+export type TSdkClient = (typeof SDK_CLIENTS)[number];
 
-export const SDK_CLIENT_LABELS: Record<SdkClient, string> = {
-  papi: "Polkadot API (PAPI)",
-  pjs: "Polkadot JS",
-  dedot: "Dedot",
+export const SDK_CLIENT_LABELS: Record<TSdkClient, string> = {
+  papi: 'Polkadot API (PAPI)',
+  pjs: 'Polkadot JS',
+  dedot: 'Dedot',
 };
 
-export const FEATURE_KEYS = ["evm", "swap", "snowbridge"] as const;
-export type FeatureKey = (typeof FEATURE_KEYS)[number];
-export type FeatureFlags = Record<FeatureKey, boolean>;
+export const EXTENSION_KEYS = ['evm', 'swap', 'snowbridge'] as const;
+export type TExtensionKey = (typeof EXTENSION_KEYS)[number];
+export type TExtensions = Record<TExtensionKey, boolean>;
 
-export interface SdkGenerateOptions extends FeatureFlags {
-  framework: Framework;
+export interface TSdkGenerateOptions {
+  framework: TFramework;
   name: string;
-  client: SdkClient;
-  packageManager: PackageManager;
+  client: TSdkClient;
+  extensions: TExtensions;
+  packageManager: TPackageManager;
   out: string;
   privateKey?: string;
   substrateMnemonic?: string;
 }
 
-export interface ApiGenerateOptions extends FeatureFlags {
-  framework: Framework;
+export interface TApiGenerateOptions {
+  framework: TFramework;
   name: string;
-  packageManager: PackageManager;
+  extensions: TExtensions;
+  packageManager: TPackageManager;
   out: string;
   privateKey?: string;
   substrateMnemonic?: string;
 }
 
-export interface ResolveInput {
-  kind: ProjectType;
-  framework: Framework;
+export interface TResolveInput {
+  kind: TProjectType;
+  framework: TFramework;
   name?: string;
-  client?: SdkClient;
-  evm?: boolean;
-  swap?: boolean;
-  snowbridge?: boolean;
-  packageManager?: PackageManager;
+  client?: TSdkClient;
+  extensions: Partial<TExtensions>;
+  packageManager?: TPackageManager;
   privateKey?: string;
   substrateMnemonic?: string;
 }
 
-export interface ResolvedOptions {
+export interface TResolvedOptions {
   name: string;
-  client?: SdkClient;
-  evm: boolean;
-  swap: boolean;
-  snowbridge: boolean;
-  packageManager: PackageManager;
+  client?: TSdkClient;
+  extensions: TExtensions;
+  packageManager: TPackageManager;
   privateKey?: string;
   substrateMnemonic?: string;
 }

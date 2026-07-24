@@ -1,18 +1,21 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type EvmCoreFragmentId = Exclude<
-  Extract<FragmentId, `evm/${string}`>,
+type TEvmCoreFragmentId = Exclude<
+  Extract<TFragmentId, `evm/${string}`>,
   `evm/${string}.react` | `evm/${string}.vue`
 >;
 
-export const createEvmCoreFragments: FragmentFactory<EvmCoreFragmentId> = (
+export const createEvmCoreFragments: TFragmentFactory<TEvmCoreFragmentId> = (
   context,
 ) => {
-  const { sdkPackage, evm, snowbridge } = context;
+  const {
+    sdkPackage,
+    extensions: { evm, snowbridge },
+  } = context;
 
   return {
-    "evm/eip6963.ts":
+    'evm/eip6963.ts':
       () => source`import { createStore, type EIP6963ProviderDetail } from "mipd";
         
         export const evmProviderStore =
@@ -21,7 +24,7 @@ export const createEvmCoreFragments: FragmentFactory<EvmCoreFragmentId> = (
         export const getEip6963Providers = (): readonly EIP6963ProviderDetail[] =>
           evmProviderStore?.getProviders() ?? [];
         `,
-    "evm/evmOrigins.api.frontend": () => source`import axios from "axios";
+    'evm/evmOrigins.api.frontend': () => source`import axios from "axios";
         import { API_URL } from "../consts";
         
         export const loadEvmOriginChains = async (): Promise<readonly string[]> => {
@@ -29,7 +32,7 @@ export const createEvmCoreFragments: FragmentFactory<EvmCoreFragmentId> = (
           return response.data;
         };
         `,
-    "evm/evmOrigins.api.node": () => source`import axios from "axios";
+    'evm/evmOrigins.api.node': () => source`import axios from "axios";
         import { API_URL } from "./consts.js";
         
         let cachedEvmOriginChains: readonly string[] = [];
@@ -62,7 +65,7 @@ export const createEvmCoreFragments: FragmentFactory<EvmCoreFragmentId> = (
         export const isEvmOrigin = (chain: string): boolean =>
           getEvmOriginChains().includes(chain);
         `,
-    "evm/evmWalletClient":
+    'evm/evmWalletClient':
       () => source`import type { EIP1193Provider } from "mipd";
         import {
           createWalletClient,
@@ -100,16 +103,16 @@ export const createEvmCoreFragments: FragmentFactory<EvmCoreFragmentId> = (
           });
         };
         `,
-    "evm/getViemChain": () => source`import type { Chain } from "viem";${
+    'evm/getViemChain': () => source`import type { Chain } from "viem";${
       evm
         ? source`
         import { darwinia, moonbeam, moonriver } from "viem/chains";`
-        : ""
+        : ''
     }${
       snowbridge
         ? source`
         import { mainnet } from "viem/chains";`
-        : ""
+        : ''
     }
         
         const VIEM_CHAIN_BY_ORIGIN: Record<string, Chain> = {${
@@ -118,12 +121,12 @@ export const createEvmCoreFragments: FragmentFactory<EvmCoreFragmentId> = (
           Moonbeam: moonbeam,
           Moonriver: moonriver,
           Darwinia: darwinia,`
-            : ""
+            : ''
         }${
           snowbridge
             ? source`
           Ethereum: mainnet,`
-            : ""
+            : ''
         }
         };
         
@@ -135,7 +138,7 @@ export const createEvmCoreFragments: FragmentFactory<EvmCoreFragmentId> = (
           return chain;
         };
         `,
-    "evm/index.api":
+    'evm/index.api':
       () => source`export { getEip6963Providers, evmProviderStore } from "./eip6963";
         export {
           createEvmWalletClient,
@@ -144,11 +147,11 @@ export const createEvmCoreFragments: FragmentFactory<EvmCoreFragmentId> = (
         export { useEvmOriginChains } from "./useEvmOriginChains";
         export { getViemChainForOrigin } from "./getViemChain";
         `,
-    "evm/index.sdk": () => source`${
+    'evm/index.sdk': () => source`${
       evm
         ? source`export { EVM_ORIGIN_CHAINS } from "@paraspell/evm";
         `
-        : ""
+        : ''
     }export { getEip6963Providers, evmProviderStore } from "./eip6963";
         export {
           createEvmWalletClient,
@@ -160,7 +163,7 @@ export const createEvmCoreFragments: FragmentFactory<EvmCoreFragmentId> = (
           isSubstrateOrigin,
         } from "./isEvmOrigin";
         `,
-    "evm/isEvmOrigin.sdk": () => source`import {
+    'evm/isEvmOrigin.sdk': () => source`import {
           isChainEvm,
           type TChain,
           type TSubstrateChain,
@@ -178,16 +181,16 @@ export const createEvmCoreFragments: FragmentFactory<EvmCoreFragmentId> = (
           }
         };
         `,
-    "evm/utils.ts":
+    'evm/utils.ts':
       () => source`import type { EIP6963ProviderDetail } from "mipd";
-        import type { EvmProviderOption } from "../types";
+        import type { TEvmProviderOption } from "../types";
         
         export const truncateAddress = (address: string) =>
           \`\${address.slice(0, 6)}…\${address.slice(-4)}\`;
         
         export const toProviderOptions = (
           availableProviders: readonly EIP6963ProviderDetail[],
-        ): EvmProviderOption[] =>
+        ): TEvmProviderOption[] =>
           availableProviders.map((entry) => ({
             uuid: entry.info.uuid,
             label: entry.info.name,

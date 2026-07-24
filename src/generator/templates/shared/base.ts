@@ -1,12 +1,14 @@
-import type { FragmentFactory, FragmentId } from "./contracts.js";
-import { source } from "../source.js";
+import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import { source } from '../source.js';
 
-type BaseFragmentId = Exclude<FragmentId, `${string}/${string}`>;
+type TBaseFragmentId = Exclude<TFragmentId, `${string}/${string}`>;
 
-export const createBaseFragments: FragmentFactory<BaseFragmentId> = (
+export const createBaseFragments: TFragmentFactory<TBaseFragmentId> = (
   context,
 ) => {
-  const { evm, snowbridge } = context;
+  const {
+    extensions: { evm, snowbridge },
+  } = context;
 
   return {
     LICENSE: () => source`MIT License
@@ -31,17 +33,17 @@ export const createBaseFragments: FragmentFactory<BaseFragmentId> = (
         OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
         SOFTWARE.
         `,
-    "paraspell-side-effects": () =>
+    'paraspell-side-effects': () =>
       source`${
         evm
           ? source`import "@paraspell/evm";
         `
-          : ""
+          : ''
       }${
         snowbridge
           ? source`import "@paraspell/evm-snowbridge";
         `
-          : ""
+          : ''
       }`,
     requireAsset:
       () => source`export const requireCurrency = <T extends { location: object }>(
