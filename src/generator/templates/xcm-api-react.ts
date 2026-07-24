@@ -442,20 +442,20 @@ export const createXcmApiReactTemplates = (
               return;
             }
         
-            let cancelled = false;
+            const abortController = new AbortController();
         
             const fetchSwapAssets = async () => {
               const response = await axios.get<TAssetInfo[]>(
                 \`\${API_URL}/supported-assets?origin=\${destinationChain}&destination=\${originChain}\`,
               );
-              if (!cancelled) {
+              if (!abortController.signal.aborted) {
                 setSupportedSwapAssets(response.data);
               }
             };
             void fetchSwapAssets();
         
             return () => {
-              cancelled = true;
+              abortController.abort();
             };
           }, [originChain, destinationChain, swapEnabled]);
         
@@ -536,12 +536,12 @@ export const createXcmApiReactTemplates = (
         ${
           swap
             ? source`
-            let selectedCurrencyTo: TAssetInfo | undefined;
-            if (swapEnabled) {
-              if (!selectedCurrencyToOptionId) return;
-              selectedCurrencyTo = currencyToMap[selectedCurrencyToOptionId];
-              if (!selectedCurrencyTo) return;
-            }
+            if (swapEnabled && !selectedCurrencyToOptionId) return;
+            const selectedCurrencyTo =
+              swapEnabled && selectedCurrencyToOptionId
+                ? currencyToMap[selectedCurrencyToOptionId]
+                : undefined;
+            if (swapEnabled && !selectedCurrencyTo) return;
         `
             : ''
         }

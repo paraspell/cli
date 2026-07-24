@@ -466,9 +466,9 @@ export const createXcmApiNodeTemplates = (
         ${
           evmWallet
             ? source`
-          await fetchEvmOriginChains();
+          const evmOriginChains = await fetchEvmOriginChains();
         
-          if (isEvmOrigin(params.from)) {
+          if (isEvmOrigin(params.from, evmOriginChains)) {
             const sender = getEvmSenderAddress(params.from);
             const walletClient = getEvmWalletClient(params.from);
             const serializedTx = await fetchFromEvmApi(

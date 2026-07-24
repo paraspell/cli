@@ -204,17 +204,19 @@ export const createWalletVueFragments: TFragmentFactory<
             selectedAddress,
             (address, _, onCleanup) => {
               if (!address) return;
-              let cancelled = false;
+              const abortController = new AbortController();
               onCleanup(() => {
-                cancelled = true;
+                abortController.abort();
                 signer.value = null;
               });
               void web3FromAddress(address)
                 .then((injector) => {
-                  if (!cancelled) signer.value = injector.signer;
+                  if (!abortController.signal.aborted) {
+                    signer.value = injector.signer;
+                  }
                 })
                 .catch(() => {
-                  if (!cancelled) signer.value = null;
+                  if (!abortController.signal.aborted) signer.value = null;
                 });
             },
             { immediate: true },

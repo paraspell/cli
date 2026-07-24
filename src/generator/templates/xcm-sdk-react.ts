@@ -477,11 +477,11 @@ export const createXcmSdkReactTemplates = (
             if (!selectedCurrencyOptionId) return;${
               swap
                 ? source`
-            let selectedCurrencyTo;
-            if (swapEnabled) {
-              if (!selectedCurrencyToOptionId) return;
-              selectedCurrencyTo = currencyToMap[selectedCurrencyToOptionId];
-            }`
+            if (swapEnabled && !selectedCurrencyToOptionId) return;
+            const selectedCurrencyTo =
+              swapEnabled && selectedCurrencyToOptionId
+                ? currencyToMap[selectedCurrencyToOptionId]
+                : undefined;`
                 : ''
             }
         
