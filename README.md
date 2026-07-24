@@ -14,6 +14,12 @@
   <a href="https://github.com/paraspell/xcm-tools">XCM Tools</a>
 </p>
 
+<p align="center">
+  <a href="https://codecov.io/gh/paraspell/cli">
+    <img src="https://codecov.io/gh/paraspell/cli/graph/badge.svg" alt="Codecov">
+  </a>
+</p>
+
 ## Get started
 
 ```bash
@@ -135,6 +141,7 @@ pnpm lint
 pnpm format:check
 pnpm build
 pnpm test
+pnpm test -- --coverage
 pnpm test:e2e
 ```
 

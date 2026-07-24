@@ -1,10 +1,24 @@
 import { defineConfig } from 'vitest/config';
 
+const COVERAGE_THRESHOLD = 90;
 const E2E_TIMEOUT_MS = 2 * 60 * 1000;
 
 export default defineConfig({
   test: {
     globals: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      reportsDirectory: 'coverage',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.test.ts'],
+      thresholds: {
+        branches: COVERAGE_THRESHOLD,
+        functions: COVERAGE_THRESHOLD,
+        lines: COVERAGE_THRESHOLD,
+        statements: COVERAGE_THRESHOLD,
+      },
+    },
     projects: [
       {
         extends: true,

@@ -8,6 +8,9 @@ on:
 jobs:
   generator:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v7
 
@@ -34,7 +37,16 @@ jobs:
         run: pnpm build
 
       - name: Unit tests
-        run: pnpm test
+        run: pnpm test -- --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+          files: ./coverage/lcov.info
+          flags: unit
+          disable_search: true
+          fail_ci_if_error: true
 
       - name: E2E tests
         run: pnpm test:e2e
