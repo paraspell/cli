@@ -133,7 +133,9 @@ Useful checks:
 pnpm compile
 pnpm lint
 pnpm format:check
-pnpm test:all
+pnpm build
+pnpm test
+pnpm test:e2e
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and

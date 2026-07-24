@@ -35,21 +35,16 @@ not per scaffold.
 Generated TypeScript is composed through ts-poet, formatted by Prettier, and parsed
 with ts-morph. Vue SFCs are additionally validated with `@vue/compiler-sfc`.
 
-## Tests
+## Checks
 
 ```bash
-pnpm build       # required before tests; emits dist/
 pnpm compile     # check the CLI for TypeScript errors
 pnpm lint        # run type-aware ESLint checks on src/
 pnpm format:check # verify Prettier formatting in src/
-pnpm test        # scaffold all variants + assert structure/deps (fast)
-pnpm test:build  # install + build every generated variant (slow)
-pnpm test:all    # structure + build
+pnpm build       # build the CLI into dist/
+pnpm test        # run unit tests colocated with source files
+pnpm test:e2e    # run end-to-end tests from e2e/
 ```
-
-Please run `pnpm compile`, `pnpm lint`, `pnpm format:check`, and `pnpm test`
-before opening a PR. For scaffold changes, `pnpm test:build` (or a targeted
-subset, e.g. `TEST_FRAMEWORK=react pnpm test:build`) is recommended.
 
 ## Releasing
 

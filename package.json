@@ -40,12 +40,8 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier src --write",
     "format:check": "prettier src --check",
-    "test": "vitest run --project structure",
-    "test:typecheck": "vitest run --project typecheck",
-    "test:build": "vitest run --project build",
-    "test:all": "vitest run",
-    "test:watch": "vitest --project structure",
-    "test:generate": "node dist/generate-examples.js"
+    "test": "vitest run --project unit",
+    "test:e2e": "vitest run --project e2e"
   },
   "dependencies": {
     "@clack/prompts": "^1.7.0",
