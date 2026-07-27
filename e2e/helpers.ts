@@ -101,8 +101,11 @@ const cliArgs = (
   if (testCase.substrateMnemonic) {
     args.push('--substrate-mnemonic', testCase.substrateMnemonic);
   }
-  for (const extension of EXTENSION_KEYS) {
-    if (testCase.extensions[extension]) args.push(`--${extension}`);
+  const extensions = EXTENSION_KEYS.filter(
+    (extension) => testCase.extensions[extension],
+  );
+  if (extensions.length > 0) {
+    args.push('--extensions', extensions.join(','));
   }
 
   return args;

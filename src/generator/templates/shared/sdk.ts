@@ -1,4 +1,4 @@
-import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import type { TFragmentFactory, TFragmentId } from './fragment-types.js';
 import { source } from '../source.js';
 
 type TSdkFragmentId = Extract<TFragmentId, `sdk/${string}`>;
@@ -47,7 +47,7 @@ export const createSdkFragments: TFragmentFactory<TSdkFragmentId> = (
           };
         };
         
-        const useCurrencyOptions = (
+        export const useCurrencyOptions = (
           from: TChain,
           to: TChain,${
             swap
@@ -105,7 +105,6 @@ export const createSdkFragments: TFragmentFactory<TSdkFragmentId> = (
           };
         };
         
-        export default useCurrencyOptions;
         `,
     'sdk/useCurrencyOptions.vue': () => source`import type { Ref } from "vue";
         import { computed } from "vue";
@@ -142,7 +141,7 @@ export const createSdkFragments: TFragmentFactory<TSdkFragmentId> = (
           };
         };
         
-        const useCurrencyOptions = (
+        export const useCurrencyOptions = (
           from: Ref<TChain>,
           to: Ref<TChain>,${
             swap
@@ -200,7 +199,6 @@ export const createSdkFragments: TFragmentFactory<TSdkFragmentId> = (
           };
         };
         
-        export default useCurrencyOptions;
         `,
   };
 };

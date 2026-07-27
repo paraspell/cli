@@ -2,7 +2,7 @@ import path from 'node:path';
 import { note, outro } from '@clack/prompts';
 import {
   FRAMEWORK_OPTIONS,
-  packageRunCommand,
+  packageScriptCommand,
   type TFramework,
   type TPackageManager,
 } from './project-options.js';
@@ -25,12 +25,14 @@ export const printNextSteps = ({
   const projectName = path.basename(outDir);
   const cdPath =
     path.relative(process.cwd(), path.resolve(outDir)) || projectName;
-  const runScript = packageRunCommand(packageManager);
 
   const commands = [
     `cd ${cdPath}`,
     ...(installation === 'installed' ? [] : [`${packageManager} install`]),
-    `${runScript} ${FRAMEWORK_OPTIONS[framework].startScript}`,
+    packageScriptCommand(
+      packageManager,
+      FRAMEWORK_OPTIONS[framework].startScript,
+    ),
   ];
 
   note(

@@ -1,56 +1,7 @@
 import path from 'node:path';
 import { parse as parseVue } from '@vue/compiler-sfc';
-import { format } from 'prettier';
-import { Project, ts } from 'ts-morph';
+import { format, getFileInfo } from 'prettier';
 import type { Code } from 'ts-poet';
-
-const typeScriptProject = new Project({
-  useInMemoryFileSystem: true,
-  skipAddingFilesFromTsConfig: true,
-  compilerOptions: {
-    allowJs: true,
-    jsx: ts.JsxEmit.ReactJSX,
-    module: ts.ModuleKind.NodeNext,
-    moduleResolution: ts.ModuleResolutionKind.NodeNext,
-    target: ts.ScriptTarget.ESNext,
-  },
-});
-
-const PRETTIER_PARSERS: Record<string, string> = {
-  '.css': 'css',
-  '.html': 'html',
-  '.js': 'babel',
-  '.json': 'json',
-  '.md': 'markdown',
-  '.ts': 'typescript',
-  '.tsx': 'typescript',
-  '.vue': 'vue',
-  '.yaml': 'yaml',
-};
-
-const validateTypeScript = (relativePath: string, source: string): void => {
-  const projectPath = path.posix.join(
-    '/generated',
-    relativePath.split(path.sep).join(path.posix.sep),
-  );
-  const sourceFile = typeScriptProject.createSourceFile(projectPath, source, {
-    overwrite: true,
-  });
-  const diagnostics = typeScriptProject
-    .getProgram()
-    .compilerObject.getSyntacticDiagnostics(sourceFile.compilerNode);
-
-  if (diagnostics.length > 0) {
-    const details = diagnostics
-      .map((diagnostic) =>
-        ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-      )
-      .join('\n');
-    throw new Error(
-      `Invalid generated TypeScript in ${relativePath}:\n${details}`,
-    );
-  }
-};
 
 const validateVue = (relativePath: string, source: string): void => {
   const { errors } = parseVue(source, { filename: relativePath });
@@ -69,7 +20,9 @@ export const formatGeneratedFile = async (
   sourceCode: Code,
 ): Promise<string> => {
   const extension = path.extname(relativePath);
-  const parser = PRETTIER_PARSERS[extension];
+  const { inferredParser: parser } = await getFileInfo(relativePath, {
+    ignorePath: [],
+  });
   const source = sourceCode
     .toString({ format: false, path: relativePath })
     .replace(/^\n/, '');
@@ -84,9 +37,7 @@ export const formatGeneratedFile = async (
     });
   }
 
-  if (extension === '.ts' || extension === '.tsx') {
-    validateTypeScript(relativePath, formatted);
-  } else if (extension === '.vue') {
+  if (extension === '.vue') {
     validateVue(relativePath, formatted);
   }
 

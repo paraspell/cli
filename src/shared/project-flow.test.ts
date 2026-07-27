@@ -62,11 +62,11 @@ describe('runProjectFlow', () => {
   });
 
   it('generates resolved non-interactive options', async () => {
-    const validateOutput = vi.fn();
+    const validateTarget = vi.fn(() => true as const);
 
-    await runProjectFlow({ ...flowOptions, validateOutput });
+    await runProjectFlow({ ...flowOptions, validateTarget });
 
-    expect(validateOutput).toHaveBeenCalledWith('example', '/tmp/example');
+    expect(validateTarget).toHaveBeenCalledWith('example', '/tmp/example');
     expect(generateApp).toHaveBeenCalledWith({
       kind: 'sdk',
       opts: {
@@ -76,6 +76,16 @@ describe('runProjectFlow', () => {
       },
     });
     expect(installDependencies).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid resolved targets', async () => {
+    await expect(
+      runProjectFlow({
+        ...flowOptions,
+        validateTarget: () => 'Project already exists',
+      }),
+    ).rejects.toThrow('Project already exists');
+    expect(generateApp).not.toHaveBeenCalled();
   });
 
   it('rejects invalid non-interactive secrets', async () => {

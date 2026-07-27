@@ -1,11 +1,11 @@
+import { validateMnemonic } from '@scure/bip39';
+import { wordlist } from '@scure/bip39/wordlists/english.js';
 import validateNpmPackageName from 'validate-npm-package-name';
 
 const EVM_PRIVATE_KEY_PATTERN = /^0x[0-9a-fA-F]{64}$/;
 
 const SUBSTRATE_DEV_URI_PATTERN =
   /^\/\/[A-Za-z][A-Za-z0-9]*(?:\/\/[A-Za-z][A-Za-z0-9]*)*$/;
-
-const BIP39_MNEMONIC_PATTERN = /^[a-z]+(?: [a-z]+){11,23}$/;
 
 export const validateEvmPrivateKey = (value: string): true | string => {
   const trimmed = value.trim();
@@ -19,7 +19,7 @@ export const validateEvmPrivateKey = (value: string): true | string => {
 };
 
 const isSubstrateSecret = (value: string): boolean =>
-  SUBSTRATE_DEV_URI_PATTERN.test(value) || BIP39_MNEMONIC_PATTERN.test(value);
+  SUBSTRATE_DEV_URI_PATTERN.test(value) || validateMnemonic(value, wordlist);
 
 export const validateSubstrateMnemonic = (value: string): true | string => {
   const trimmed = value.trim();

@@ -1,41 +1,5 @@
-import type {
-  TFramework,
-  TProjectType,
-  TSdkClient,
-} from '../shared/project-options.js';
-import type { TGeneratorTarget, TSdkPackage } from './types.js';
-
-export const GENERATOR_TARGETS: Record<
-  TProjectType,
-  Record<TFramework, TGeneratorTarget>
-> = {
-  sdk: {
-    react: {
-      templateSet: 'xcm-sdk-react',
-      assetFiles: ['paraspell.png', 'paraspell-icon.png'],
-    },
-    vue: {
-      templateSet: 'xcm-sdk-vue',
-      assetFiles: ['paraspell.png', 'paraspell-icon.png'],
-    },
-    node: {
-      templateSet: 'xcm-sdk-node',
-    },
-  },
-  api: {
-    react: {
-      templateSet: 'xcm-api-react',
-      assetFiles: ['paraspell.png', 'paraspell-icon.png'],
-    },
-    vue: {
-      templateSet: 'xcm-api-vue',
-      assetFiles: ['paraspell.png', 'paraspell-icon.png'],
-    },
-    node: {
-      templateSet: 'xcm-api-node',
-    },
-  },
-};
+import type { TSdkClient } from '../shared/project-options.js';
+import type { TSdkPackage } from './types.js';
 
 export const SDK_PACKAGE_BY_CLIENT: Record<TSdkClient, TSdkPackage> = {
   papi: '@paraspell/sdk',

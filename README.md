@@ -90,17 +90,17 @@ npx create-paraspell@latest sdk react \
   --client papi \
   --package-manager pnpm
 
-# Vue app using the XCM API and EVM origins
+# Vue app using the XCM API with EVM origins and swaps
 npx create-paraspell@latest api vue \
   --name my-xcm-api \
-  --evm \
+  --extensions evm,swap \
   --package-manager npm
 
 # Headless SDK server with swaps
 npx create-paraspell@latest sdk node \
   --name my-xcm-server \
   --client dedot \
-  --swap
+  --extensions swap
 ```
 
 Non-interactive environments use sensible defaults and leave dependency
@@ -122,8 +122,7 @@ Use a development account such as `//Alice`. The generated Node.js server can
 sign and submit live XCM transfers when you call `POST /`.
 
 Avoid secret flags in shared shells or CI logs; command-line values may be saved
-in shell history. Prefer the interactive prompt or edit `.env` yourself. Read
-the full [security guide](SECURITY.md) before using funded accounts.
+in shell history. Prefer the interactive prompt or edit `.env` yourself.
 
 ## Work on the CLI
 
@@ -144,9 +143,6 @@ pnpm test
 pnpm test --coverage
 pnpm test:e2e
 ```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and
-[SECURITY.md](SECURITY.md) for vulnerability reporting.
 
 ## Links
 

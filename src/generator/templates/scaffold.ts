@@ -1,7 +1,8 @@
 import type { Code } from 'ts-poet';
 import type { TTemplateContext, TTemplateFile } from '../types.js';
+import { createFragmentFile } from './fragment-file.js';
 import { renderPackageJson } from './package-json.js';
-import type { TFragmentRenderer } from './shared/contracts.js';
+import type { TFragmentRenderer } from './shared/fragment-types.js';
 import { source } from './source.js';
 
 const renderGitignore = (framework: TTemplateContext['framework']): Code =>
@@ -35,12 +36,12 @@ const renderGitignore = (framework: TTemplateContext['framework']): Code =>
       `;
 
 const renderScripts = (context: TTemplateContext): Code => {
-  const { framework, packageManager, devCmd } = context;
+  const { framework, packageManager, startCmd } = context;
 
   return framework === 'node'
     ? source`| Command | Description |
       | --- | --- |
-      | **${packageManager} start** | Start the HTTP server |
+      | **${startCmd}** | Start the HTTP server |
       | **${packageManager} run build** | Compile TypeScript |
       | **${packageManager} run compile** | Check TypeScript types |
       | **${packageManager} run lint** | Lint the project |
@@ -48,7 +49,7 @@ const renderScripts = (context: TTemplateContext): Code => {
       `
     : source`| Command | Description |
       | --- | --- |
-      | **${devCmd}** | Start the Vite development server |
+      | **${startCmd}** | Start the Vite development server |
       | **${packageManager} run build** | Create a production build |
       | **${packageManager} run compile** | Check TypeScript types |
       | **${packageManager} run lint** | Lint the project |
@@ -61,7 +62,7 @@ const renderBrowserReadme = (context: TTemplateContext): Code => {
   const {
     projectKind,
     installCmd,
-    devCmd,
+    startCmd,
     sdkPackage,
     clientLabel,
     evmWallet,
@@ -92,7 +93,7 @@ const renderBrowserReadme = (context: TTemplateContext): Code => {
     ## Run locally
 
     1. Install dependencies with **${installCmd}**.
-    2. Start the app with **${devCmd}**.
+    2. Start the app with **${startCmd}**.
     3. Connect a wallet, configure the route, and submit the transfer.
 
     ## Scripts
@@ -117,7 +118,6 @@ const renderNodeReadme = (context: TTemplateContext): Code => {
     startCmd,
     sdkPackage,
     clientLabel,
-    extensions: { evm, snowbridge },
     evmWallet,
   } = context;
   const api = projectKind === 'api';
@@ -153,13 +153,7 @@ const renderNodeReadme = (context: TTemplateContext): Code => {
     2. Start the server with **${startCmd}**.
     3. Trigger the configured example with **curl -X POST http://localhost:3000/**.
 
-    The server starts without moving funds. Each **POST /** signs and broadcasts the configured live transfer. Use a development account and edit **src/transfer.ts** before submitting.${
-      api
-        ? ''
-        : source`
-
-    Default route: **${snowbridge ? 'Ethereum' : evm ? 'Moonbeam' : 'Astar'}** → **Hydration**.`
-    }
+    The server starts without moving funds. Each **POST /** signs and broadcasts the configured live transfer. Use a development account and edit **src/transfer.ts** before submitting.
 
     ## Scripts
 
@@ -178,29 +172,26 @@ const renderNodeReadme = (context: TTemplateContext): Code => {
 export const createScaffoldTemplates = (
   context: TTemplateContext,
   renderFragment: TFragmentRenderer,
-): readonly TTemplateFile[] => [
-  {
-    path: '.gitignore',
-    render: () => renderGitignore(context.framework),
-  },
-  {
-    path: 'LICENSE',
-    render: () => renderFragment('LICENSE'),
-  },
-  {
-    path: 'README.md',
-    render: () =>
-      context.framework === 'node'
-        ? renderNodeReadme(context)
-        : renderBrowserReadme(context),
-  },
-  {
-    path: 'package.json',
-    render: () => renderPackageJson(context),
-  },
-  {
-    path: 'index.html',
-    skip: context.framework === 'node',
-    render: () => renderFragment('spa/index.html'),
-  },
-];
+): readonly TTemplateFile[] => {
+  const fragment = createFragmentFile(renderFragment);
+
+  return [
+    {
+      path: '.gitignore',
+      render: () => renderGitignore(context.framework),
+    },
+    fragment('LICENSE', 'LICENSE'),
+    {
+      path: 'README.md',
+      render: () =>
+        context.framework === 'node'
+          ? renderNodeReadme(context)
+          : renderBrowserReadme(context),
+    },
+    {
+      path: 'package.json',
+      render: () => renderPackageJson(context),
+    },
+    fragment('index.html', 'spa/index.html', context.framework === 'node'),
+  ];
+};

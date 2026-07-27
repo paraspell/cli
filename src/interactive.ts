@@ -1,14 +1,15 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { intro } from '@clack/prompts';
 import { CLI_INTRO } from './shared/messages.js';
 import { runProjectFlow } from './shared/project-flow.js';
 import { promptProjectBasics } from './shared/prompts.js';
-import { validateNameInput } from './shared/validate.js';
+import { validateProjectTarget } from './shared/utils.js';
 
 export const runInteractiveGenerate = async (): Promise<void> => {
   intro(CLI_INTRO);
   const { projectType, framework } = await promptProjectBasics();
+  const root = process.cwd();
+  const resolveOut = (name: string): string => path.resolve(root, name);
 
   await runProjectFlow({
     input: {
@@ -16,15 +17,8 @@ export const runInteractiveGenerate = async (): Promise<void> => {
       framework,
       extensions: {},
     },
-    resolveOut: ({ name }) => path.join(process.cwd(), name),
-    validateName: (name) => {
-      const validation = validateNameInput(name);
-      const target = path.join(process.cwd(), name.trim());
-
-      return validation === true && fs.existsSync(target)
-        ? `Project already exists: ${target}`
-        : validation;
-    },
+    resolveOut,
+    validateTarget: validateProjectTarget,
     interactive: true,
     userFacing: true,
   });

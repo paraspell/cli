@@ -1,12 +1,15 @@
-import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import type { TFragmentFactory, TFragmentId } from './fragment-types.js';
 import { source } from '../source.js';
 
 type TNodeFragmentId = Extract<TFragmentId, `node/${string}`>;
 
 export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = (
   context,
+  renderFragment,
 ) => {
   const { client, projectKind } = context;
+  const transferFunction =
+    projectKind === 'sdk' ? 'transferAsset' : 'transferViaApi';
 
   return {
     'node/getEvmSenderAddress':
@@ -48,6 +51,29 @@ export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = (
           });
         };
         `,
+    'node/server': () => source`import "dotenv/config";
+        ${projectKind === 'sdk' ? renderFragment('paraspell-side-effects') : ''}import express from "express";
+        import { ${transferFunction} } from "./transfer.js";
+
+        const app = express();
+        app.use(express.json());
+
+        app.post("/", async (_req, res) => {
+          try {
+            const result = await ${transferFunction}();
+            res.status(200).json({ success: true, result });
+          } catch (error) {
+            const message = error instanceof Error || error instanceof ErrorEvent ? error.message : String(error);
+            res.status(500).json({ success: false, error: message });
+          }
+        });
+
+        const port = Number(process.env.PORT ?? 3000);
+        app.listen(port, () => {
+          console.log(\`Server listening on http://localhost:\${port}\`);
+          console.log("POST / to submit the configured XCM transfer.");
+        });
+        `,
     'node/substrate-keyring':
       () => source`import { Keyring } from "@polkadot/keyring";
         import type { KeyringPair } from "@polkadot/keyring/types";
@@ -86,5 +112,20 @@ export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = (
             : ''
         }
         `,
+    'node/tsconfig': () => source`{
+        "compilerOptions": {
+          "target": "ES2022",
+          "module": "NodeNext",
+          "moduleResolution": "NodeNext",
+          "strict": true,
+          "skipLibCheck": true,
+          "esModuleInterop": true,
+          "types": ["node"],
+          "outDir": "dist",
+          "rootDir": "src"
+        },
+        "include": ["src"]
+      }
+      `,
   };
 };

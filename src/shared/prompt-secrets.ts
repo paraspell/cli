@@ -16,16 +16,14 @@ const promptSecret = async (
   return trimmed || undefined;
 };
 
-export const promptEvmPrivateKey = (): Promise<string | undefined> => {
-  return promptSecret(
+export const promptEvmPrivateKey = (): Promise<string | undefined> =>
+  promptSecret(
     'Your EVM wallet private key for setup (optional, press Enter to skip)',
     validateEvmPrivateKey,
   );
-};
 
-export const promptSubstrateMnemonic = (): Promise<string | undefined> => {
-  return promptSecret(
+export const promptSubstrateMnemonic = (): Promise<string | undefined> =>
+  promptSecret(
     'Your Substrate wallet mnemonic for setup (optional, press Enter to skip)',
     validateSubstrateMnemonic,
   );
-};

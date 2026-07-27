@@ -1,4 +1,4 @@
-import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import type { TFragmentFactory, TFragmentId } from './fragment-types.js';
 import { source } from '../source.js';
 
 type TWalletReactFragmentId = Extract<TFragmentId, `wallet/${string}.react`>;
@@ -6,12 +6,12 @@ type TWalletReactFragmentId = Extract<TFragmentId, `wallet/${string}.react`>;
 export const createWalletReactFragments: TFragmentFactory<
   TWalletReactFragmentId
 > = (context) => {
-  const { projectKind, client, sdkPackage } = context;
+  const { projectKind, client, clientName, sdkPackage } = context;
 
   return {
     'wallet/SubstrateWalletControls.react':
       () => source`import type { FC } from "react";
-        import type { TWalletControlsSubstrateProps } from "../../types";
+        import type { TWalletControlsSubstrateProps } from "../types";
         
         export const SubstrateWalletControls: FC<TWalletControlsSubstrateProps> = ({
           extensionNames,
@@ -66,57 +66,50 @@ export const createWalletReactFragments: TFragmentFactory<
           </>
         );
         `,
-    'wallet/createWalletControls.react':
-      () => source`import type { FC } from "react";
-        import { EvmWalletControls } from "../evm/EvmWalletControls";
+    'wallet/WalletControls.react': () => source`import type { FC } from "react";
+        import { EvmWalletControls } from "./EvmWalletControls";
+        import { SubstrateWalletControls } from "./SubstrateWalletControls";
         import type {
           TUseWalletWithEvmReturn,
-          TWalletControlsSubstrateProps,
-        } from "../../types";
+        } from "../types";
         
-        export const createWalletControls = (
-          SubstrateControls: FC<TWalletControlsSubstrateProps>,
-        ) => {
-          const WalletControls: FC<{ wallet: TUseWalletWithEvmReturn }> = ({
-            wallet,
-          }) => {
-            if (wallet.activeWalletKind === "evm") {
-              return (
-                <EvmWalletControls
-                  providerOptions={wallet.evmProviderOptions}
-                  selectedProviderUuid={wallet.selectedEvmProviderUuid}
-                  accounts={wallet.evmAccounts}
-                  selectedAddress={wallet.selectedAddress}
-                  onConnectClick={() => {
-                    void wallet.discoverEvmProviders();
-                  }}
-                  onProviderChange={(uuid) => {
-                    void wallet.selectEvmProvider(uuid);
-                  }}
-                  onAccountChange={wallet.selectEvmAccount}
-                  onDisconnect={wallet.disconnectEvm}
-                />
-              );
-            }
-        
+        export const WalletControls: FC<{ wallet: TUseWalletWithEvmReturn }> = ({
+          wallet,
+        }) => {
+          if (wallet.activeWalletKind === "evm") {
             return (
-              <SubstrateControls
-                extensionNames={wallet.extensionNames}
-                selectedExtensionName={wallet.selectedExtensionName}
-                accounts={wallet.accounts}
+              <EvmWalletControls
+                providerOptions={wallet.evmProviderOptions}
+                selectedProviderUuid={wallet.selectedEvmProviderUuid}
+                accounts={wallet.evmAccounts}
                 selectedAddress={wallet.selectedAddress}
                 onConnectClick={() => {
-                  void wallet.discoverExtensions();
+                  void wallet.discoverEvmProviders();
                 }}
-                onExtensionChange={(name) => {
-                  void wallet.selectExtension(name);
+                onProviderChange={(uuid) => {
+                  void wallet.selectEvmProvider(uuid);
                 }}
-                onAccountChange={wallet.selectAccountByAddress}
+                onAccountChange={wallet.selectEvmAccount}
+                onDisconnect={wallet.disconnectEvm}
               />
             );
-          };
-        
-          return WalletControls;
+          }
+
+          return (
+            <SubstrateWalletControls
+              extensionNames={wallet.extensionNames}
+              selectedExtensionName={wallet.selectedExtensionName}
+              accounts={wallet.accounts}
+              selectedAddress={wallet.selectedAddress}
+              onConnectClick={() => {
+                void wallet.discoverExtensions();
+              }}
+              onExtensionChange={(name) => {
+                void wallet.selectExtension(name);
+              }}
+              onAccountChange={wallet.selectAccountByAddress}
+            />
+          );
         };
         `,
     'wallet/useExtensionWallet.react':
@@ -130,11 +123,11 @@ export const createWalletReactFragments: TFragmentFactory<
         import type {
           TSubstrateWalletConnection,
           TWalletAccountOption,
-        } from "../../types";
-        
+        } from "../types";
+
         const DAPP_ORIGIN = "ParaSpell XCM SDK";
         
-        export const use${client === 'pjs' ? 'Pjs' : 'Dedot'}Wallet = () => {
+        export const use${clientName}Wallet = () => {
           const [extensionNames, setExtensionNames] = useState<string[]>([]);
           const [selectedExtensionName, setSelectedExtensionName] = useState<string>();
           const [accounts, setAccounts] = useState<TWalletAccountOption[]>([]);
@@ -231,7 +224,7 @@ export const createWalletReactFragments: TFragmentFactory<
           type InjectedPolkadotAccount,
         } from "polkadot-api/pjs-signer";
         import type { PolkadotSigner } from "polkadot-api";
-        import type { TSubstrateWalletConnection } from "../../types";
+        import type { TSubstrateWalletConnection } from "../types";
         
         export const usePapiWallet = () => {
           const [extensionNames, setExtensionNames] = useState<string[]>([]);
@@ -289,17 +282,12 @@ export const createWalletReactFragments: TFragmentFactory<
         `,
     'wallet/useWalletWithEvm.api.react':
       () => source`import type { PolkadotSigner } from "polkadot-api";
-        import type { TFormValues } from "../../types";
-        import { useEvmOriginChains } from "../../evm/useEvmOriginChains";
-        import { submitUsingApi } from "../../submit/submitUsingApi";
-        import { createWalletControls } from "../shared/createWalletControls";
-        import { connectWalletAlert } from "../shared/submitTransfer";
-        import { useWalletWithEvmCore } from "../shared/useWalletWithEvmCore";
-        import type { TUseWalletReturn } from "../../types";
-        import { SubstrateWalletControls } from "../shared/SubstrateWalletControls";
+        import type { TFormValues, TUseWalletReturn } from "../types";
+        import { submitUsingApi } from "../submit/submitUsingApi";
+        import { connectWalletAlert } from "../wallet/shared/submitTransfer";
+        import { useEvmOriginChains } from "./useEvmOriginChains";
         import { usePapiWallet } from "./usePapiWallet";
-        
-        export const WalletControls = createWalletControls(SubstrateWalletControls);
+        import { useWalletWithEvmCore } from "./useWalletWithEvmCore";
         
         export const useWalletWithEvm = (): TUseWalletReturn => {
           const { ensureEvmOriginChains, isEvmOrigin } = useEvmOriginChains();
@@ -334,8 +322,6 @@ export const createWalletReactFragments: TFragmentFactory<
         };
         `,
     'wallet/useWalletWithEvm.sdk.react': () => {
-      const walletLabel =
-        client === 'pjs' ? 'Pjs' : client === 'dedot' ? 'Dedot' : 'Papi';
       const signerType = client === 'papi' ? 'PolkadotSigner' : 'Signer';
 
       return source`
@@ -346,22 +332,17 @@ export const createWalletReactFragments: TFragmentFactory<
             : source`import type { Signer } from "@polkadot/api/types";
         `
         }
-        import type { TFormValues } from "../../types";
-        import { submitUsingSdk } from "../../xcm/${client}";
-        import { createWalletControls } from "../shared/createWalletControls";
+        import type { TFormValues, TUseWalletReturn } from "../types";
+        import { submitUsingSdk } from "../xcm/${client}";
         import {
           connectWalletAlert,
           submitEvmIfNeeded,
-        } from "../shared/submitTransfer";
-        import { useWalletWithEvmCore } from "../shared/useWalletWithEvmCore";
-        import type { TUseWalletReturn } from "../../types";
-        import { SubstrateWalletControls } from "../shared/SubstrateWalletControls";
-        import { use${walletLabel}Wallet } from "./use${walletLabel}Wallet";
-        
-        export const WalletControls = createWalletControls(SubstrateWalletControls);
+        } from "../wallet/shared/submitTransfer";
+        import { use${clientName}Wallet } from "./use${clientName}Wallet";
+        import { useWalletWithEvmCore } from "./useWalletWithEvmCore";
         
         export const useWalletWithEvm = (): TUseWalletReturn => {
-          const ${client} = use${walletLabel}Wallet();
+          const ${client} = use${clientName}Wallet();
         
           const core = useWalletWithEvmCore<${signerType}>({
             extensionNames: ${client}.extensionNames,
@@ -400,12 +381,12 @@ export const createWalletReactFragments: TFragmentFactory<
             ? source`import type { TChain } from "${sdkPackage}";
         `
             : ''
-        }import { useEvmWallet } from "../evm/useEvmWallet";
+        }import { useEvmWallet } from "./useEvmWallet";
         import type {
           TSubstrateWalletBase,
           TWalletKind,
           TWalletSubmitOptions,
-        } from "../../types";
+        } from "../types";
         
         export const useWalletWithEvmCore = <TSigner>(
           substrate: TSubstrateWalletBase<TSigner>,

@@ -97,17 +97,18 @@ const renderNodeEslintConfig = () => source`
   );
 `;
 
+const ESLINT_CONFIG_RENDERERS = {
+  react: renderReactEslintConfig,
+  vue: renderVueEslintConfig,
+  node: renderNodeEslintConfig,
+};
+
 export const createQualityTemplates = (
   context: TTemplateContext,
 ): readonly TTemplateFile[] => [
   {
     path: 'eslint.config.js',
-    render:
-      context.framework === 'react'
-        ? renderReactEslintConfig
-        : context.framework === 'vue'
-          ? renderVueEslintConfig
-          : renderNodeEslintConfig,
+    render: ESLINT_CONFIG_RENDERERS[context.framework],
   },
   {
     path: '.prettierrc.json',
