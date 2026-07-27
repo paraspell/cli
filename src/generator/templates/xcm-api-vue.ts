@@ -7,194 +7,18 @@ export const createXcmApiVueTemplates = (
   renderFragment: TFragmentRenderer,
 ): readonly TTemplateFile[] => {
   const {
-    projectName,
-    packageManager,
-    installCmd,
-    devCmd,
-    extensions: { swap, snowbridge },
+    extensions: { swap },
     evmWallet,
-    polkadotApi,
-    viem,
-    mipd,
-    axios,
-    vue,
-    typescript,
-    eslintJs,
-    eslint,
-    eslintConfigPrettier,
-    globals,
-    prettier,
-    typescriptEslint,
-    vite,
-    vitejsPluginVue,
-    eslintPluginVue,
-    vueEslintParser,
-    vueTsc,
   } = context;
 
   return [
     {
-      path: '.gitignore',
-      skip: false,
-      render: () => source`# Logs
-        *.log
-        npm-debug.log*
-        yarn-debug.log*
-        yarn-error.log*
-        pnpm-debug.log*
-        
-        node_modules
-        dist
-        dist-ssr
-        *.local
-        
-        # Local secrets — never commit private keys, mnemonics, or RPC keys.
-        # Note: Vite exposes any VITE_-prefixed variable to the client bundle.
-        .env
-        .env.local
-        .env.*.local
-        
-        # Editor / OS
-        .vscode/*
-        !.vscode/extensions.json
-        .idea
-        .DS_Store
-        `,
-    },
-    {
-      path: 'LICENSE',
-      skip: false,
-      render: () => source`${renderFragment('LICENSE')}
-        `,
-    },
-    {
-      path: 'README.md',
-      skip: false,
-      render: () => source`# ParaSpell XCM API⚡️ starter template
-        
-        Browser demo for the [XCM API](https://github.com/paraspell/xcm-tools/tree/main/apps/xcm-api): fetch transfer routes from the API and sign transactions with a connected wallet.
-        See the [XCM API docs](https://paraspell.github.io/docs/xcm-api/getting-started.html) for endpoints and configuration.
-        
-        By default it calls the public ParaSpell API at \`https://api.paraspell.xyz/v1\` (see \`src/consts.ts\`). For production, consider [deploying your own API](https://paraspell.github.io/docs/xcm-api/deploy-api-yourself.html).
-        
-        ## Prerequisites
-        
-        - A browser wallet extension to sign transactions:
-          - **Substrate:** [Polkadot.js](https://polkadot.js.org/extension/), [Talisman](https://talisman.xyz/), or [SubWallet](https://www.subwallet.app/).${
-            evmWallet
-              ? source`
-          - **EVM:** an EIP-1193 wallet such as [MetaMask](https://metamask.io/) (for EVM-origin transfers).`
-              : ''
-          }
-        - A funded account on the origin chain. This app submits **live** transfers — use a small amount and a test/throwaway account.
-        
-        ## Usage
-        
-        1. Install dependencies: \`${installCmd}\`
-        2. Start the dev server: \`${devCmd}\` (Vite prints the local URL, usually \`http://localhost:5173\`)
-        3. **Connect a wallet** — click *Connect Wallet*, authorize the dApp in your extension, and pick an account.
-        4. Choose the route, currency, amount, and recipient, then **Submit**: the app fetches the transfer from the XCM API and you sign it locally in your wallet.
-        ${
-          evmWallet
-            ? source`
-        **EVM** is enabled — use the wallet selector to switch between a Substrate wallet and an EVM wallet (e.g. MetaMask) depending on the origin chain.`
-            : ''
-        }${
-          swap
-            ? source`
-        **Swap** is enabled — toggle *Add Swap* to also convert to a different currency on the destination.`
-            : ''
-        }${
-          snowbridge
-            ? source`
-        **Snowbridge** is enabled — \`Ethereum\` origins route across the bridge.`
-            : ''
-        }
-        
-        ## Scripts
-        
-        | Command | Description |
-        |---------|-------------|
-        | \`${devCmd}\` | Start the Vite dev server |
-        | \`${packageManager} run build\` | Production build |
-        | \`${packageManager} run preview\` | Preview the production build locally |
-        | \`${packageManager} run lint\` | Lint the project |
-        | \`${packageManager} run lint:fix\` | Fix auto-fixable lint issues |
-        | \`${packageManager} run format\` | Format the project with Prettier |
-        | \`${packageManager} run format:check\` | Check Prettier formatting |
-        
-        ## Get Support
-        
-        - Contact form on our [landing page](https://paraspell.xyz/#contact-us).
-        - Message us on [X](https://x.com/paraspell).
-        - Support channel on [Telegram](https://t.me/paraspell).
-        
-        ## License
-        
-        MIT — see [LICENSE](LICENSE).
-        `,
-    },
-    {
-      path: 'index.html',
-      skip: false,
-      render: () => source`${renderFragment('spa/index.html')}
-        `,
-    },
-    {
-      path: 'package.json',
-      skip: false,
-      render: () => source`{
-          "name": "${projectName}",
-          "private": true,
-          "version": "1.0.0",
-          "type": "module",
-          "scripts": {
-            "dev": "vite",
-            "build": "vue-tsc --noEmit && vite build",
-            "typecheck": "vue-tsc --noEmit",
-            "lint": "eslint . --max-warnings 0",
-            "lint:fix": "eslint . --fix",
-            "format": "prettier . --write",
-            "format:check": "prettier . --check",
-            "preview": "vite preview"
-          },
-          "dependencies": {
-            "axios": "${axios}",
-            "polkadot-api": "${polkadotApi}"${
-              evmWallet
-                ? source`,
-            "mipd": "${mipd}",
-            "viem": "${viem}"`
-                : ''
-            },
-            "vue": "${vue}"
-          },
-          "devDependencies": {
-            "@eslint/js": "${eslintJs}",
-            "@vitejs/plugin-vue": "${vitejsPluginVue}",
-            "eslint": "${eslint}",
-            "eslint-config-prettier": "${eslintConfigPrettier}",
-            "eslint-plugin-vue": "${eslintPluginVue}",
-            "globals": "${globals}",
-            "prettier": "${prettier}",
-            "typescript": "${typescript}",
-            "typescript-eslint": "${typescriptEslint}",
-            "vite": "${vite}",
-            "vue-eslint-parser": "${vueEslintParser}",
-            "vue-tsc": "${vueTsc}"
-          }
-        }
-        `,
-    },
-    {
       path: 'src/App.css',
-      skip: false,
       render: () => source`${renderFragment('spa/App.css')}
         `,
     },
     {
       path: 'src/App.vue',
-      skip: false,
       render: () => source`<script setup lang="ts">
         import "./App.css";
         import XcmTransfer from "./XcmTransfer.vue";
@@ -202,7 +26,7 @@ export const createXcmApiVueTemplates = (
         
         <template>
           <div class="header">
-            <h1>Vite + Vue +</h1>
+            <h1>XCM API starter</h1>
             <a
               href="https://paraspell.github.io/docs/xcm-api/getting-started.html"
               target="_blank"
@@ -210,14 +34,16 @@ export const createXcmApiVueTemplates = (
               class="logo"
             >
               <img
-                src="/lightspell.png"
-                alt="ParaSpell logo"
+                src="/paraspell.png"
+                alt="ParaSpell"
+                width="225"
+                height="64"
               >
             </a>
           </div>
           <XcmTransfer />
           <p class="read-the-docs">
-            Click on the LightSpell logo to read the docs
+            Click on the ParaSpell logo to read the docs
           </p>
           <p class="read-the-docs">
             <a
@@ -234,7 +60,6 @@ export const createXcmApiVueTemplates = (
     },
     {
       path: 'src/XcmTransfer.vue',
-      skip: false,
       render: () => source`<script setup lang="ts">
         import { ref } from "vue";
         import TransferForm from "./XcmTransferForm.vue";
@@ -364,11 +189,10 @@ export const createXcmApiVueTemplates = (
     },
     {
       path: 'src/XcmTransferForm.vue',
-      skip: false,
       render: () => source`<script setup lang="ts">
-        import axios from "axios";
-        import { ref, computed, watch, onMounted } from "vue";
+        import { ref, computed, watch } from "vue";
         import { API_URL } from "./consts";
+        import { useApiData } from "./useApiData";
         import type { TAssetInfo, TFormValues } from "./types";${
           swap
             ? source`
@@ -385,15 +209,29 @@ export const createXcmApiVueTemplates = (
           submit: [values: TFormValues];
           originChange: [origin: string];
         }>();
+
+        const createAssetOptions = (assets: TAssetInfo[]) => {
+          const map = Object.fromEntries(
+            assets.map((asset) => [
+              \`\${asset.symbol ?? "NO_SYMBOL"}-\${JSON.stringify(asset.location)}\`,
+              asset,
+            ]),
+          ) as Record<string, TAssetInfo>;
+
+          return {
+            map,
+            options: Object.entries(map).map(([value, asset]) => ({
+              value,
+              label: \`\${asset.symbol ?? "Unknown"} - \${asset.assetId ?? "Location"}\`,
+            })),
+          };
+        };
         
-        const chains = ref<string[]>([]);
         const destinationChain = ref("Hydration");
-        const supportedAssets = ref<TAssetInfo[]>([]);
         const currencyOptionId = ref("");
         ${
           swap
-            ? source`const supportedSwapAssets = ref<TAssetInfo[]>([]);
-        const currencyToOptionId = ref("");
+            ? source`const currencyToOptionId = ref("");
         const swapEnabled = ref(false);
         const exchange = ref<string[]>([]);
         const AUTO_EXCHANGE_VALUE = "";
@@ -409,64 +247,41 @@ export const createXcmApiVueTemplates = (
         );
         const amount = ref("5");
         
-        const fetchChains = async () => {
-          const response = await axios.get<string[]>(\`\${API_URL}/chains\`);
-          chains.value = response.data;
-        };
-        
-        onMounted(() => {
-          void fetchChains();
-        });
-        
-        watch(
-          [() => props.originChain, destinationChain],
-          async () => {
-            const response = await axios.get<TAssetInfo[]>(
-              \`\${API_URL}/supported-assets?origin=\${props.originChain}&destination=\${destinationChain.value}\`,
-            );
-            supportedAssets.value = response.data;
-          },
-          { immediate: true },
+        const chainsUrl = computed(() => \`\${API_URL}/chains\`);
+        const assetsUrl = computed(
+          () =>
+            \`\${API_URL}/supported-assets?origin=\${encodeURIComponent(props.originChain)}&destination=\${encodeURIComponent(destinationChain.value)}\`,
         );
-        
-        ${
+        const {
+          data: chains,
+          loading: chainsLoading,
+          error: chainsError,
+        } = useApiData<string>(chainsUrl);
+        const {
+          data: supportedAssets,
+          loading: assetsLoading,
+          error: assetsError,
+        } = useApiData<TAssetInfo>(assetsUrl);${
           swap
-            ? source`watch(
-          [() => props.originChain, destinationChain, swapEnabled],
-          async () => {
-            if (!swapEnabled.value) {
-              supportedSwapAssets.value = [];
-              return;
-            }
-        
-            const response = await axios.get<TAssetInfo[]>(
-              \`\${API_URL}/supported-assets?origin=\${destinationChain.value}&destination=\${props.originChain}\`,
-            );
-            supportedSwapAssets.value = response.data;
-          },
-          { immediate: true },
+            ? source`
+        const swapAssetsUrl = computed(() =>
+          swapEnabled.value
+            ? \`\${API_URL}/supported-assets?origin=\${encodeURIComponent(destinationChain.value)}&destination=\${encodeURIComponent(props.originChain)}\`
+            : undefined,
         );
-        
-        `
+        const {
+          data: supportedSwapAssets,
+          loading: swapAssetsLoading,
+          error: swapAssetsError,
+        } = useApiData<TAssetInfo>(swapAssetsUrl);`
             : ''
         }
-        const currencyMap = computed(() =>
-          supportedAssets.value.reduce(
-            (map: Record<string, TAssetInfo>, asset: TAssetInfo) => {
-              const key = \`\${asset.symbol ?? "NO_SYMBOL"}-\${JSON.stringify(asset.location)}\`;
-              map[key] = asset;
-              return map;
-            },
-            {},
-          ),
+
+        const currencyData = computed(() =>
+          createAssetOptions(supportedAssets.value),
         );
-        
-        const currencyOptions = computed(() =>
-          Object.keys(currencyMap.value).map((key) => ({
-            value: key,
-            label: \`\${currencyMap.value[key].symbol ?? "Unknown"} - \${currencyMap.value[key].assetId ?? "Location"}\`,
-          })),
-        );
+        const currencyMap = computed(() => currencyData.value.map);
+        const currencyOptions = computed(() => currencyData.value.options);
         
         watch(
           currencyOptions,
@@ -480,23 +295,11 @@ export const createXcmApiVueTemplates = (
         
         ${
           swap
-            ? source`const currencyToMap = computed(() =>
-          supportedSwapAssets.value.reduce(
-            (map: Record<string, TAssetInfo>, asset: TAssetInfo) => {
-              const key = \`\${asset.symbol ?? "NO_SYMBOL"}-\${JSON.stringify(asset.location)}\`;
-              map[key] = asset;
-              return map;
-            },
-            {},
-          ),
+            ? source`const currencyToData = computed(() =>
+          createAssetOptions(supportedSwapAssets.value),
         );
-        
-        const currencyToOptions = computed(() =>
-          Object.keys(currencyToMap.value).map((key) => ({
-            value: key,
-            label: \`\${currencyToMap.value[key].symbol ?? "Unknown"} - \${currencyToMap.value[key].assetId ?? "Location"}\`,
-          })),
-        );
+        const currencyToMap = computed(() => currencyToData.value.map);
+        const currencyToOptions = computed(() => currencyToData.value.options);
         
         watch(
           currencyToOptions,
@@ -520,6 +323,17 @@ export const createXcmApiVueTemplates = (
         `
             : ''
         }
+        const dataError = computed(
+          () => chainsError.value ?? assetsError.value${
+            swap ? source` ?? swapAssetsError.value` : ''
+          },
+        );
+        const dataLoading = computed(
+          () => chainsLoading.value || assetsLoading.value${
+            swap ? source` || swapAssetsLoading.value` : ''
+          },
+        );
+
         const onOriginSelect = (e: Event) => {
           const target = e.target;
           if (!(target instanceof HTMLSelectElement)) return;
@@ -559,12 +373,15 @@ export const createXcmApiVueTemplates = (
         
         <template>
           <form @submit="handleSubmit">
+            <p v-if="dataError" class="transferError">
+              Could not load options: {{ dataError.message }}
+            </p>
             <label>
               Origin chain
               <select
                 :value="originChain"
                 required
-                :disabled="loading"
+                :disabled="loading || dataLoading"
                 @change="onOriginSelect"
               >
                 <option
@@ -582,7 +399,7 @@ export const createXcmApiVueTemplates = (
               <select
                 v-model="destinationChain"
                 required
-                :disabled="loading"
+                :disabled="loading || dataLoading"
               >
                 <option
                   v-for="chain in chains"
@@ -687,9 +504,9 @@ export const createXcmApiVueTemplates = (
         
             <button
               type="submit"
-              :disabled="loading"
+              :disabled="loading || dataLoading || !!dataError"
             >
-              {{ loading ? "Submitting..." : "Submit transaction" }}
+              {{ loading ? "Submitting..." : dataLoading ? "Loading options..." : "Submit transaction" }}
             </button>
           </form>
         </template>
@@ -697,67 +514,51 @@ export const createXcmApiVueTemplates = (
     },
     {
       path: 'src/consts.ts',
-      skip: false,
       render: () => source`${renderFragment('api/consts')}
         `,
     },
     {
       path: 'src/evm/eip6963.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/eip6963.ts')}
         `,
     },
     {
       path: 'src/evm/evmOrigins.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/evmOrigins.api.frontend')}
         `,
     },
     {
-      path: 'src/evm/evmWalletClient.ts',
-      skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment('evm/evmWalletClient')}
-        `,
-    },
-    {
       path: 'src/evm/getViemChain.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/getViemChain')}
         `,
     },
     {
-      path: 'src/evm/index.ts',
-      skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment('evm/index.api')}
-        `,
-    },
-    {
       path: 'src/evm/useEvmOriginChains.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/useEvmOriginChains.vue')}
         `,
     },
     {
       path: 'src/evm/utils.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/utils.ts')}
         `,
     },
     {
       path: 'src/fetchFromApi.ts',
-      skip: false,
       render: () => source`${renderFragment('api/fetchFromApi')}
         `,
     },
     {
       path: 'src/index.css',
-      skip: false,
       render: () => source`${renderFragment('spa/index.css')}
         `,
     },
     {
       path: 'src/main.ts',
-      skip: false,
       render: () => source`import { createApp } from "vue";
         import App from "./App.vue";
         import "./index.css";
@@ -767,94 +568,78 @@ export const createXcmApiVueTemplates = (
     },
     {
       path: 'src/requireAsset.ts',
-      skip: false,
       render: () => source`${renderFragment('requireAsset')}
         `,
     },
     {
       path: 'src/submit/submitEvmTx.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('api/submitEvmTx')}
         `,
     },
     {
       path: 'src/submit/submitUsingApi.ts',
-      skip: false,
       render: () => source`${renderFragment('api/submitUsingApi')}
         `,
     },
     {
       path: 'src/swap/exchangeChains.ts',
-      skip: Boolean(!swap),
+      skip: !swap,
       render: () => source`${renderFragment('swap/exchangeChains.api.frontend')}
         `,
     },
     {
       path: 'src/swap/index.ts',
-      skip: Boolean(!swap),
+      skip: !swap,
       render: () => source`${renderFragment('swap/index.api')}
         `,
     },
     {
       path: 'src/swap/useExchangeChains.ts',
-      skip: Boolean(!swap),
+      skip: !swap,
       render: () => source`${renderFragment('swap/useExchangeChains.vue')}
         `,
     },
     {
       path: 'src/types.ts',
-      skip: false,
       render: () => source`${renderFragment('types/api.frontend')}
         `,
     },
     {
+      path: 'src/useApiData.ts',
+      render: () => source`${renderFragment('api/useApiData.vue')}
+        `,
+    },
+    {
       path: 'src/utils.ts',
-      skip: false,
       render: () => source`${renderFragment('api/utils')}
         `,
     },
     {
       path: 'src/vite-env.d.ts',
-      skip: false,
       render: () => source`${renderFragment('spa/vite-env.d')}
         `,
     },
     {
       path: 'src/wallet/evm/EvmWalletControls.vue',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/EvmWalletControls.vue')}
         `,
     },
     {
       path: 'src/wallet/evm/WalletKindSelector.vue',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/WalletKindSelector.vue')}
         `,
     },
     {
-      path: 'src/wallet/evm/index.ts',
-      skip: Boolean(!evmWallet),
-      render: () => source`export { useEvmWallet } from "./useEvmWallet";
-        export { default as EvmWalletControls } from "./EvmWalletControls.vue";
-        export type { TWalletControlsEvmProps } from "../../types";
-        export { default as WalletKindSelector } from "./WalletKindSelector.vue";
-        export type {
-          TEvmAccountOption,
-          TEvmProviderOption,
-          TWalletKind,
-          TWalletKindSelectorProps,
-        } from "../../types";
-        `,
-    },
-    {
       path: 'src/wallet/evm/useEvmWallet.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/useEvmWallet.vue')}
         `,
     },
     {
       path: 'src/wallet/papi/index.ts',
-      skip: false,
       render: () => source`export { usePapiWallet } from "./usePapiWallet";
         export { default as SubstrateWalletControls } from "../shared/SubstrateWalletControls.vue";
         ${
@@ -873,44 +658,41 @@ export const createXcmApiVueTemplates = (
     },
     {
       path: 'src/wallet/papi/usePapiWallet.ts',
-      skip: false,
       render: () => source`${renderFragment('wallet/usePapiWallet.vue')}
         `,
     },
     {
       path: 'src/wallet/papi/useWalletWithEvm.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('wallet/useWalletWithEvm.api.vue')}
         `,
     },
     {
       path: 'src/wallet/shared/SubstrateWalletControls.vue',
-      skip: false,
       render:
         () => source`${renderFragment('wallet/SubstrateWalletControls.vue')}
         `,
     },
     {
       path: 'src/wallet/shared/createWalletControls.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('wallet/createWalletControls.vue')}
         `,
     },
     {
       path: 'src/wallet/shared/submitTransfer.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('wallet/connectWalletAlert')}
         `,
     },
     {
       path: 'src/wallet/shared/useWalletWithEvmCore.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('wallet/useWalletWithEvmCore.vue')}
         `,
     },
     {
       path: 'tsconfig.app.json',
-      skip: false,
       render: () => source`{
           "compilerOptions": {
             "target": "ES2022",
@@ -938,7 +720,6 @@ export const createXcmApiVueTemplates = (
     },
     {
       path: 'tsconfig.json',
-      skip: false,
       render: () => source`{
           "files": [],
           "references": [
@@ -950,7 +731,6 @@ export const createXcmApiVueTemplates = (
     },
     {
       path: 'tsconfig.node.json',
-      skip: false,
       render: () => source`{
           "compilerOptions": {
             "target": "ES2022",
@@ -975,7 +755,6 @@ export const createXcmApiVueTemplates = (
     },
     {
       path: 'vite.config.ts',
-      skip: false,
       render: () => source`import { defineConfig } from "vite";
         import vue from "@vitejs/plugin-vue";
         

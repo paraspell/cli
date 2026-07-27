@@ -7,209 +7,28 @@ export const createXcmSdkNodeTemplates = (
   renderFragment: TFragmentRenderer,
 ): readonly TTemplateFile[] => {
   const {
-    projectName,
-    packageManager,
-    installCmd,
-    startCmd,
     client,
     sdkPackage,
-    sdkVersion,
-    clientLabel,
     extensions: { evm, swap, snowbridge },
     evmWallet,
-    polkadotApi,
-    polkadotKeyring,
-    polkadotUtil,
-    polkadotUtilCrypto,
-    dotenv,
-    express,
-    viem,
-    polkadotJsApi,
-    dedot,
-    typesExpress,
-    typesNode,
-    tsx,
-    typescript,
-    eslintJs,
-    eslint,
-    eslintConfigPrettier,
-    globals,
-    prettier,
-    typescriptEslint,
   } = context;
 
   return [
     {
-      path: '.gitignore',
-      skip: false,
-      render: () => source`node_modules
-        dist
-        
-        # Local secrets — never commit SUBSTRATE_MNEMONIC, PRIVATE_KEY, or RPC keys.
-        .env
-        .env.local
-        .env.*.local
-        
-        *.log
-        .DS_Store
-        `,
-    },
-    {
-      path: 'LICENSE',
-      skip: false,
-      render: () => source`${renderFragment('LICENSE')}
-        `,
-    },
-    {
-      path: 'README.md',
-      skip: false,
-      render: () => source`# ParaSpell XCM SDK — Node.js example
-        
-        Headless example using **${clientLabel}** (\`${sdkPackage}\`) with \`signAndSubmit()\`.
-        
-        ## Environment
-        
-        Add your wallet secrets to \`.env\`:
-        
-        | Variable | Used for |
-        |----------|----------|
-        | \`SUBSTRATE_MNEMONIC\` | Substrate routes: mnemonic or \`//Dev\` URI (mnemonics: \`"word1 word2 ..."\`) |${
-          evmWallet
-            ? source`
-        | \`PRIVATE_KEY\` | EVM routes: \`0x\`-prefixed hex for viem |`
-            : ''
-        }
-        | \`PORT\` | Optional. HTTP port (default \`3000\`) |
-        
-        ## Usage
-        
-        \`\`\`bash
-        ${installCmd}
-        ${startCmd}
-        curl -X POST http://localhost:3000/
-        \`\`\`
-        
-        The server starts without submitting a transfer. Send \`POST /\` to sign and submit the configured XCM transfer (replace \`3000\` with your \`PORT\` if you set one).
-        
-        > **Heads up:** the generated example signs and broadcasts a **live** XCM transfer on \`POST /\`. Use a dev/throwaway account while testing. Keep wallet secrets in \`.env\` (gitignored) — never on the command line or in version control.
-        
-        Default route: \`${snowbridge ? 'Ethereum' : evm ? 'Moonbeam' : 'Astar'}\` → \`Hydration\` — edit \`src/transfer.ts\` to customize.
-
-        ## Scripts
-
-        | Command | Description |
-        |---------|-------------|
-        | \`${packageManager} start\` | Start the server |
-        | \`${packageManager} run build\` | Compile the project |
-        | \`${packageManager} run typecheck\` | Check TypeScript types |
-        | \`${packageManager} run lint\` | Lint the project |
-        | \`${packageManager} run lint:fix\` | Fix auto-fixable lint issues |
-        | \`${packageManager} run format\` | Format the project with Prettier |
-        | \`${packageManager} run format:check\` | Check Prettier formatting |
-        
-        ## Docs
-        
-        - [Send XCM](https://paraspell.github.io/docs/xcm-sdk/send-xcm.html)
-        - [Getting started](https://paraspell.github.io/docs/xcm-sdk/getting-started.html)
-        
-        ## License
-        
-        MIT — see [LICENSE](LICENSE).
-        `,
-    },
-    {
-      path: 'package.json',
-      skip: false,
-      render: () => source`{
-          "name": "${projectName}",
-          "private": true,
-          "version": "1.0.0",
-          "type": "module",
-          "scripts": {
-            "start": "tsx src/index.ts",
-            "build": "tsc",
-            "typecheck": "tsc --noEmit",
-            "lint": "eslint . --max-warnings 0",
-            "lint:fix": "eslint . --fix",
-            "format": "prettier . --write",
-            "format:check": "prettier . --check"
-          },
-          "dependencies": {
-            "${sdkPackage}": "${sdkVersion}"${
-              client === 'papi'
-                ? source`,
-            "@paraspell/descriptors": "${sdkVersion}"`
-                : ''
-            },
-            "@polkadot/keyring": "${polkadotKeyring}",
-            "@polkadot/util-crypto": "${polkadotUtilCrypto}",
-            "dotenv": "${dotenv}",
-            "express": "${express}"${
-              swap
-                ? source`,
-            "@paraspell/swap": "${sdkVersion}"`
-                : ''
-            }${
-              evm
-                ? source`,
-            "@paraspell/evm": "${sdkVersion}"`
-                : ''
-            }${
-              evmWallet
-                ? source`,
-            "viem": "${viem}"`
-                : ''
-            }${
-              snowbridge
-                ? source`,
-            "@paraspell/evm-snowbridge": "${sdkVersion}"`
-                : ''
-            }${
-              client === 'papi'
-                ? source`,
-            "polkadot-api": "${polkadotApi}"`
-                : ''
-            }${
-              client === 'pjs'
-                ? source`,
-            "@polkadot/api": "${polkadotJsApi}",
-            "@polkadot/types": "${polkadotJsApi}",
-            "@polkadot/util": "${polkadotUtil}"`
-                : ''
-            }${
-              client === 'dedot'
-                ? source`,
-            "dedot": "${dedot}"`
-                : ''
-            }
-          },
-          "devDependencies": {
-            "@eslint/js": "${eslintJs}",
-            "@types/express": "${typesExpress}",
-            "@types/node": "${typesNode}",
-            "eslint": "${eslint}",
-            "eslint-config-prettier": "${eslintConfigPrettier}",
-            "globals": "${globals}",
-            "prettier": "${prettier}",
-            "tsx": "${tsx}",
-            "typescript": "${typescript}",
-            "typescript-eslint": "${typescriptEslint}"
-          }
-        }
-        `,
-    },
-    {
       path: 'src/evm.ts',
-      skip: Boolean(!evmWallet),
-      render: () => source`import {
+      skip: !evmWallet,
+      render: () => source`${
+        !swap
+          ? source`import {
           Builder,
           isChainEvm,
         } from "${sdkPackage}";
         import type { TTransferParams } from "./types.js";
-        ${renderFragment('node/getEvmWalletClient')}
-        
-        export { assertSubstrateOrigin } from "./isEvmOrigin.js";
-        
+        `
+          : ''
+      }${renderFragment('node/getEvmWalletClient')}${
+        !swap
+          ? source`
         export const submitEvmTransfer = async (
           params: TTransferParams,
         ): Promise<string> => {
@@ -235,17 +54,19 @@ export const createXcmSdkNodeTemplates = (
             .sender(walletClient)
             .signAndSubmit();
         };
+        `
+          : ''
+      }
         `,
     },
     {
       path: 'src/getViemChain.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/getViemChain')}
         `,
     },
     {
       path: 'src/index.ts',
-      skip: false,
       render: () => source`import "dotenv/config";
         import { cryptoWaitReady } from "@polkadot/util-crypto";
         ${renderFragment('paraspell-side-effects')}import express from "express";
@@ -275,13 +96,12 @@ export const createXcmSdkNodeTemplates = (
     },
     {
       path: 'src/isEvmOrigin.ts',
-      skip: false,
+      skip: client === 'papi' || swap,
       render: () => source`${renderFragment('evm/isEvmOrigin.sdk')}
         `,
     },
     {
       path: 'src/substrate.ts',
-      skip: false,
       render: () => source`${
         client === 'papi'
           ? source`import { getPolkadotSigner } from "polkadot-api/signer";
@@ -355,7 +175,6 @@ export const createXcmSdkNodeTemplates = (
     },
     {
       path: 'src/transfer.ts',
-      skip: false,
       render: () => source`${
         swap
           ? source`import "@paraspell/swap";
@@ -536,13 +355,11 @@ export const createXcmSdkNodeTemplates = (
     },
     {
       path: 'src/types.ts',
-      skip: false,
       render: () => source`${renderFragment('types/sdk.node')}
         `,
     },
     {
       path: 'tsconfig.json',
-      skip: false,
       render: () => source`{
           "compilerOptions": {
             "target": "ES2022",

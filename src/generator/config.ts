@@ -12,11 +12,11 @@ export const GENERATOR_TARGETS: Record<
   sdk: {
     react: {
       templateSet: 'xcm-sdk-react',
-      logoFile: 'paraspell.png',
+      assetFiles: ['paraspell.png', 'paraspell-icon.png'],
     },
     vue: {
       templateSet: 'xcm-sdk-vue',
-      logoFile: 'paraspell.png',
+      assetFiles: ['paraspell.png', 'paraspell-icon.png'],
     },
     node: {
       templateSet: 'xcm-sdk-node',
@@ -25,11 +25,11 @@ export const GENERATOR_TARGETS: Record<
   api: {
     react: {
       templateSet: 'xcm-api-react',
-      logoFile: 'lightspell.png',
+      assetFiles: ['paraspell.png', 'paraspell-icon.png'],
     },
     vue: {
       templateSet: 'xcm-api-vue',
-      logoFile: 'lightspell.png',
+      assetFiles: ['paraspell.png', 'paraspell-icon.png'],
     },
     node: {
       templateSet: 'xcm-api-node',

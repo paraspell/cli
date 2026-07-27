@@ -3,7 +3,11 @@ import { source } from '../source.js';
 
 type TNodeFragmentId = Extract<TFragmentId, `node/${string}`>;
 
-export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = () => {
+export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = (
+  context,
+) => {
+  const { client, projectKind } = context;
+
   return {
     'node/getEvmSenderAddress':
       () => source`export const getEvmSenderAddress = (origin: string): string => {
@@ -48,7 +52,7 @@ export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = () => {
       () => source`import { Keyring } from "@polkadot/keyring";
         import type { KeyringPair } from "@polkadot/keyring/types";
         
-        export const getSubstrateMnemonic = (): string => {
+        ${projectKind === 'api' ? 'export ' : ''}const getSubstrateMnemonic = (): string => {
           const secret = process.env.SUBSTRATE_MNEMONIC;
           if (!secret) {
             throw new Error(
@@ -58,7 +62,7 @@ export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = () => {
           return secret;
         };
         
-        export const createKeyringPair = (secret: string): KeyringPair => {
+        const createKeyringPair = (secret: string): KeyringPair => {
           const keyring = new Keyring({ type: "sr25519" });
           try {
             if (secret.startsWith("//")) {
@@ -75,8 +79,12 @@ export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = () => {
           }
         };
         
-        export const signBytes = (pair: KeyringPair, input: Uint8Array): Uint8Array =>
-          Uint8Array.from(pair.sign(input));
+        ${
+          client !== 'dedot'
+            ? source`const signBytes = (pair: KeyringPair, input: Uint8Array): Uint8Array =>
+          Uint8Array.from(pair.sign(input));`
+            : ''
+        }
         `,
   };
 };

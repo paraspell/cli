@@ -7,237 +7,20 @@ export const createXcmSdkVueTemplates = (
   renderFragment: TFragmentRenderer,
 ): readonly TTemplateFile[] => {
   const {
-    projectName,
-    packageManager,
-    installCmd,
-    devCmd,
     client,
     sdkPackage,
-    sdkVersion,
-    clientLabel,
-    extensions: { evm, swap, snowbridge },
+    extensions: { swap },
     evmWallet,
-    polkadotApi,
-    viem,
-    polkadotJsApi,
-    polkadotExtensionDapp,
-    dedot,
-    mipd,
-    vue,
-    typescript,
-    eslintJs,
-    eslint,
-    eslintConfigPrettier,
-    globals,
-    prettier,
-    typescriptEslint,
-    vite,
-    vitePluginWasm,
-    vitejsPluginVue,
-    eslintPluginVue,
-    vueEslintParser,
-    vueTsc,
   } = context;
 
   return [
     {
-      path: '.gitignore',
-      skip: false,
-      render: () => source`# Logs
-        *.log
-        npm-debug.log*
-        yarn-debug.log*
-        yarn-error.log*
-        pnpm-debug.log*
-        
-        node_modules
-        dist
-        dist-ssr
-        *.local
-        
-        # Local secrets — never commit private keys, mnemonics, or RPC keys.
-        # Note: Vite exposes any VITE_-prefixed variable to the client bundle.
-        .env
-        .env.local
-        .env.*.local
-        
-        # Editor / OS
-        .vscode/*
-        !.vscode/extensions.json
-        .idea
-        .DS_Store
-        `,
-    },
-    {
-      path: 'LICENSE',
-      skip: false,
-      render: () => source`${renderFragment('LICENSE')}
-        `,
-    },
-    {
-      path: 'README.md',
-      skip: false,
-      render: () => source`# ParaSpell XCM SDK🪄 starter template
-        
-        Cross-chain transfer demo using the [XCM SDK](https://github.com/paraspell/xcm-tools/tree/main/packages/sdk) with **${clientLabel}**.
-        See the [XCM SDK docs](https://paraspell.github.io/docs/xcm-sdk/send-xcm.html) to customize routes and assets.
-        
-        ## Prerequisites
-        
-        - A browser wallet extension to sign transactions:
-          - **Substrate:** [Polkadot.js](https://polkadot.js.org/extension/), [Talisman](https://talisman.xyz/), or [SubWallet](https://www.subwallet.app/).${
-            evmWallet
-              ? source`
-          - **EVM:** an EIP-1193 wallet such as [MetaMask](https://metamask.io/) (for EVM-origin transfers).`
-              : ''
-          }
-        - A funded account on the origin chain. This app submits **live** transfers — use a small amount and a test/throwaway account.
-        
-        ## Usage
-        
-        1. Install dependencies: \`${installCmd}\`
-        2. Start the dev server: \`${devCmd}\` (Vite prints the local URL, usually \`http://localhost:5173\`)
-        3. **Connect a wallet** — click *Connect Wallet*, authorize the dApp in your extension, and pick an account.
-        4. Choose the origin and destination chains, currency, amount, and recipient, then **Submit** and approve the transaction in your wallet.
-        ${
-          evmWallet
-            ? source`
-        **EVM** is enabled — use the wallet selector to switch between a Substrate wallet and an EVM wallet (e.g. MetaMask) depending on the origin chain.`
-            : ''
-        }${
-          swap
-            ? source`
-        **Swap** is enabled — toggle *Add Swap* to also convert to a different currency on the destination via an exchange chain.`
-            : ''
-        }${
-          snowbridge
-            ? source`
-        **Snowbridge** is enabled — \`Ethereum\` origins route across the bridge.`
-            : ''
-        }
-        
-        ## Scripts
-        
-        | Command | Description |
-        |---------|-------------|
-        | \`${devCmd}\` | Start the Vite dev server |
-        | \`${packageManager} run build\` | Production build |
-        | \`${packageManager} run preview\` | Preview the production build locally |
-        | \`${packageManager} run lint\` | Lint the project |
-        | \`${packageManager} run lint:fix\` | Fix auto-fixable lint issues |
-        | \`${packageManager} run format\` | Format the project with Prettier |
-        | \`${packageManager} run format:check\` | Check Prettier formatting |
-        
-        ## Get Support
-        
-        - Contact form on our [landing page](https://paraspell.xyz/#contact-us).
-        - Message us on [X](https://x.com/paraspell).
-        - Support channel on [Telegram](https://t.me/paraspell).
-        
-        ## License
-        
-        MIT — see [LICENSE](LICENSE).
-        `,
-    },
-    {
-      path: 'index.html',
-      skip: false,
-      render: () => source`${renderFragment('spa/index.html')}
-        `,
-    },
-    {
-      path: 'package.json',
-      skip: false,
-      render: () => source`{
-          "name": "${projectName}",
-          "private": true,
-          "version": "1.0.0",
-          "type": "module",
-          "scripts": {
-            "dev": "vite",
-            "build": "vue-tsc --noEmit && vite build",
-            "typecheck": "vue-tsc --noEmit",
-            "lint": "eslint . --max-warnings 0",
-            "lint:fix": "eslint . --fix",
-            "format": "prettier . --write",
-            "format:check": "prettier . --check",
-            "preview": "vite preview"
-          },
-          "dependencies": {
-            "${sdkPackage}": "${sdkVersion}"${
-              client === 'papi'
-                ? source`,
-            "@paraspell/descriptors": "${sdkVersion}"`
-                : ''
-            },
-            "vue": "${vue}"${
-              swap
-                ? source`,
-            "@paraspell/swap": "${sdkVersion}"`
-                : ''
-            }${
-              evm
-                ? source`,
-            "@paraspell/evm": "${sdkVersion}"`
-                : ''
-            }${
-              evmWallet
-                ? source`,
-            "mipd": "${mipd}",
-            "viem": "${viem}"`
-                : ''
-            }${
-              snowbridge
-                ? source`,
-            "@paraspell/evm-snowbridge": "${sdkVersion}"`
-                : ''
-            }${
-              client === 'papi'
-                ? source`,
-            "polkadot-api": "${polkadotApi}"`
-                : ''
-            }${
-              client === 'pjs'
-                ? source`,
-            "@polkadot/api": "${polkadotJsApi}",
-            "@polkadot/extension-dapp": "${polkadotExtensionDapp}"`
-                : ''
-            }${
-              client === 'dedot'
-                ? source`,
-            "dedot": "${dedot}",
-            "@polkadot/api": "${polkadotJsApi}",
-            "@polkadot/extension-dapp": "${polkadotExtensionDapp}"`
-                : ''
-            }
-          },
-          "devDependencies": {
-            "@eslint/js": "${eslintJs}",
-            "@vitejs/plugin-vue": "${vitejsPluginVue}",
-            "eslint": "${eslint}",
-            "eslint-config-prettier": "${eslintConfigPrettier}",
-            "eslint-plugin-vue": "${eslintPluginVue}",
-            "globals": "${globals}",
-            "prettier": "${prettier}",
-            "typescript": "${typescript}",
-            "typescript-eslint": "${typescriptEslint}",
-            "vite": "${vite}",
-            "vite-plugin-wasm": "${vitePluginWasm}",
-            "vue-eslint-parser": "${vueEslintParser}",
-            "vue-tsc": "${vueTsc}"
-          }
-        }
-        `,
-    },
-    {
       path: 'src/App.css',
-      skip: false,
       render: () => source`${renderFragment('spa/App.css')}
         `,
     },
     {
       path: 'src/App.vue',
-      skip: false,
       render: () => source`<script setup lang="ts">
         import "./App.css";
         ${
@@ -250,14 +33,19 @@ export const createXcmSdkVueTemplates = (
         
         <template>
           <div class="header">
-            <h1>Vite + Vue + </h1>
+            <h1>XCM SDK starter</h1>
             <a
               href="https://paraspell.github.io/docs/xcm-sdk/getting-started.html"
               target="_blank"
               rel="noopener noreferrer"
               class="logo"
             >
-              <img src="/paraspell.png" alt="ParaSpell logo" />
+              <img
+                src="/paraspell.png"
+                alt="ParaSpell"
+                width="225"
+                height="64"
+              >
             </a>
           </div>
           <XcmTransfer />
@@ -269,7 +57,6 @@ export const createXcmSdkVueTemplates = (
     },
     {
       path: 'src/XcmTransfer.vue',
-      skip: false,
       render: () => source`<script setup lang="ts">
         import { ref } from "vue";
         import TransferForm from "./XcmTransferForm.vue";
@@ -430,7 +217,6 @@ export const createXcmSdkVueTemplates = (
     },
     {
       path: 'src/XcmTransferForm.vue',
-      skip: false,
       render: () => source`<script setup lang="ts">
         import { computed, ref, watch } from "vue";
         import useCurrencyOptions from "./useCurrencyOptions";
@@ -540,7 +326,6 @@ export const createXcmSdkVueTemplates = (
           emit("submit", {
             from: props.originChain,
             to: destinationChain.value,
-            currencyOptionId: currencyOptionId.value,
             recipient: recipient.value,
             amount: amount.value,
             currency: currencyMap.value[currencyOptionId.value],${
@@ -694,49 +479,41 @@ export const createXcmSdkVueTemplates = (
     },
     {
       path: 'src/evm/eip6963.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/eip6963.ts')}
         `,
     },
     {
       path: 'src/evm/evmWalletClient.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/evmWalletClient')}
         `,
     },
     {
       path: 'src/evm/getViemChain.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/getViemChain')}
         `,
     },
     {
-      path: 'src/evm/index.ts',
-      skip: Boolean(!evmWallet),
-      render: () => source`${renderFragment('evm/index.sdk')}
-        `,
-    },
-    {
       path: 'src/evm/isEvmOrigin.ts',
-      skip: false,
+      skip: client === 'papi' && !evmWallet,
       render: () => source`${renderFragment('evm/isEvmOrigin.sdk')}
         `,
     },
     {
       path: 'src/evm/utils.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/utils.ts')}
         `,
     },
     {
       path: 'src/index.css',
-      skip: false,
       render: () => source`${renderFragment('spa/index.css')}
         `,
     },
     {
       path: 'src/main.ts',
-      skip: false,
       render: () => source`import { createApp } from "vue";
         import App from "./App.vue";
         import "./index.css";
@@ -746,82 +523,63 @@ export const createXcmSdkVueTemplates = (
     },
     {
       path: 'src/requireAsset.ts',
-      skip: false,
       render: () => source`${renderFragment('requireAsset')}
         `,
     },
     {
       path: 'src/types.ts',
-      skip: false,
       render: () => source`${renderFragment('types/sdk.frontend')}
         `,
     },
     {
       path: 'src/useCurrencyOptions.ts',
-      skip: false,
       render: () => source`${renderFragment('sdk/useCurrencyOptions.vue')}
         `,
     },
     {
       path: 'src/vite-env.d.ts',
-      skip: false,
       render: () => source`${renderFragment('spa/vite-env.d')}
         `,
     },
     {
       path: 'src/wallet/dedot/useDedotWallet.ts',
-      skip: Boolean(client !== 'dedot'),
+      skip: client !== 'dedot',
       render: () => source`${renderFragment('wallet/useExtensionWallet.vue')}
         `,
     },
     {
       path: 'src/wallet/dedot/useWalletWithEvm.ts',
-      skip: Boolean(!(evmWallet && client === 'dedot')),
+      skip: !(evmWallet && client === 'dedot'),
       render: () => source`${renderFragment('wallet/useWalletWithEvm.sdk.vue')}
         `,
     },
     {
       path: 'src/wallet/evm/EvmWalletControls.vue',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/EvmWalletControls.vue')}
         `,
     },
     {
       path: 'src/wallet/evm/WalletKindSelector.vue',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/WalletKindSelector.vue')}
         `,
     },
     {
-      path: 'src/wallet/evm/index.ts',
-      skip: Boolean(!evmWallet),
-      render: () => source`export { useEvmWallet } from "./useEvmWallet";
-        export { default as EvmWalletControls } from "./EvmWalletControls.vue";
-        export { default as WalletKindSelector } from "./WalletKindSelector.vue";
-        export type {
-          TEvmAccountOption,
-          TEvmProviderOption,
-          TWalletKind,
-          TWalletKindSelectorProps,
-        } from "../../types";
-        `,
-    },
-    {
       path: 'src/wallet/evm/useEvmWallet.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('evm/useEvmWallet.vue')}
         `,
     },
     {
       path: ['src/wallet/', client, '/index.ts'].join(''),
-      skip: false,
       render: () => source`${
         evmWallet
           ? source`export {
           useWalletWithEvm as useWallet,
           WalletControls,
         } from "./useWalletWithEvm";
-        export { WalletKindSelector } from "../evm";
+        export { default as WalletKindSelector } from "../evm/WalletKindSelector.vue";
         export type { TUseWalletReturn, TWalletKind, TWalletKindSelectorProps } from "../../types";
         `
           : source`${
@@ -844,80 +602,78 @@ export const createXcmSdkVueTemplates = (
     },
     {
       path: 'src/wallet/papi/usePapiWallet.ts',
-      skip: Boolean(client !== 'papi'),
+      skip: client !== 'papi',
       render: () => source`${renderFragment('wallet/usePapiWallet.vue')}
         `,
     },
     {
       path: 'src/wallet/papi/useWalletWithEvm.ts',
-      skip: Boolean(!(evmWallet && client === 'papi')),
+      skip: !(evmWallet && client === 'papi'),
       render: () => source`${renderFragment('wallet/useWalletWithEvm.sdk.vue')}
         `,
     },
     {
       path: 'src/wallet/pjs/usePjsWallet.ts',
-      skip: Boolean(client !== 'pjs'),
+      skip: client !== 'pjs',
       render: () => source`${renderFragment('wallet/useExtensionWallet.vue')}
         `,
     },
     {
       path: 'src/wallet/pjs/useWalletWithEvm.ts',
-      skip: Boolean(!(evmWallet && client === 'pjs')),
+      skip: !(evmWallet && client === 'pjs'),
       render: () => source`${renderFragment('wallet/useWalletWithEvm.sdk.vue')}
         `,
     },
     {
       path: 'src/wallet/shared/SubstrateWalletControls.vue',
-      skip: false,
       render:
         () => source`${renderFragment('wallet/SubstrateWalletControls.vue')}
         `,
     },
     {
       path: 'src/wallet/shared/createWalletControls.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('wallet/createWalletControls.vue')}
         `,
     },
     {
       path: 'src/wallet/shared/submitTransfer.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('wallet/submitTransfer.sdk')}
         `,
     },
     {
       path: 'src/wallet/shared/useWalletWithEvmCore.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('wallet/useWalletWithEvmCore.vue')}
         `,
     },
     {
       path: 'src/xcm/dedot.ts',
-      skip: Boolean(client !== 'dedot'),
+      skip: client !== 'dedot',
       render: () => source`${renderFragment('xcm/dedot')}
         `,
     },
     {
       path: 'src/xcm/evmTransfer.ts',
-      skip: Boolean(!evmWallet),
+      skip: !evmWallet,
       render: () => source`${renderFragment('xcm/evmTransfer.sdk')}
         `,
     },
     {
       path: 'src/xcm/papi.ts',
-      skip: Boolean(client !== 'papi'),
+      skip: client !== 'papi',
       render: () => source`${renderFragment('xcm/papi')}
         `,
     },
     {
       path: 'src/xcm/pjs.ts',
-      skip: Boolean(client !== 'pjs'),
+      skip: client !== 'pjs',
       render: () => source`${renderFragment('xcm/pjs')}
         `,
     },
     {
       path: 'tsconfig.app.json',
-      skip: false,
       render: () => source`{
           "compilerOptions": {
             "target": "ES2022",
@@ -945,7 +701,6 @@ export const createXcmSdkVueTemplates = (
     },
     {
       path: 'tsconfig.json',
-      skip: false,
       render: () => source`{
           "files": [],
           "references": [
@@ -957,7 +712,6 @@ export const createXcmSdkVueTemplates = (
     },
     {
       path: 'tsconfig.node.json',
-      skip: false,
       render: () => source`{
           "compilerOptions": {
             "target": "ES2022",
@@ -982,7 +736,6 @@ export const createXcmSdkVueTemplates = (
     },
     {
       path: 'vite.config.ts',
-      skip: false,
       render: () => source`import { defineConfig } from "vite";
         import vue from "@vitejs/plugin-vue";
         import wasm from "vite-plugin-wasm";

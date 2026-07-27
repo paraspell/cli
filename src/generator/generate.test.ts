@@ -19,6 +19,27 @@ afterEach(() => {
 });
 
 describe('generateApp', () => {
+  it('ships compact ParaSpell web assets at their intended dimensions', () => {
+    const readPng = (name: string) => {
+      const png = fs.readFileSync(path.resolve('assets', name));
+      return {
+        bytes: png.byteLength,
+        width: png.readUInt32BE(16),
+        height: png.readUInt32BE(20),
+      };
+    };
+
+    const wordmark = readPng('paraspell.png');
+    expect(wordmark.width).toBe(450);
+    expect(wordmark.height).toBe(128);
+    expect(wordmark.bytes).toBeLessThan(50 * 1024);
+
+    const icon = readPng('paraspell-icon.png');
+    expect(icon.width).toBe(128);
+    expect(icon.height).toBe(128);
+    expect(icon.bytes).toBeLessThan(20 * 1024);
+  });
+
   it('replaces an existing directory with a browser project and its logo', async () => {
     const out = temporaryOutput();
     fs.writeFileSync(path.join(out, 'stale.txt'), 'stale');
@@ -37,6 +58,9 @@ describe('generateApp', () => {
 
     expect(fs.existsSync(path.join(out, 'stale.txt'))).toBe(false);
     expect(fs.existsSync(path.join(out, 'public', 'paraspell.png'))).toBe(true);
+    expect(fs.existsSync(path.join(out, 'public', 'paraspell-icon.png'))).toBe(
+      true,
+    );
     expect(fs.readFileSync(path.join(out, 'package.json'), 'utf8')).toContain(
       '"name": "browser-app"',
     );

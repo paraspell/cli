@@ -18,7 +18,7 @@ export const createEvmCoreFragments: TFragmentFactory<TEvmCoreFragmentId> = (
     'evm/eip6963.ts':
       () => source`import { createStore, type EIP6963ProviderDetail } from "mipd";
         
-        export const evmProviderStore =
+        const evmProviderStore =
           typeof window === "undefined" ? undefined : createStore();
         
         export const getEip6963Providers = (): readonly EIP6963ProviderDetail[] =>
@@ -54,15 +54,6 @@ export const createEvmCoreFragments: TFragmentFactory<TEvmCoreFragmentId> = (
           type WalletClient,
         } from "viem";
         import { getViemChainForOrigin } from "./getViemChain";
-        
-        export const createEvmWalletClient = (
-          origin: string,
-          provider: EIP1193Provider,
-        ): WalletClient =>
-          createWalletClient({
-            chain: getViemChainForOrigin(origin),
-            transport: custom(provider),
-          });
         
         export const ensureEvmWalletClient = async (
           walletClient: WalletClient,
@@ -118,38 +109,13 @@ export const createEvmCoreFragments: TFragmentFactory<TEvmCoreFragmentId> = (
           return chain;
         };
         `,
-    'evm/index.api':
-      () => source`export { getEip6963Providers, evmProviderStore } from "./eip6963";
-        export {
-          createEvmWalletClient,
-          ensureEvmWalletClient,
-        } from "./evmWalletClient";
-        export { useEvmOriginChains } from "./useEvmOriginChains";
-        export { getViemChainForOrigin } from "./getViemChain";
-        `,
-    'evm/index.sdk': () => source`${
-      evm
-        ? source`export { EVM_ORIGIN_CHAINS } from "@paraspell/evm";
-        `
-        : ''
-    }export { getEip6963Providers, evmProviderStore } from "./eip6963";
-        export {
-          createEvmWalletClient,
-          ensureEvmWalletClient,
-        } from "./evmWalletClient";
-        export { getViemChainForOrigin } from "./getViemChain";
-        export {
-          assertSubstrateOrigin,
-          isSubstrateOrigin,
-        } from "./isEvmOrigin";
-        `,
     'evm/isEvmOrigin.sdk': () => source`import {
           isChainEvm,
           type TChain,
           type TSubstrateChain,
         } from "${sdkPackage}";
         
-        export const isSubstrateOrigin = (
+        const isSubstrateOrigin = (
           chain: TChain,
         ): chain is TSubstrateChain => !isChainEvm(chain);
         

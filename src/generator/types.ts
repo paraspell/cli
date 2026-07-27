@@ -13,7 +13,7 @@ export type TTemplateSetId = `xcm-${TProjectType}-${TFramework}`;
 
 export type TGeneratorTarget = {
   templateSet: TTemplateSetId;
-  logoFile?: string;
+  assetFiles?: readonly string[];
 };
 
 export type TGenerateAppParams = {
@@ -46,6 +46,6 @@ export type TTemplateContext = TPackageVersions &
 
 export type TTemplateFile = {
   path: string;
-  skip: boolean;
+  skip?: boolean;
   render: () => Code;
 };

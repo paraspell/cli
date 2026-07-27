@@ -25,7 +25,7 @@ const PACKAGE_MANAGER_COMMANDS: Record<
   npm: { install: ['install'], build: ['run', 'build'] },
   yarn: { install: ['install'], build: ['build'] },
   pnpm: {
-    install: ['install', '--frozen-lockfile=false'],
+    install: ['install'],
     build: ['build'],
   },
   bun: { install: ['install'], build: ['run', 'build'] },
@@ -79,7 +79,7 @@ overrides:
 ${allowBuilds}`,
     );
 
-    await runCommand('pnpm', ['install', '--frozen-lockfile=false'], {
+    await runCommand('pnpm', ['install'], {
       cwd: root,
     });
     await runCommand(
