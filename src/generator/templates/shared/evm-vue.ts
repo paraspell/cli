@@ -1,4 +1,4 @@
-import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import type { TFragmentFactory, TFragmentId } from './fragment-types.js';
 import { source } from '../source.js';
 
 type TEvmVueFragmentId = Extract<TFragmentId, `evm/${string}.vue`>;
@@ -8,7 +8,7 @@ export const createEvmVueFragments: TFragmentFactory<
 > = () => {
   return {
     'evm/EvmWalletControls.vue': () => source`<script setup lang="ts">
-        import type { TEvmAccountOption, TEvmProviderOption } from "../../types";
+        import type { TEvmAccountOption, TEvmProviderOption } from "../types";
         
         defineProps<{
           providerOptions: TEvmProviderOption[];
@@ -93,8 +93,8 @@ export const createEvmVueFragments: TFragmentFactory<
         </template>
         `,
     'evm/WalletKindSelector.vue': () => source`<script setup lang="ts">
-        import { parseWalletKind, WALLET_KIND_OPTIONS } from "../../types";
-        import type { TWalletKind } from "../../types";
+        import { parseWalletKind, WALLET_KIND_OPTIONS } from "../types";
+        import type { TWalletKind } from "../types";
         
         defineProps<{
           activeWalletKind: TWalletKind;
@@ -129,7 +129,7 @@ export const createEvmVueFragments: TFragmentFactory<
         `,
     'evm/useEvmOriginChains.vue':
       () => source`import { onMounted, ref, shallowRef } from "vue";
-        import { loadEvmOriginChains } from "./evmOrigins";
+        import { loadEvmOriginChains } from "../evm/evmOrigins";
         
         export const useEvmOriginChains = () => {
           const chains = ref<readonly string[]>([]);
@@ -163,14 +163,14 @@ export const createEvmVueFragments: TFragmentFactory<
         import type { EIP6963ProviderDetail } from "mipd";
         import { getAddress, type WalletClient, isAddress } from "viem";
         import { createWalletClient, custom } from "viem";
-        import { getEip6963Providers } from "../../evm/eip6963";
-        import { getViemChainForOrigin } from "../../evm/getViemChain";
+        import { getEip6963Providers } from "../evm/eip6963";
+        import { getViemChainForOrigin } from "../evm/getViemChain";
         import {
           parseRequestedAccounts,
           toProviderOptions,
           truncateAddress,
-        } from "../../evm/utils";
-        import type { TEvmAccountOption, TEvmProviderOption } from "../../types";
+        } from "../evm/utils";
+        import type { TEvmAccountOption, TEvmProviderOption } from "../types";
         
         export const useEvmWallet = () => {
           const accounts = ref<string[]>([]);

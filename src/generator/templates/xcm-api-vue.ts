@@ -1,5 +1,8 @@
 import type { TTemplateContext, TTemplateFile } from '../types.js';
-import type { TFragmentRenderer } from './shared/contracts.js';
+import { createFragmentFile } from './fragment-file.js';
+import type { TFragmentRenderer } from './shared/fragment-types.js';
+import { createSpaBarrelTemplates } from './spa-barrels.js';
+import { createSpaToolingTemplates } from './spa-tooling.js';
 import { source } from './source.js';
 
 export const createXcmApiVueTemplates = (
@@ -10,18 +13,15 @@ export const createXcmApiVueTemplates = (
     extensions: { swap },
     evmWallet,
   } = context;
+  const fragment = createFragmentFile(renderFragment);
 
   return [
-    {
-      path: 'src/App.css',
-      render: () => source`${renderFragment('spa/App.css')}
-        `,
-    },
+    fragment('src/App.css', 'spa/App.css'),
     {
       path: 'src/App.vue',
       render: () => source`<script setup lang="ts">
         import "./App.css";
-        import XcmTransfer from "./XcmTransfer.vue";
+        import { XcmTransfer } from "./components";
         </script>
         
         <template>
@@ -59,23 +59,22 @@ export const createXcmApiVueTemplates = (
         `,
     },
     {
-      path: 'src/XcmTransfer.vue',
+      path: 'src/components/XcmTransfer.vue',
       render: () => source`<script setup lang="ts">
         import { ref } from "vue";
-        import TransferForm from "./XcmTransferForm.vue";
-        import type { TFormValues } from "./types";
+        import TransferForm from "./TransferForm.vue";
+        import type { TFormValues } from "../types";
         ${
           evmWallet
             ? source`
-        import {
-          useWallet,
-          WalletControls,
-          WalletKindSelector,
-        } from "./wallet/papi";
+        import { WalletControls } from "./WalletControls";
+        import WalletKindSelector from "./WalletKindSelector.vue";
+        import { useWalletWithEvm } from "../composables";
         `
             : source`
-        import { usePapiWallet, SubstrateWalletControls } from "./wallet/papi";
-        import { submitUsingApi } from "./submit/submitUsingApi";
+        import SubstrateWalletControls from "./SubstrateWalletControls.vue";
+        import { usePapiWallet } from "../composables";
+        import { submitUsingApi } from "../submit/submitUsingApi";
         `
         }
         ${renderFragment('spa/toError')}
@@ -91,7 +90,7 @@ export const createXcmApiVueTemplates = (
         ${
           evmWallet
             ? source`
-        const wallet = useWallet();
+        const wallet = useWalletWithEvm();
         
         const setWalletKind = (kind: typeof wallet.activeWalletKind.value) => {
           wallet.setActiveWalletKind(kind);
@@ -188,15 +187,15 @@ export const createXcmApiVueTemplates = (
         `,
     },
     {
-      path: 'src/XcmTransferForm.vue',
+      path: 'src/components/TransferForm.vue',
       render: () => source`<script setup lang="ts">
         import { ref, computed, watch } from "vue";
-        import { API_URL } from "./consts";
-        import { useApiData } from "./useApiData";
-        import type { TAssetInfo, TFormValues } from "./types";${
+        import { API_URL } from "../consts";
+        import { useApiData } from "../composables";
+        import type { TAssetInfo, TFormValues } from "../types";${
           swap
             ? source`
-        import { useExchangeChains } from "./swap";`
+        import { useExchangeChains } from "../composables";`
             : ''
         }
         
@@ -512,256 +511,80 @@ export const createXcmApiVueTemplates = (
         </template>
         `,
     },
-    {
-      path: 'src/consts.ts',
-      render: () => source`${renderFragment('api/consts')}
-        `,
-    },
-    {
-      path: 'src/evm/eip6963.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/eip6963.ts')}
-        `,
-    },
-    {
-      path: 'src/evm/evmOrigins.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/evmOrigins.api.frontend')}
-        `,
-    },
-    {
-      path: 'src/evm/getViemChain.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/getViemChain')}
-        `,
-    },
-    {
-      path: 'src/evm/useEvmOriginChains.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/useEvmOriginChains.vue')}
-        `,
-    },
-    {
-      path: 'src/evm/utils.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/utils.ts')}
-        `,
-    },
-    {
-      path: 'src/fetchFromApi.ts',
-      render: () => source`${renderFragment('api/fetchFromApi')}
-        `,
-    },
-    {
-      path: 'src/index.css',
-      render: () => source`${renderFragment('spa/index.css')}
-        `,
-    },
-    {
-      path: 'src/main.ts',
-      render: () => source`import { createApp } from "vue";
-        import App from "./App.vue";
-        import "./index.css";
-        
-        createApp(App).mount("#app");
-        `,
-    },
-    {
-      path: 'src/requireAsset.ts',
-      render: () => source`${renderFragment('requireAsset')}
-        `,
-    },
-    {
-      path: 'src/submit/submitEvmTx.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('api/submitEvmTx')}
-        `,
-    },
-    {
-      path: 'src/submit/submitUsingApi.ts',
-      render: () => source`${renderFragment('api/submitUsingApi')}
-        `,
-    },
-    {
-      path: 'src/swap/exchangeChains.ts',
-      skip: !swap,
-      render: () => source`${renderFragment('swap/exchangeChains.api.frontend')}
-        `,
-    },
-    {
-      path: 'src/swap/index.ts',
-      skip: !swap,
-      render: () => source`${renderFragment('swap/index.api')}
-        `,
-    },
-    {
-      path: 'src/swap/useExchangeChains.ts',
-      skip: !swap,
-      render: () => source`${renderFragment('swap/useExchangeChains.vue')}
-        `,
-    },
-    {
-      path: 'src/types.ts',
-      render: () => source`${renderFragment('types/api.frontend')}
-        `,
-    },
-    {
-      path: 'src/useApiData.ts',
-      render: () => source`${renderFragment('api/useApiData.vue')}
-        `,
-    },
-    {
-      path: 'src/utils.ts',
-      render: () => source`${renderFragment('api/utils')}
-        `,
-    },
-    {
-      path: 'src/vite-env.d.ts',
-      render: () => source`${renderFragment('spa/vite-env.d')}
-        `,
-    },
-    {
-      path: 'src/wallet/evm/EvmWalletControls.vue',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/EvmWalletControls.vue')}
-        `,
-    },
-    {
-      path: 'src/wallet/evm/WalletKindSelector.vue',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/WalletKindSelector.vue')}
-        `,
-    },
-    {
-      path: 'src/wallet/evm/useEvmWallet.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/useEvmWallet.vue')}
-        `,
-    },
-    {
-      path: 'src/wallet/papi/index.ts',
-      render: () => source`export { usePapiWallet } from "./usePapiWallet";
-        export { default as SubstrateWalletControls } from "../shared/SubstrateWalletControls.vue";
-        ${
-          evmWallet
-            ? source`
-        export {
-          useWalletWithEvm as useWallet,
-          WalletControls,
-        } from "./useWalletWithEvm";
-        export { default as WalletKindSelector } from "../evm/WalletKindSelector.vue";
-        export type { TUseWalletReturn, TWalletKind, TWalletKindSelectorProps } from "../../types";
-        `
-            : ''
-        }
-        `,
-    },
-    {
-      path: 'src/wallet/papi/usePapiWallet.ts',
-      render: () => source`${renderFragment('wallet/usePapiWallet.vue')}
-        `,
-    },
-    {
-      path: 'src/wallet/papi/useWalletWithEvm.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('wallet/useWalletWithEvm.api.vue')}
-        `,
-    },
-    {
-      path: 'src/wallet/shared/SubstrateWalletControls.vue',
-      render:
-        () => source`${renderFragment('wallet/SubstrateWalletControls.vue')}
-        `,
-    },
-    {
-      path: 'src/wallet/shared/createWalletControls.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('wallet/createWalletControls.vue')}
-        `,
-    },
-    {
-      path: 'src/wallet/shared/submitTransfer.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('wallet/connectWalletAlert')}
-        `,
-    },
-    {
-      path: 'src/wallet/shared/useWalletWithEvmCore.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('wallet/useWalletWithEvmCore.vue')}
-        `,
-    },
-    {
-      path: 'tsconfig.app.json',
-      render: () => source`{
-          "compilerOptions": {
-            "target": "ES2022",
-            "useDefineForClassFields": true,
-            "lib": ["ES2022", "DOM", "DOM.Iterable"],
-            "module": "ESNext",
-            "skipLibCheck": true,
-        
-            "moduleResolution": "bundler",
-            "allowImportingTsExtensions": true,
-            "resolveJsonModule": true,
-            "isolatedModules": true,
-            "moduleDetection": "force",
-            "noEmit": true,
-            "jsx": "preserve",
-        
-            "strict": true,
-            "noUnusedLocals": true,
-            "noUnusedParameters": true,
-            "noFallthroughCasesInSwitch": true
-          },
-          "include": ["src"]
-        }
-        `,
-    },
-    {
-      path: 'tsconfig.json',
-      render: () => source`{
-          "files": [],
-          "references": [
-            { "path": "./tsconfig.app.json" },
-            { "path": "./tsconfig.node.json" }
-          ]
-        }
-        `,
-    },
-    {
-      path: 'tsconfig.node.json',
-      render: () => source`{
-          "compilerOptions": {
-            "target": "ES2022",
-            "lib": ["ES2023"],
-            "module": "ESNext",
-            "skipLibCheck": true,
-        
-            "moduleResolution": "bundler",
-            "allowImportingTsExtensions": true,
-            "isolatedModules": true,
-            "moduleDetection": "force",
-            "noEmit": true,
-        
-            "strict": true,
-            "noUnusedLocals": true,
-            "noUnusedParameters": true,
-            "noFallthroughCasesInSwitch": true
-          },
-          "include": ["vite.config.ts"]
-        }
-        `,
-    },
-    {
-      path: 'vite.config.ts',
-      render: () => source`import { defineConfig } from "vite";
-        import vue from "@vitejs/plugin-vue";
-        
-        export default defineConfig({
-          plugins: [vue()],
-        });
-        `,
-    },
+    fragment('src/consts.ts', 'api/consts'),
+    fragment('src/evm/eip6963.ts', 'evm/eip6963.ts', !evmWallet),
+    fragment(
+      'src/evm/evmOrigins.ts',
+      'evm/evmOrigins.api.frontend',
+      !evmWallet,
+    ),
+    fragment('src/evm/getViemChain.ts', 'evm/getViemChain', !evmWallet),
+    fragment(
+      'src/composables/useEvmOriginChains.ts',
+      'evm/useEvmOriginChains.vue',
+      !evmWallet,
+    ),
+    fragment('src/evm/utils.ts', 'evm/utils.ts', !evmWallet),
+    fragment('src/fetchFromApi.ts', 'api/fetchFromApi'),
+    fragment('src/index.css', 'spa/index.css'),
+    fragment('src/requireAsset.ts', 'requireAsset'),
+    fragment('src/submit/submitEvmTx.ts', 'api/submitEvmTx', !evmWallet),
+    fragment('src/submit/submitUsingApi.ts', 'api/submitUsingApi'),
+    fragment(
+      'src/swap/exchangeChains.ts',
+      'swap/exchangeChains.api.frontend',
+      !swap,
+    ),
+    fragment(
+      'src/composables/useExchangeChains.ts',
+      'swap/useExchangeChains.vue',
+      !swap,
+    ),
+    fragment('src/types.ts', 'types/api.frontend'),
+    fragment('src/composables/useApiData.ts', 'api/useApiData.vue'),
+    fragment('src/utils.ts', 'api/utils'),
+    fragment('src/vite-env.d.ts', 'spa/vite-env.d'),
+    fragment(
+      'src/components/EvmWalletControls.vue',
+      'evm/EvmWalletControls.vue',
+      !evmWallet,
+    ),
+    fragment(
+      'src/components/WalletKindSelector.vue',
+      'evm/WalletKindSelector.vue',
+      !evmWallet,
+    ),
+    fragment(
+      'src/composables/useEvmWallet.ts',
+      'evm/useEvmWallet.vue',
+      !evmWallet,
+    ),
+    fragment('src/composables/usePapiWallet.ts', 'wallet/usePapiWallet.vue'),
+    fragment(
+      'src/composables/useWalletWithEvm.ts',
+      'wallet/useWalletWithEvm.api.vue',
+      !evmWallet,
+    ),
+    fragment(
+      'src/components/SubstrateWalletControls.vue',
+      'wallet/SubstrateWalletControls.vue',
+    ),
+    fragment(
+      'src/components/WalletControls.ts',
+      'wallet/WalletControls.vue',
+      !evmWallet,
+    ),
+    fragment(
+      'src/wallet/shared/submitTransfer.ts',
+      'wallet/connectWalletAlert',
+      !evmWallet,
+    ),
+    fragment(
+      'src/composables/useWalletWithEvmCore.ts',
+      'wallet/useWalletWithEvmCore.vue',
+      !evmWallet,
+    ),
+    ...createSpaBarrelTemplates(context),
+    ...createSpaToolingTemplates(context),
   ];
 };

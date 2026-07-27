@@ -1,4 +1,4 @@
-import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import type { TFragmentFactory, TFragmentId } from './fragment-types.js';
 import { source } from '../source.js';
 
 type TSwapFragmentId = Extract<TFragmentId, `swap/${string}`>;
@@ -13,12 +13,9 @@ export const createSwapFragments: TFragmentFactory<TSwapFragmentId> = () => {
           return response.data;
         };
         `,
-    'swap/index.api':
-      () => source`export { useExchangeChains } from "./useExchangeChains";
-        `,
     'swap/useExchangeChains.react':
       () => source`import { useCallback, useEffect, useRef, useState } from "react";
-        import { loadExchangeChains } from "./exchangeChains";
+        import { loadExchangeChains } from "../swap/exchangeChains";
         
         export const useExchangeChains = () => {
           const [chains, setChains] = useState<readonly string[]>([]);
@@ -48,7 +45,7 @@ export const createSwapFragments: TFragmentFactory<TSwapFragmentId> = () => {
         `,
     'swap/useExchangeChains.vue':
       () => source`import { onMounted, ref, shallowRef } from "vue";
-        import { loadExchangeChains } from "./exchangeChains";
+        import { loadExchangeChains } from "../swap/exchangeChains";
         
         export const useExchangeChains = () => {
           const chains = ref<readonly string[]>([]);

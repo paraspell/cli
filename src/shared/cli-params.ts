@@ -1,7 +1,8 @@
-import type {
-  CommandContext,
-  TypedFlagParameter,
-  TypedPositionalParameters,
+import {
+  buildChoiceParser,
+  type CommandContext,
+  type TypedFlagParameter,
+  type TypedPositionalParameters,
 } from '@stricli/core';
 import {
   FRAMEWORKS,
@@ -10,22 +11,7 @@ import {
   type TPackageManager,
 } from './project-options.js';
 
-const choiceParser = <T extends string>(
-  label: string,
-  values: readonly T[],
-): ((input: string) => T) => {
-  return (input) => {
-    const match = values.find((value) => value === input);
-    if (match === undefined) {
-      throw new Error(
-        `Unknown ${label} "${input}". Expected one of: ${values.join(', ')}.`,
-      );
-    }
-    return match;
-  };
-};
-
-const parseFrameworkArg = choiceParser('framework', FRAMEWORKS);
+const parseFrameworkArg = buildChoiceParser(FRAMEWORKS);
 
 export const frameworkPositional: TypedPositionalParameters<
   [TFramework?],

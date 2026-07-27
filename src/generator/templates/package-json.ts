@@ -143,22 +143,15 @@ const nodeManifest = (context: TTemplateContext): TPackageJson => {
     },
     dependencies: {
       ...(sdk
-        ? {
-            ...sdkDependencies(context),
-            '@polkadot/keyring': context.polkadotKeyring,
-            '@polkadot/util-crypto': context.polkadotUtilCrypto,
-            dotenv: context.dotenv,
-            express: context.express,
-          }
+        ? sdkDependencies(context)
         : {
             axios: context.axios,
             'polkadot-api': context.polkadotApi,
-            '@polkadot/keyring': context.polkadotKeyring,
-            '@polkadot/util-crypto': context.polkadotUtilCrypto,
-            dotenv: context.dotenv,
-            express: context.express,
-            ...(context.evmWallet ? { viem: context.viem } : {}),
           }),
+      '@polkadot/keyring': context.polkadotKeyring,
+      dotenv: context.dotenv,
+      express: context.express,
+      ...(!sdk && context.evmWallet ? { viem: context.viem } : {}),
     },
     devDependencies: {
       ...qualityDependencies(context),

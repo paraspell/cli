@@ -15,6 +15,7 @@ import {
   DEFAULT_SDK_CLIENT,
   EXTENSION_KEYS,
   PROJECT_TYPE_OPTIONS,
+  requiresEvmWallet,
   resolveExtensions,
 } from './project-options.js';
 import { type TResolveInput, type TResolvedOptions } from './types.js';
@@ -30,19 +31,14 @@ type TPromptGenerateOptions = {
   validateName?: TNameValidator;
 };
 
-const extensionsProvided = (input: TResolveInput): boolean => {
-  return EXTENSION_KEYS.some(
-    (extension) => input.extensions[extension] !== undefined,
-  );
-};
+const extensionsProvided = (input: TResolveInput): boolean =>
+  EXTENSION_KEYS.some((extension) => input.extensions[extension] !== undefined);
 
 const validSecret = (
   value: string | undefined,
   validate: (value: string) => true | string,
-): string | undefined => {
-  if (value === undefined) return undefined;
-  return validate(value) === true ? value : undefined;
-};
+): string | undefined =>
+  value !== undefined && validate(value) === true ? value : undefined;
 
 const validateProvidedSecret = (
   value: string | undefined,
@@ -107,9 +103,7 @@ export const promptGenerateOptions = async (
         results.extensions,
       );
       const needsPrivateKey =
-        extensions.evm || extensions.snowbridge
-          ? providedPrivateKey === undefined
-          : false;
+        requiresEvmWallet(extensions) && providedPrivateKey === undefined;
       const needsWalletSetup =
         isNode && (providedSubstrateMnemonic === undefined || needsPrivateKey);
       return needsWalletSetup ? promptConfigureWallet() : undefined;
@@ -126,7 +120,7 @@ export const promptGenerateOptions = async (
         results.extensions,
       );
       return isNode &&
-        (extensions.evm || extensions.snowbridge) &&
+        requiresEvmWallet(extensions) &&
         providedPrivateKey === undefined &&
         results.configureWallet === true
         ? promptEvmPrivateKey()
@@ -142,23 +136,15 @@ export const promptGenerateOptions = async (
       ? answers.substrateMnemonic
       : undefined;
 
-  return {
-    name:
-      input.name ??
-      answers.name ??
-      PROJECT_TYPE_OPTIONS[input.kind].defaultName,
-    client: input.client ?? answers.client ?? DEFAULT_SDK_CLIENT,
+  return applyGenerateDefaults({
+    ...input,
+    name: input.name ?? answers.name,
+    client: input.client ?? answers.client,
     extensions,
-    packageManager:
-      input.packageManager ?? answers.packageManager ?? DEFAULT_PACKAGE_MANAGER,
-    privateKey:
-      isNode && (extensions.evm || extensions.snowbridge)
-        ? (providedPrivateKey ?? promptedPrivateKey)
-        : undefined,
-    substrateMnemonic: isNode
-      ? (providedSubstrateMnemonic ?? promptedSubstrateMnemonic)
-      : undefined,
-  };
+    packageManager: input.packageManager ?? answers.packageManager,
+    privateKey: providedPrivateKey ?? promptedPrivateKey,
+    substrateMnemonic: providedSubstrateMnemonic ?? promptedSubstrateMnemonic,
+  });
 };
 
 export const applyGenerateDefaults = (
@@ -173,7 +159,7 @@ export const applyGenerateDefaults = (
     ? validSecret(input.substrateMnemonic, validateSubstrateMnemonic)
     : undefined;
   const privateKey =
-    isNode && (extensions.evm || extensions.snowbridge)
+    isNode && requiresEvmWallet(extensions)
       ? validSecret(input.privateKey, validateEvmPrivateKey)
       : undefined;
 

@@ -1,4 +1,4 @@
-import type { TFragmentFactory, TFragmentId } from './contracts.js';
+import type { TFragmentFactory, TFragmentId } from './fragment-types.js';
 import { source } from '../source.js';
 
 type TBaseFragmentId = Exclude<TFragmentId, `${string}/${string}`>;

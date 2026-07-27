@@ -5,8 +5,8 @@ import { intro } from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runInteractiveGenerate } from './interactive.js';
 import { runCli, runFromArgv } from './run-cli.js';
+import { SDK_CLIENTS } from './shared/project-options.js';
 import { runProjectFlow } from './shared/project-flow.js';
-import type { TResolvedOptions } from './shared/types.js';
 
 vi.mock('@clack/prompts');
 vi.mock('./interactive.js');
@@ -19,15 +19,6 @@ const temporaryRoot = (): string => {
   const output = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-cli-'));
   outputs.push(output);
   return output;
-};
-
-const resolved: TResolvedOptions = {
-  name: 'example',
-  client: 'papi',
-  packageManager: 'pnpm',
-  extensions: { evm: false, swap: false, snowbridge: false },
-  privateKey: undefined,
-  substrateMnemonic: undefined,
 };
 
 describe('CLI routing', () => {
@@ -69,7 +60,8 @@ describe('CLI routing', () => {
         'npm',
         '--client',
         'pjs',
-        '--evm',
+        '--extensions',
+        'evm,swap',
         '--out',
         'custom',
       ],
@@ -83,10 +75,19 @@ describe('CLI routing', () => {
       name: 'example',
       client: 'pjs',
       packageManager: 'npm',
-      extensions: { evm: true },
+      extensions: { evm: true, swap: true, snowbridge: false },
     });
-    expect(options?.resolveOut(resolved)).toBe(path.join(root, 'custom'));
+    expect(options?.resolveOut('example')).toBe(path.join(root, 'custom'));
     expect(options?.interactive).toBe(false);
+  });
+
+  it.each(SDK_CLIENTS)('accepts the lowercase %s client', async (client) => {
+    await runFromArgv(['sdk', '--client', client], {
+      root: temporaryRoot(),
+    });
+
+    const options = vi.mocked(runProjectFlow).mock.calls[0]?.[0];
+    expect(options?.input.client).toBe(client);
   });
 
   it('uses internal defaults for API generation', async () => {
@@ -103,10 +104,30 @@ describe('CLI routing', () => {
       framework: 'react',
       client: undefined,
     });
-    expect(options?.resolveOut(resolved)).toBe(
+    expect(options?.resolveOut('example')).toBe(
       path.join(root, 'generated', 'xcm-api', 'react', 'example'),
     );
     expect(options?.userFacing).toBe(false);
+  });
+
+  it('uses an explicit output directory for internal generation', async () => {
+    const root = temporaryRoot();
+
+    await runFromArgv(
+      [
+        'api',
+        '--name',
+        'example',
+        '--package-manager',
+        'pnpm',
+        '--out',
+        'custom',
+      ],
+      { root },
+    );
+
+    const options = vi.mocked(runProjectFlow).mock.calls[0]?.[0];
+    expect(options?.resolveOut('example')).toBe(path.join(root, 'custom'));
   });
 
   it('provides consumer validation and interactive presentation', async () => {
@@ -124,15 +145,14 @@ describe('CLI routing', () => {
     const options = vi.mocked(runProjectFlow).mock.calls[0]?.[0];
     expect(intro).toHaveBeenCalled();
     expect(options?.interactive).toBe(true);
-    expect(options?.validateName?.('available')).toBe(true);
+    expect(
+      options?.validateTarget?.('available', path.join(root, 'available')),
+    ).toBe(true);
 
     fs.mkdirSync(path.join(root, 'taken'));
-    expect(options?.validateName?.('taken')).toContain(
-      'Project already exists',
-    );
-    expect(() =>
-      options?.validateOutput?.('taken', path.join(root, 'taken')),
-    ).toThrow('Project already exists');
+    expect(
+      options?.validateTarget?.('taken', path.join(root, 'taken')),
+    ).toContain('Project already exists');
   });
 
   it('runs the interactive wizard for empty arguments', async () => {

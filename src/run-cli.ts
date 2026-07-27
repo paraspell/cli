@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { intro } from '@clack/prompts';
 import {
@@ -9,7 +8,9 @@ import {
   type CommandContext,
   type FlagParametersForType,
   help,
+  type InputParser,
   run,
+  type TypedFlagParameter,
 } from '@stricli/core';
 import { runInteractiveGenerate } from './interactive.js';
 import {
@@ -19,18 +20,19 @@ import {
 import { CLI_INTRO } from './shared/messages.js';
 import {
   DEFAULT_FRAMEWORK,
+  EXTENSION_KEYS,
   FRAMEWORKS,
-  PROJECT_TYPE_OPTIONS,
+  resolveExtensions,
   SDK_CLIENTS,
-  type TExtensions,
+  type TExtensionKey,
   type TFramework,
   type TPackageManager,
   type TProjectType,
   type TSdkClient,
 } from './shared/project-options.js';
 import { runProjectFlow } from './shared/project-flow.js';
-import type { TNameValidator } from './shared/prompt-options.js';
 import type { TResolveInput } from './shared/types.js';
+import { validateProjectTarget } from './shared/utils.js';
 import { validateNameInput } from './shared/validate.js';
 
 interface TAppContext extends CommandContext {
@@ -43,21 +45,18 @@ export type TRunContext = {
   consumer?: boolean;
 };
 
-type TSharedFlags = {
+type TCliSharedFlags = {
   name?: string;
   framework?: TFramework;
-  extensions: Partial<TExtensions>;
+  extensions?: readonly TExtensionKey[];
   packageManager?: TPackageManager;
   out?: string;
   privateKey?: string;
   substrateMnemonic?: string;
 };
 
-type TCliSharedFlags = Omit<TSharedFlags, 'extensions'> & Partial<TExtensions>;
 type TSdkFlags = TCliSharedFlags & { client?: TSdkClient };
 type TApiFlags = TCliSharedFlags;
-
-const identity = (value: string): string => value;
 
 const parseNameArg = (value: string): string => {
   const result = validateNameInput(value);
@@ -65,49 +64,39 @@ const parseNameArg = (value: string): string => {
   return value;
 };
 
+const parsedStringFlag = (
+  brief: string,
+  parse: InputParser<string> = (value) => value,
+): TypedFlagParameter<string | undefined> => ({
+  kind: 'parsed',
+  parse,
+  brief,
+  optional: true,
+});
+
 const sharedFlagParams: FlagParametersForType<TCliSharedFlags> = {
-  name: {
-    kind: 'parsed',
-    parse: parseNameArg,
-    brief: 'Project name',
-    optional: true,
-  },
+  name: parsedStringFlag('Project name', parseNameArg),
   framework: {
     kind: 'enum',
     values: FRAMEWORKS,
     brief: 'Target framework: react | vue | node',
     optional: true,
   },
-  evm: { kind: 'boolean', brief: 'Enable EVM origin chains', optional: true },
-  swap: {
-    kind: 'boolean',
-    brief: 'Enable cross-chain swaps (@paraspell/swap)',
-    optional: true,
-  },
-  snowbridge: {
-    kind: 'boolean',
-    brief: 'Enable Snowbridge transfers',
+  extensions: {
+    kind: 'enum',
+    values: EXTENSION_KEYS,
+    variadic: ',',
+    brief: 'Extensions: evm, swap, snowbridge',
     optional: true,
   },
   packageManager: packageManagerFlag,
-  out: {
-    kind: 'parsed',
-    parse: identity,
-    brief: 'Output directory',
-    optional: true,
-  },
-  privateKey: {
-    kind: 'parsed',
-    parse: identity,
-    brief: 'EVM wallet key for node when using EVM or Snowbridge origins',
-    optional: true,
-  },
-  substrateMnemonic: {
-    kind: 'parsed',
-    parse: identity,
-    brief: 'Substrate mnemonic or //Dev URI for node',
-    optional: true,
-  },
+  out: parsedStringFlag('Output directory'),
+  privateKey: parsedStringFlag(
+    'EVM wallet key for node when using EVM or Snowbridge origins',
+  ),
+  substrateMnemonic: parsedStringFlag(
+    'Substrate mnemonic or //Dev URI for node',
+  ),
 };
 
 const sdkFlagParams: FlagParametersForType<TSdkFlags> = {
@@ -120,44 +109,12 @@ const sdkFlagParams: FlagParametersForType<TSdkFlags> = {
   },
 };
 
-const resolveOut = (root: string, out: string): string =>
-  path.isAbsolute(out) ? out : path.join(root, out);
-
 const defaultInternalOut = (
   root: string,
   kind: TProjectType,
   framework: TFramework,
   name: string,
-): string =>
-  path.join(
-    root,
-    'generated',
-    PROJECT_TYPE_OPTIONS[kind].generatedDir,
-    framework,
-    name,
-  );
-
-const assertConsumerProject = (name: string, outDir: string): void => {
-  const nameError = validateNameInput(name);
-  if (nameError !== true) throw new Error(nameError);
-  if (fs.existsSync(outDir)) {
-    throw new Error(`Project already exists: ${outDir}`);
-  }
-};
-
-const makeConsumerNameValidator = (
-  root: string,
-  outFlag: string | undefined,
-): TNameValidator => {
-  return (name) => {
-    const base = validateNameInput(name);
-    if (base !== true) return base;
-    const out =
-      outFlag !== undefined ? resolveOut(root, outFlag) : path.join(root, name);
-    if (fs.existsSync(out)) return `Project already exists: ${out}`;
-    return true;
-  };
-};
+): string => path.join(root, 'generated', `xcm-${kind}`, framework, name);
 
 const runGenerate = async (
   kind: TProjectType,
@@ -168,40 +125,29 @@ const runGenerate = async (
   try {
     const framework =
       flags.framework ?? positionalFramework ?? DEFAULT_FRAMEWORK;
+    const extensions = flags.extensions ?? [];
     const input: TResolveInput = {
       kind,
       framework,
       name: flags.name,
       client: kind === 'sdk' ? flags.client : undefined,
-      extensions: {
-        evm: flags.evm,
-        swap: flags.swap,
-        snowbridge: flags.snowbridge,
-      },
+      extensions:
+        extensions.length > 0 ? resolveExtensions({}, extensions) : {},
       packageManager: flags.packageManager,
       privateKey: flags.privateKey,
       substrateMnemonic: flags.substrateMnemonic,
     };
     const interactive = process.stdin.isTTY === true;
-
-    const validateName = ctx.consumer
-      ? makeConsumerNameValidator(ctx.root, flags.out)
-      : undefined;
+    const resolveOut = (name: string): string =>
+      ctx.consumer || flags.out !== undefined
+        ? path.resolve(ctx.root, flags.out ?? name)
+        : defaultInternalOut(ctx.root, kind, framework, name);
 
     if (ctx.consumer && interactive) intro(CLI_INTRO);
     await runProjectFlow({
       input,
-      resolveOut: (resolved) => {
-        if (flags.out !== undefined) {
-          return resolveOut(ctx.root, flags.out);
-        }
-        if (ctx.consumer) {
-          return path.join(ctx.root, resolved.name);
-        }
-        return defaultInternalOut(ctx.root, kind, framework, resolved.name);
-      },
-      validateName,
-      validateOutput: ctx.consumer ? assertConsumerProject : undefined,
+      resolveOut,
+      validateTarget: ctx.consumer ? validateProjectTarget : undefined,
       interactive,
       userFacing: ctx.consumer,
     });

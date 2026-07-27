@@ -1,5 +1,6 @@
 import type { TTemplateContext, TTemplateFile } from '../types.js';
-import type { TFragmentRenderer } from './shared/contracts.js';
+import { createFragmentFile } from './fragment-file.js';
+import type { TFragmentRenderer } from './shared/fragment-types.js';
 import { source } from './source.js';
 
 export const createXcmSdkNodeTemplates = (
@@ -9,9 +10,11 @@ export const createXcmSdkNodeTemplates = (
   const {
     client,
     sdkPackage,
-    extensions: { evm, swap, snowbridge },
+    extensions: { evm, swap },
     evmWallet,
+    defaultOriginChain,
   } = context;
+  const fragment = createFragmentFile(renderFragment);
 
   return [
     {
@@ -59,47 +62,13 @@ export const createXcmSdkNodeTemplates = (
       }
         `,
     },
-    {
-      path: 'src/getViemChain.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/getViemChain')}
-        `,
-    },
-    {
-      path: 'src/index.ts',
-      render: () => source`import "dotenv/config";
-        import { cryptoWaitReady } from "@polkadot/util-crypto";
-        ${renderFragment('paraspell-side-effects')}import express from "express";
-        import { transferAsset } from "./transfer.js";
-        
-        await cryptoWaitReady();
-        
-        const app = express();
-        app.use(express.json());
-        
-        app.post("/", async (_req, res) => {
-          try {
-            const result = await transferAsset();
-            res.status(200).json({ success: true, result });
-          } catch (error) {
-            const message = error instanceof Error || error instanceof ErrorEvent ? error.message : String(error);
-            res.status(500).json({ success: false, error: message });
-          }
-        });
-        
-        const port = Number(process.env.PORT ?? 3000);
-        app.listen(port, () => {
-          console.log(\`Server listening on http://localhost:\${port}\`);
-          console.log("POST / to submit the configured XCM transfer.");
-        });
-        `,
-    },
-    {
-      path: 'src/isEvmOrigin.ts',
-      skip: client === 'papi' || swap,
-      render: () => source`${renderFragment('evm/isEvmOrigin.sdk')}
-        `,
-    },
+    fragment('src/getViemChain.ts', 'evm/getViemChain', !evmWallet),
+    fragment('src/index.ts', 'node/server'),
+    fragment(
+      'src/isEvmOrigin.ts',
+      'evm/isEvmOrigin.sdk',
+      client === 'papi' || swap,
+    ),
     {
       path: 'src/substrate.ts',
       render: () => source`${
@@ -222,7 +191,7 @@ export const createXcmSdkNodeTemplates = (
         import type { TTransferParams } from "./types.js";
         
         const defaults: TTransferParams = {
-          from: "${snowbridge ? 'Ethereum' : evm ? 'Moonbeam' : 'Astar'}",
+          from: "${defaultOriginChain}",
           to: "Hydration",
           amount: "0.1",
           recipient: "//Bob",
@@ -353,28 +322,7 @@ export const createXcmSdkNodeTemplates = (
         };
         `,
     },
-    {
-      path: 'src/types.ts',
-      render: () => source`${renderFragment('types/sdk.node')}
-        `,
-    },
-    {
-      path: 'tsconfig.json',
-      render: () => source`{
-          "compilerOptions": {
-            "target": "ES2022",
-            "module": "NodeNext",
-            "moduleResolution": "NodeNext",
-            "strict": true,
-            "esModuleInterop": true,
-            "skipLibCheck": true,
-            "types": ["node"],
-            "outDir": "dist",
-            "rootDir": "src"
-          },
-          "include": ["src"]
-        }
-        `,
-    },
+    fragment('src/types.ts', 'types/sdk.node'),
+    fragment('tsconfig.json', 'node/tsconfig'),
   ];
 };

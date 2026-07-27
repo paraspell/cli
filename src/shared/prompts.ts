@@ -20,20 +20,19 @@ import {
 export const promptName = (
   initialValue: string,
   validate: (value: string) => true | string,
-): Promise<string> => {
-  return ask(
+): Promise<string> =>
+  ask(
     text({
       message: 'Name your project',
       initialValue,
       validate: toClackValidate(validate),
     }),
   );
-};
 
 export const promptPackageManager = (
   initialValue: TPackageManager,
-): Promise<TPackageManager> => {
-  return ask(
+): Promise<TPackageManager> =>
+  ask(
     select<TPackageManager>({
       message: 'Choose a package manager',
       options: PACKAGE_MANAGERS.map((pm) => ({
@@ -44,10 +43,9 @@ export const promptPackageManager = (
       initialValue,
     }),
   );
-};
 
-const promptFramework = () => {
-  return ask(
+const promptFramework = () =>
+  ask(
     select<TFramework>({
       message: 'Choose a framework',
       options: FRAMEWORKS.map((value) => {
@@ -61,10 +59,9 @@ const promptFramework = () => {
       initialValue: DEFAULT_FRAMEWORK,
     }),
   );
-};
 
-const promptProjectType = () => {
-  return ask(
+const promptProjectType = () =>
+  ask(
     select<TProjectType>({
       message: 'What would you like to build?',
       options: PROJECT_TYPES.map((value) => ({
@@ -75,10 +72,9 @@ const promptProjectType = () => {
       initialValue: DEFAULT_PROJECT_TYPE,
     }),
   );
-};
 
-export const promptClient = () => {
-  return ask(
+export const promptClient = () =>
+  ask(
     select<TSdkClient>({
       message: 'Choose a Polkadot client',
       options: SDK_CLIENTS.map((value) => ({
@@ -88,17 +84,15 @@ export const promptClient = () => {
       initialValue: DEFAULT_SDK_CLIENT,
     }),
   );
-};
 
-export const promptProjectBasics = () => {
-  return group({
-    projectType: () => promptProjectType(),
-    framework: () => promptFramework(),
+export const promptProjectBasics = () =>
+  group({
+    projectType: promptProjectType,
+    framework: promptFramework,
   });
-};
 
-export const promptConfigureWallet = (): Promise<boolean> => {
-  return ask(
+export const promptConfigureWallet = (): Promise<boolean> =>
+  ask(
     confirm({
       message: 'Configure a development wallet now?',
       active: 'Configure now',
@@ -106,4 +100,3 @@ export const promptConfigureWallet = (): Promise<boolean> => {
       initialValue: false,
     }),
   );
-};

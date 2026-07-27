@@ -1,8 +1,4 @@
-import type {
-  TTemplateContext,
-  TTemplateFile,
-  TTemplateSetId,
-} from '../types.js';
+import type { TTemplateContext, TTemplateFile } from '../types.js';
 import { createQualityTemplates } from './quality.js';
 import { createScaffoldTemplates } from './scaffold.js';
 import { createFragmentRenderer } from './shared/index.js';
@@ -13,28 +9,29 @@ import { createXcmSdkNodeTemplates } from './xcm-sdk-node.js';
 import { createXcmSdkReactTemplates } from './xcm-sdk-react.js';
 import { createXcmSdkVueTemplates } from './xcm-sdk-vue.js';
 
-type TTemplateFactory = (
-  context: TTemplateContext,
-  renderFragment: ReturnType<typeof createFragmentRenderer>,
-) => readonly TTemplateFile[];
-
-const TEMPLATE_FACTORIES: Record<TTemplateSetId, TTemplateFactory> = {
-  'xcm-api-node': createXcmApiNodeTemplates,
-  'xcm-api-react': createXcmApiReactTemplates,
-  'xcm-api-vue': createXcmApiVueTemplates,
-  'xcm-sdk-node': createXcmSdkNodeTemplates,
-  'xcm-sdk-react': createXcmSdkReactTemplates,
-  'xcm-sdk-vue': createXcmSdkVueTemplates,
+const TEMPLATE_FACTORIES = {
+  api: {
+    node: createXcmApiNodeTemplates,
+    react: createXcmApiReactTemplates,
+    vue: createXcmApiVueTemplates,
+  },
+  sdk: {
+    node: createXcmSdkNodeTemplates,
+    react: createXcmSdkReactTemplates,
+    vue: createXcmSdkVueTemplates,
+  },
 };
 
 export const createTemplateFiles = (
-  templateSet: TTemplateSetId,
   context: TTemplateContext,
 ): readonly TTemplateFile[] => {
   const renderFragment = createFragmentRenderer(context);
   return [
     ...createScaffoldTemplates(context, renderFragment),
-    ...TEMPLATE_FACTORIES[templateSet](context, renderFragment),
+    ...TEMPLATE_FACTORIES[context.projectKind][context.framework](
+      context,
+      renderFragment,
+    ),
     ...createQualityTemplates(context),
-  ];
+  ].filter((template) => !template.skip);
 };

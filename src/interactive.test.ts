@@ -5,20 +5,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runInteractiveGenerate } from './interactive.js';
 import { runProjectFlow } from './shared/project-flow.js';
 import { promptProjectBasics } from './shared/prompts.js';
-import type { TResolvedOptions } from './shared/types.js';
 
 vi.mock('@clack/prompts');
 vi.mock('./shared/project-flow.js');
 vi.mock('./shared/prompts.js');
-
-const resolved: TResolvedOptions = {
-  name: 'example',
-  client: 'papi',
-  packageManager: 'pnpm',
-  extensions: { evm: false, swap: false, snowbridge: false },
-  privateKey: undefined,
-  substrateMnemonic: undefined,
-};
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -42,14 +32,19 @@ describe('runInteractiveGenerate', () => {
       framework: 'vue',
       extensions: {},
     });
-    expect(options?.resolveOut(resolved)).toBe(
+    expect(options?.resolveOut('example')).toBe(
       path.join('/workspace', 'example'),
     );
-    expect(options?.validateName?.('valid-name')).toBe(true);
+    expect(
+      options?.validateTarget?.(
+        'valid-name',
+        path.join('/workspace', 'valid-name'),
+      ),
+    ).toBe(true);
 
     vi.spyOn(fs, 'existsSync').mockReturnValue(true);
-    expect(options?.validateName?.('taken')).toBe(
-      `Project already exists: ${path.join('/workspace', 'taken')}`,
-    );
+    expect(
+      options?.validateTarget?.('taken', path.join('/workspace', 'taken')),
+    ).toBe(`Project already exists: ${path.join('/workspace', 'taken')}`);
   });
 });

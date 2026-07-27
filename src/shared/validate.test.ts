@@ -17,7 +17,11 @@ describe('input validation', () => {
   it.each([
     ['', true],
     ['//Alice//stash', true],
-    ['word '.repeat(11) + 'word', true],
+    ['abandon '.repeat(11) + 'about', true],
+    [
+      'abandon '.repeat(11) + 'abandon',
+      'Substrate mnemonic must be a BIP39 phrase (12–24 lowercase words) or a //Dev URI like //Alice.',
+    ],
     [
       'invalid phrase',
       'Substrate mnemonic must be a BIP39 phrase (12–24 lowercase words) or a //Dev URI like //Alice.',

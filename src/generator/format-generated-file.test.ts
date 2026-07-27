@@ -5,6 +5,7 @@ import { source } from './templates/source.js';
 describe('formatGeneratedFile', () => {
   it.each([
     ['config.json', source`{"answer":42}`, '"answer": 42'],
+    ['config.yml', source`answer:   true`, 'answer: true'],
     ['main.ts', source`export const answer=42`, 'answer = 42'],
     [
       'App.vue',
@@ -25,6 +26,12 @@ describe('formatGeneratedFile', () => {
     await expect(
       formatGeneratedFile('broken.json', source`{nope}`),
     ).rejects.toThrow('Unable to format generated file broken.json');
+  });
+
+  it('rejects invalid TypeScript during formatting', async () => {
+    await expect(
+      formatGeneratedFile('broken.ts', source`const answer = ;`),
+    ).rejects.toThrow('Unable to format generated file broken.ts');
   });
 
   it('rejects invalid Vue components after formatting', async () => {

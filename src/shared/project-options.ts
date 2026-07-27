@@ -9,7 +9,6 @@ type TFrameworkOption = TPromptOption & {
 
 type TProjectTypeOption = TPromptOption & {
   defaultName: string;
-  generatedDir: 'xcm-sdk' | 'xcm-api';
 };
 
 export const FRAMEWORKS = ['react', 'vue', 'node'] as const;
@@ -40,11 +39,14 @@ export type TPackageManager = (typeof PACKAGE_MANAGERS)[number];
 
 export const DEFAULT_PACKAGE_MANAGER: TPackageManager = 'pnpm';
 
-export const isPackageManager = (value: string): value is TPackageManager =>
-  PACKAGE_MANAGERS.some((packageManager) => packageManager === value);
-
-export const packageRunCommand = (packageManager: TPackageManager): string =>
-  packageManager === 'npm' ? 'npm run' : packageManager;
+export const packageScriptCommand = (
+  packageManager: TPackageManager,
+  script: 'dev' | 'start',
+): string => {
+  const runner =
+    packageManager === 'npm' && script !== 'start' ? 'npm run' : packageManager;
+  return `${runner} ${script}`;
+};
 
 export const PROJECT_TYPES = ['sdk', 'api'] as const;
 export type TProjectType = (typeof PROJECT_TYPES)[number];
@@ -54,13 +56,11 @@ export const PROJECT_TYPE_OPTIONS: Record<TProjectType, TProjectTypeOption> = {
     label: 'XCM SDK',
     hint: 'call ParaSpell directly from your app',
     defaultName: 'my-xcm-app',
-    generatedDir: 'xcm-sdk',
   },
   api: {
     label: 'XCM API',
     hint: 'REST API that builds transfers while you sign them locally',
     defaultName: 'my-xcm-api-app',
-    generatedDir: 'xcm-api',
   },
 };
 
@@ -68,6 +68,7 @@ export const DEFAULT_PROJECT_TYPE: TProjectType = 'sdk';
 
 export const SDK_CLIENTS = ['papi', 'pjs', 'dedot'] as const;
 export type TSdkClient = (typeof SDK_CLIENTS)[number];
+export type TSdkClientName = Capitalize<TSdkClient>;
 
 export const SDK_CLIENT_OPTIONS: Record<TSdkClient, TPromptOption> = {
   papi: {
@@ -82,6 +83,12 @@ export const SDK_CLIENT_OPTIONS: Record<TSdkClient, TPromptOption> = {
     label: 'Dedot',
     hint: 'Dedot client',
   },
+};
+
+export const SDK_CLIENT_NAMES: Record<TSdkClient, TSdkClientName> = {
+  papi: 'Papi',
+  pjs: 'Pjs',
+  dedot: 'Dedot',
 };
 
 export const DEFAULT_SDK_CLIENT: TSdkClient = 'papi';
@@ -113,3 +120,6 @@ export const resolveExtensions = (
   swap: explicit.swap ?? selected.includes('swap'),
   snowbridge: explicit.snowbridge ?? selected.includes('snowbridge'),
 });
+
+export const requiresEvmWallet = (extensions: TExtensions): boolean =>
+  extensions.evm || extensions.snowbridge;

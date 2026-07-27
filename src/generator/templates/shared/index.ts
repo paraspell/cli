@@ -1,7 +1,10 @@
 import type { TTemplateContext } from '../../types.js';
 import { createApiFragments } from './api.js';
 import { createBaseFragments } from './base.js';
-import type { TFragmentRenderer, TFragmentTemplates } from './contracts.js';
+import type {
+  TFragmentRenderer,
+  TFragmentTemplates,
+} from './fragment-types.js';
 import { createEvmCoreFragments } from './evm-core.js';
 import { createEvmReactFragments } from './evm-react.js';
 import { createEvmVueFragments } from './evm-vue.js';
@@ -15,7 +18,7 @@ import { createWalletReactFragments } from './wallet-react.js';
 import { createWalletVueFragments } from './wallet-vue.js';
 import { createXcmFragments } from './xcm.js';
 
-export type { TFragmentRenderer } from './contracts.js';
+export type { TFragmentRenderer } from './fragment-types.js';
 
 export const createFragmentRenderer = (
   context: TTemplateContext,

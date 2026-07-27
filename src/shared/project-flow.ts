@@ -17,15 +17,13 @@ import {
   applyGenerateDefaults,
   hasRejectedSecrets,
   promptGenerateOptions,
-  type TNameValidator,
 } from './prompt-options.js';
-import type { TResolveInput, TResolvedOptions } from './types.js';
+import type { TResolveInput } from './types.js';
 
 type TProjectFlowOptions = {
   input: TResolveInput;
-  resolveOut: (resolved: TResolvedOptions) => string;
-  validateName?: TNameValidator;
-  validateOutput?: (name: string, outDir: string) => void;
+  resolveOut: (name: string) => string;
+  validateTarget?: (name: string, outDir: string) => true | string;
   interactive: boolean;
   userFacing: boolean;
 };
@@ -131,13 +129,20 @@ export const runProjectFlow = async (
     );
   }
 
+  const validateTarget = options.validateTarget;
   const resolved = options.interactive
     ? await promptGenerateOptions(options.input, {
-        validateName: options.validateName,
+        validateName:
+          validateTarget === undefined
+            ? undefined
+            : (name) => validateTarget(name, options.resolveOut(name)),
       })
     : applyGenerateDefaults(options.input);
-  const out = options.resolveOut(resolved);
-  options.validateOutput?.(resolved.name, out);
+  const out = options.resolveOut(resolved.name);
+  const validation = validateTarget?.(resolved.name, out);
+  if (validation !== undefined && validation !== true) {
+    throw new Error(validation);
+  }
 
   const params: TGenerateAppParams = {
     kind: options.input.kind,

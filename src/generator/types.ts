@@ -5,16 +5,10 @@ import type {
   TPackageManager,
   TProjectType,
   TSdkClient,
+  TSdkClientName,
 } from '../shared/project-options.js';
 import type { TGenerateOptions } from '../shared/types.js';
 import type { TPackageVersions } from './versions.js';
-
-export type TTemplateSetId = `xcm-${TProjectType}-${TFramework}`;
-
-export type TGeneratorTarget = {
-  templateSet: TTemplateSetId;
-  assetFiles?: readonly string[];
-};
 
 export type TGenerateAppParams = {
   kind: TProjectType;
@@ -24,25 +18,22 @@ export type TGenerateAppParams = {
 export type TSdkPackage =
   '@paraspell/sdk' | '@paraspell/sdk-pjs' | '@paraspell/sdk-dedot';
 
-export type TClientMeta = {
+export type TTemplateContext = TPackageVersions & {
   client: TSdkClient;
+  clientName: TSdkClientName;
   sdkPackage: TSdkPackage;
   sdkVersion: string;
   clientLabel: string;
+  projectName: string;
+  packageManager: TPackageManager;
+  installCmd: string;
+  startCmd: string;
+  framework: TFramework;
+  projectKind: TProjectType;
+  extensions: TExtensions;
+  evmWallet: boolean;
+  defaultOriginChain: 'Astar' | 'Moonbeam' | 'Ethereum';
 };
-
-export type TTemplateContext = TPackageVersions &
-  TClientMeta & {
-    projectName: string;
-    packageManager: TPackageManager;
-    installCmd: string;
-    devCmd: string;
-    startCmd: string;
-    framework: TFramework;
-    projectKind: TProjectType;
-    extensions: TExtensions;
-    evmWallet: boolean;
-  };
 
 export type TTemplateFile = {
   path: string;

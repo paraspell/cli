@@ -1,5 +1,8 @@
 import type { TTemplateContext, TTemplateFile } from '../types.js';
-import type { TFragmentRenderer } from './shared/contracts.js';
+import { createFragmentFile } from './fragment-file.js';
+import type { TFragmentRenderer } from './shared/fragment-types.js';
+import { createSpaBarrelTemplates } from './spa-barrels.js';
+import { createSpaToolingTemplates } from './spa-tooling.js';
 import { source } from './source.js';
 
 export const createXcmSdkReactTemplates = (
@@ -8,17 +11,15 @@ export const createXcmSdkReactTemplates = (
 ): readonly TTemplateFile[] => {
   const {
     client,
+    clientName,
     sdkPackage,
     extensions: { swap },
     evmWallet,
   } = context;
+  const fragment = createFragmentFile(renderFragment);
 
   return [
-    {
-      path: 'src/App.css',
-      render: () => source`${renderFragment('spa/App.css')}
-        `,
-    },
+    fragment('src/App.css', 'spa/App.css'),
     {
       path: 'src/App.tsx',
       render: () => source`import "./App.css";
@@ -27,7 +28,7 @@ export const createXcmSdkReactTemplates = (
             ? source`import "@paraspell/swap";
         `
             : ''
-        }${renderFragment('paraspell-side-effects')}import XcmTransfer from "./XcmTransfer";
+        }${renderFragment('paraspell-side-effects')}import { XcmTransfer } from "./components";
         
         const App = () => (
           <>
@@ -53,34 +54,33 @@ export const createXcmSdkReactTemplates = (
         `,
     },
     {
-      path: 'src/XcmTransfer.tsx',
+      path: 'src/components/XcmTransfer.tsx',
       render: () => source`import { useState, type FC } from "react";
-        import TransferForm from "./XcmTransferForm";
-        import type { TFormValues } from "./types";
+        import { TransferForm } from "./TransferForm";
+        import type { TFormValues } from "../types";
         import type { TChain } from "${sdkPackage}";
-        import {
-          ${
-            evmWallet
-              ? source`useWallet,
-          WalletControls,
-          WalletKindSelector,`
-              : source`
-          use${client === 'pjs' ? 'Pjs' : client === 'papi' ? 'Papi' : 'Dedot'}Wallet,
-          SubstrateWalletControls,`
-          }
-        } from "./wallet/${client}";${
+        ${
+          evmWallet
+            ? source`import { WalletControls } from "./WalletControls";
+        import { WalletKindSelector } from "./WalletKindSelector";
+        import { useWalletWithEvm } from "../hooks";`
+            : source`import { SubstrateWalletControls } from "./SubstrateWalletControls";
+        import { use${clientName}Wallet } from "../hooks";`
+        }${
           !evmWallet
             ? source`
-        import { submitUsingSdk } from "./xcm/${client}";`
+        import { submitUsingSdk } from "../xcm/${client}";`
             : ''
         }
         ${renderFragment('spa/toError')}
-        const XcmTransfer: FC = () => {
+        export const XcmTransfer: FC = () => {
           const [errorVisible, setErrorVisible] = useState(false);
           const [error, setError] = useState<Error | null>(null);
           const [loading, setLoading] = useState(false);
         
-          ${evmWallet ? source`const wallet = useWallet();` : source`${client === 'pjs' ? source`const wallet = usePjsWallet();` : source`${client === 'papi' ? source`const wallet = usePapiWallet();` : source`const wallet = useDedotWallet();`}`}`}
+          const wallet = ${
+            evmWallet ? 'useWalletWithEvm()' : `use${clientName}Wallet()`
+          };
           const [originChain, setOriginChain] = useState<TChain>("Astar");
         
           const onSubmit = async (formValues: TFormValues) => {
@@ -154,13 +154,12 @@ export const createXcmSdkReactTemplates = (
           );
         };
         
-        export default XcmTransfer;
         `,
     },
     {
-      path: 'src/XcmTransferForm.tsx',
+      path: 'src/components/TransferForm.tsx',
       render: () => source`import { useState, FormEvent, FC } from "react";
-        import useCurrencyOptions from "./useCurrencyOptions";
+        import { useCurrencyOptions } from "../hooks";
         import {
           CHAINS,${
             swap
@@ -173,7 +172,7 @@ export const createXcmSdkReactTemplates = (
           isChain,
           type TChain,
         } from "${sdkPackage}";
-        import type { TFormValues } from "./types";
+        import type { TFormValues } from "../types";
         
         type TProps = {
           onSubmit: (values: TFormValues) => void;
@@ -182,7 +181,7 @@ export const createXcmSdkReactTemplates = (
           loading: boolean;
         };
         
-        const TransferForm: FC<TProps> = ({
+        export const TransferForm: FC<TProps> = ({
           onSubmit,
           originChain,
           onOriginChange,
@@ -397,290 +396,87 @@ export const createXcmSdkReactTemplates = (
           );
         };
         
-        export default TransferForm;
         `,
     },
-    {
-      path: 'src/evm/eip6963.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/eip6963.ts')}
-        `,
-    },
-    {
-      path: 'src/evm/evmWalletClient.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/evmWalletClient')}
-        `,
-    },
-    {
-      path: 'src/evm/getViemChain.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/getViemChain')}
-        `,
-    },
-    {
-      path: 'src/evm/isEvmOrigin.ts',
-      skip: client === 'papi' && !evmWallet,
-      render: () => source`${renderFragment('evm/isEvmOrigin.sdk')}
-        `,
-    },
-    {
-      path: 'src/evm/utils.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/utils.ts')}
-        `,
-    },
-    {
-      path: 'src/index.css',
-      render: () => source`${renderFragment('spa/index.css')}
-        `,
-    },
-    {
-      path: 'src/main.tsx',
-      render: () => source`import { StrictMode } from "react";
-        import { createRoot } from "react-dom/client";
-        import App from "./App.tsx";
-        import "./index.css";
-        
-        const rootElement = document.getElementById("root");
-        if (!rootElement) {
-          throw new Error("Root element #root not found.");
-        }
-        
-        createRoot(rootElement).render(
-          <StrictMode>
-            <App />
-          </StrictMode>,
-        );
-        `,
-    },
-    {
-      path: 'src/requireAsset.ts',
-      render: () => source`${renderFragment('requireAsset')}
-        `,
-    },
-    {
-      path: 'src/types.ts',
-      render: () => source`${renderFragment('types/sdk.frontend')}
-        `,
-    },
-    {
-      path: 'src/useCurrencyOptions.ts',
-      render: () => source`${renderFragment('sdk/useCurrencyOptions.react')}
-        `,
-    },
-    {
-      path: 'src/vite-env.d.ts',
-      render: () => source`${renderFragment('spa/vite-env.d')}
-        `,
-    },
-    {
-      path: 'src/wallet/dedot/useDedotWallet.ts',
-      skip: client !== 'dedot',
-      render: () => source`${renderFragment('wallet/useExtensionWallet.react')}
-        `,
-    },
-    {
-      path: 'src/wallet/dedot/useWalletWithEvm.ts',
-      skip: !(evmWallet && client === 'dedot'),
-      render:
-        () => source`${renderFragment('wallet/useWalletWithEvm.sdk.react')}
-        `,
-    },
-    {
-      path: 'src/wallet/evm/EvmWalletControls.tsx',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/EvmWalletControls.react')}
-        `,
-    },
-    {
-      path: 'src/wallet/evm/WalletKindSelector.tsx',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/WalletKindSelector.react')}
-        `,
-    },
-    {
-      path: 'src/wallet/evm/useEvmWallet.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('evm/useEvmWallet.react')}
-        `,
-    },
-    {
-      path: ['src/wallet/', client, '/index.ts'].join(''),
-      render: () => source`${
-        evmWallet
-          ? source`export {
-          useWalletWithEvm as useWallet,
-          WalletControls,
-        } from "./useWalletWithEvm";
-        export { WalletKindSelector } from "../evm/WalletKindSelector";
-        export type { TUseWalletReturn, TWalletKind, TWalletKindSelectorProps } from "../../types";
-        `
-          : source`${
-              client === 'pjs'
-                ? source`export { usePjsWallet } from "./usePjsWallet";
-        export { SubstrateWalletControls } from "../shared/SubstrateWalletControls";
-        `
-                : source`${
-                    client === 'papi'
-                      ? source`export { usePapiWallet } from "./usePapiWallet";
-        export { SubstrateWalletControls } from "../shared/SubstrateWalletControls";
-        `
-                      : source`export { useDedotWallet } from "./useDedotWallet";
-        export { SubstrateWalletControls } from "../shared/SubstrateWalletControls";
-        `
-                  }`
-            }`
-      }
-        `,
-    },
-    {
-      path: 'src/wallet/papi/usePapiWallet.ts',
-      skip: client !== 'papi',
-      render: () => source`${renderFragment('wallet/usePapiWallet.react')}
-        `,
-    },
-    {
-      path: 'src/wallet/papi/useWalletWithEvm.ts',
-      skip: !(evmWallet && client === 'papi'),
-      render:
-        () => source`${renderFragment('wallet/useWalletWithEvm.sdk.react')}
-        `,
-    },
-    {
-      path: 'src/wallet/pjs/usePjsWallet.ts',
-      skip: client !== 'pjs',
-      render: () => source`${renderFragment('wallet/useExtensionWallet.react')}
-        `,
-    },
-    {
-      path: 'src/wallet/pjs/useWalletWithEvm.ts',
-      skip: !(evmWallet && client === 'pjs'),
-      render:
-        () => source`${renderFragment('wallet/useWalletWithEvm.sdk.react')}
-        `,
-    },
-    {
-      path: 'src/wallet/shared/SubstrateWalletControls.tsx',
-      render:
-        () => source`${renderFragment('wallet/SubstrateWalletControls.react')}
-        `,
-    },
-    {
-      path: 'src/wallet/shared/createWalletControls.tsx',
-      skip: !evmWallet,
-      render:
-        () => source`${renderFragment('wallet/createWalletControls.react')}
-        `,
-    },
-    {
-      path: 'src/wallet/shared/submitTransfer.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('wallet/submitTransfer.sdk')}
-        `,
-    },
-    {
-      path: 'src/wallet/shared/useWalletWithEvmCore.ts',
-      skip: !evmWallet,
-      render:
-        () => source`${renderFragment('wallet/useWalletWithEvmCore.react')}
-        `,
-    },
-    {
-      path: 'src/xcm/dedot.ts',
-      skip: client !== 'dedot',
-      render: () => source`${renderFragment('xcm/dedot')}
-        `,
-    },
-    {
-      path: 'src/xcm/evmTransfer.ts',
-      skip: !evmWallet,
-      render: () => source`${renderFragment('xcm/evmTransfer.sdk')}
-        `,
-    },
-    {
-      path: 'src/xcm/papi.ts',
-      skip: client !== 'papi',
-      render: () => source`${renderFragment('xcm/papi')}
-        `,
-    },
-    {
-      path: 'src/xcm/pjs.ts',
-      skip: client !== 'pjs',
-      render: () => source`${renderFragment('xcm/pjs')}
-        `,
-    },
-    {
-      path: 'tsconfig.app.json',
-      render: () => source`{
-          "compilerOptions": {
-            "target": "ES2022",
-            "useDefineForClassFields": true,
-            "lib": ["ES2022", "DOM", "DOM.Iterable"],
-            "module": "ESNext",
-            "skipLibCheck": true,
-        
-            "moduleResolution": "bundler",
-            "allowImportingTsExtensions": true,
-            "isolatedModules": true,
-            "moduleDetection": "force",
-            "noEmit": true,
-            "jsx": "react-jsx",
-        
-            "strict": true,
-            "noUnusedLocals": true,
-            "noUnusedParameters": true,
-            "noFallthroughCasesInSwitch": true
-          },
-          "include": ["src"]
-        }
-        `,
-    },
-    {
-      path: 'tsconfig.json',
-      render: () => source`{
-          "files": [],
-          "references": [
-            { "path": "./tsconfig.app.json" },
-            { "path": "./tsconfig.node.json" }
-          ]
-        }
-        `,
-    },
-    {
-      path: 'tsconfig.node.json',
-      render: () => source`{
-          "compilerOptions": {
-            "target": "ES2022",
-            "lib": ["ES2023"],
-            "module": "ESNext",
-            "skipLibCheck": true,
-        
-            "moduleResolution": "bundler",
-            "allowImportingTsExtensions": true,
-            "isolatedModules": true,
-            "moduleDetection": "force",
-            "noEmit": true,
-        
-            "strict": true,
-            "noUnusedLocals": true,
-            "noUnusedParameters": true,
-            "noFallthroughCasesInSwitch": true
-          },
-          "include": ["vite.config.ts"]
-        }
-        `,
-    },
-    {
-      path: 'vite.config.ts',
-      render: () => source`import { defineConfig } from "vite";
-        import react from "@vitejs/plugin-react";
-        import wasm from "vite-plugin-wasm";
-        
-        export default defineConfig({
-          plugins: [react(), wasm()],
-        });
-        `,
-    },
+    fragment('src/evm/eip6963.ts', 'evm/eip6963.ts', !evmWallet),
+    fragment('src/evm/evmWalletClient.ts', 'evm/evmWalletClient', !evmWallet),
+    fragment('src/evm/getViemChain.ts', 'evm/getViemChain', !evmWallet),
+    fragment(
+      'src/evm/isEvmOrigin.ts',
+      'evm/isEvmOrigin.sdk',
+      client === 'papi' && !evmWallet,
+    ),
+    fragment('src/evm/utils.ts', 'evm/utils.ts', !evmWallet),
+    fragment('src/index.css', 'spa/index.css'),
+    fragment('src/requireAsset.ts', 'requireAsset'),
+    fragment('src/types.ts', 'types/sdk.frontend'),
+    fragment('src/hooks/useCurrencyOptions.ts', 'sdk/useCurrencyOptions.react'),
+    fragment('src/vite-env.d.ts', 'spa/vite-env.d'),
+    fragment(
+      'src/hooks/useDedotWallet.ts',
+      'wallet/useExtensionWallet.react',
+      client !== 'dedot',
+    ),
+    fragment(
+      'src/hooks/useWalletWithEvm.ts',
+      'wallet/useWalletWithEvm.sdk.react',
+      !(evmWallet && client === 'dedot'),
+    ),
+    fragment(
+      'src/components/EvmWalletControls.tsx',
+      'evm/EvmWalletControls.react',
+      !evmWallet,
+    ),
+    fragment(
+      'src/components/WalletKindSelector.tsx',
+      'evm/WalletKindSelector.react',
+      !evmWallet,
+    ),
+    fragment('src/hooks/useEvmWallet.ts', 'evm/useEvmWallet.react', !evmWallet),
+    fragment(
+      'src/hooks/usePapiWallet.ts',
+      'wallet/usePapiWallet.react',
+      client !== 'papi',
+    ),
+    fragment(
+      'src/hooks/useWalletWithEvm.ts',
+      'wallet/useWalletWithEvm.sdk.react',
+      !(evmWallet && client === 'papi'),
+    ),
+    fragment(
+      'src/hooks/usePjsWallet.ts',
+      'wallet/useExtensionWallet.react',
+      client !== 'pjs',
+    ),
+    fragment(
+      'src/hooks/useWalletWithEvm.ts',
+      'wallet/useWalletWithEvm.sdk.react',
+      !(evmWallet && client === 'pjs'),
+    ),
+    fragment(
+      'src/components/SubstrateWalletControls.tsx',
+      'wallet/SubstrateWalletControls.react',
+    ),
+    fragment(
+      'src/components/WalletControls.tsx',
+      'wallet/WalletControls.react',
+      !evmWallet,
+    ),
+    fragment(
+      'src/wallet/shared/submitTransfer.ts',
+      'wallet/submitTransfer.sdk',
+      !evmWallet,
+    ),
+    fragment(
+      'src/hooks/useWalletWithEvmCore.ts',
+      'wallet/useWalletWithEvmCore.react',
+      !evmWallet,
+    ),
+    ...createSpaBarrelTemplates(context),
+    fragment('src/xcm/dedot.ts', 'xcm/dedot', client !== 'dedot'),
+    fragment('src/xcm/evmTransfer.ts', 'xcm/evmTransfer.sdk', !evmWallet),
+    fragment('src/xcm/papi.ts', 'xcm/papi', client !== 'papi'),
+    fragment('src/xcm/pjs.ts', 'xcm/pjs', client !== 'pjs'),
+    ...createSpaToolingTemplates(context),
   ];
 };
