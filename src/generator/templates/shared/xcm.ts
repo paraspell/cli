@@ -8,7 +8,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
 ) => {
   const {
     sdkPackage,
-    extensions: { evm, swap },
+    extensions: { swap },
     evmWallet,
   } = context;
 
@@ -30,7 +30,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         } from "@paraspell/sdk-dedot";
         import type { Signer } from "@polkadot/api/types";
         import type { TFormValues${evmWallet ? source`, TWalletSubmitOptions` : ''} } from "../types";
-        import { requireCurrency${swap ? source`, requireSwapCurrencyTo` : ''} } from "../requireAsset";
+        import { requireCurrency${swap ? source`, requireSwapCurrency` : ''} } from "../requireAsset";
         import { assertSubstrateOrigin } from "../evm/isEvmOrigin";${
           evmWallet
             ? source`
@@ -38,7 +38,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         `
             : ''
         }
-        export const buildTransactions = async (
+        const buildTransactions = async (
           formValues: TFormValues,
           senderAddress: string,
         ): Promise<TDedotExtrinsic[]> => {
@@ -51,7 +51,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         ${
           swap
             ? source`  if (swapEnabled) {
-            const resolvedCurrencyTo = requireSwapCurrencyTo(swapEnabled, currencyTo);
+            const resolvedCurrencyTo = requireSwapCurrency(swapEnabled, currencyTo);
             if (!resolvedCurrencyTo) {
               throw new UnsupportedOperationError("Swap destination currency is required.");
             }
@@ -150,8 +150,8 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         import type { WalletClient } from "viem";
         import type { EIP1193Provider } from "mipd";
         import type { TFormValues } from "../types";
-        import { requireCurrency${swap ? source`, requireSwapCurrencyTo` : ''} } from "../requireAsset";
-        import { ensureEvmWalletClient } from "../evm";
+        import { requireCurrency${swap ? source`, requireSwapCurrency` : ''} } from "../requireAsset";
+        import { ensureEvmWalletClient } from "../evm/evmWalletClient";
         
         export const submitEvmTransferFromForm = async (
           formValues: TFormValues,
@@ -171,7 +171,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         ${
           swap
             ? source`  if (swapEnabled) {
-            const resolvedCurrencyTo = requireSwapCurrencyTo(swapEnabled, currencyTo);
+            const resolvedCurrencyTo = requireSwapCurrency(swapEnabled, currencyTo);
             if (!resolvedCurrencyTo) {
               throw new Error("Swap destination currency is required.");
             }
@@ -209,11 +209,6 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
               ? source`
           isChainEvm,`
               : ''
-          }${
-            evm
-              ? source`
-        `
-              : ''
           }
         } from "@paraspell/sdk";
         import {
@@ -222,7 +217,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
           type TxFinalizedPayload,
         } from "polkadot-api";
         import type { TFormValues${evmWallet ? source`, TWalletSubmitOptions` : ''} } from "../types";
-        import { requireCurrency${swap ? source`, requireSwapCurrencyTo` : ''} } from "../requireAsset";${
+        import { requireCurrency${swap ? source`, requireSwapCurrency` : ''} } from "../requireAsset";${
           evmWallet
             ? source`
         import { assertSubstrateOrigin } from "../evm/isEvmOrigin";
@@ -280,7 +275,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         ${
           swap
             ? source`  if (swapEnabled) {
-            const resolvedCurrencyTo = requireSwapCurrencyTo(swapEnabled, currencyTo);
+            const resolvedCurrencyTo = requireSwapCurrency(swapEnabled, currencyTo);
             if (!resolvedCurrencyTo) {
               throw new UnsupportedOperationError("Swap destination currency is required.");
             }
@@ -315,18 +310,13 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
           await submitPapiTransaction(tx, signer);
         };
         
-        export const submitPapiTransaction = async (
+        const submitPapiTransaction = async (
           tx: TPapiTransaction,
           signer: PolkadotSigner,
-          onSign?: () => void,
         ): Promise<TxFinalizedPayload> => {
           return new Promise((resolve, reject) => {
             tx.signSubmitAndWatch(signer).subscribe({
               next: (event) => {
-                if (event.type === "signed") {
-                  onSign?.();
-                }
-        
                 if (event.type === "finalized") {
                   if (!event.ok) {
                     const errorMsg = event.dispatchError?.value
@@ -366,7 +356,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         } from "@paraspell/sdk-pjs";
         import type { Signer } from "@polkadot/api/types";
         import type { TFormValues${evmWallet ? source`, TWalletSubmitOptions` : ''} } from "../types";
-        import { requireCurrency${swap ? source`, requireSwapCurrencyTo` : ''} } from "../requireAsset";
+        import { requireCurrency${swap ? source`, requireSwapCurrency` : ''} } from "../requireAsset";
         import { assertSubstrateOrigin } from "../evm/isEvmOrigin";${
           evmWallet
             ? source`
@@ -374,7 +364,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         `
             : ''
         }
-        export const buildTransaction = async (
+        const buildTransaction = async (
           formValues: TFormValues,
           senderAddress: string,
         ): Promise<Extrinsic[]> => {
@@ -386,7 +376,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         ${
           swap
             ? source`  if (swapEnabled) {
-            const resolvedCurrencyTo = requireSwapCurrencyTo(swapEnabled, currencyTo);
+            const resolvedCurrencyTo = requireSwapCurrency(swapEnabled, currencyTo);
             if (!resolvedCurrencyTo) {
               throw new UnsupportedOperationError("Swap destination currency is required.");
             }

@@ -102,7 +102,6 @@ export const createQualityTemplates = (
 ): readonly TTemplateFile[] => [
   {
     path: 'eslint.config.js',
-    skip: false,
     render:
       context.framework === 'react'
         ? renderReactEslintConfig
@@ -112,7 +111,6 @@ export const createQualityTemplates = (
   },
   {
     path: '.prettierrc.json',
-    skip: false,
     render: () => source`{
       "singleQuote": false
     }
@@ -120,7 +118,6 @@ export const createQualityTemplates = (
   },
   {
     path: '.prettierignore',
-    skip: false,
     render: () => source`dist
       node_modules
     `,

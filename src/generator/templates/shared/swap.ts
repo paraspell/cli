@@ -40,7 +40,7 @@ export const createSwapFragments: TFragmentFactory<TSwapFragmentId> = () => {
           }, [chains]);
         
           useEffect(() => {
-            void ensureExchangeChains();
+            void ensureExchangeChains().catch(() => undefined);
           }, [ensureExchangeChains]);
         
           return { chains };
@@ -70,7 +70,7 @@ export const createSwapFragments: TFragmentFactory<TSwapFragmentId> = () => {
           };
         
           onMounted(() => {
-            void ensureExchangeChains();
+            void ensureExchangeChains().catch(() => undefined);
           });
         
           return { chains };

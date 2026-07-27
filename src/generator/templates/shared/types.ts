@@ -72,9 +72,13 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
           to: string;
           amount: string;
           currencyLocation?: object;
-          recipient: string;
+          recipient: string;${
+            swap
+              ? source`
           currencyToLocation?: object;
-          exchange?: string[];
+          exchange?: string[];`
+              : ''
+          }
         };
         `,
     'types/api.shared': () => source`export type TAssetInfo = {
@@ -109,30 +113,34 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
           message?: string;
         };
         `,
-    'types/common': () => source`export type TWalletKind = "substrate" | "evm";
+    'types/common': () => source`${
+      evmWallet
+        ? source`export type TWalletKind = "substrate" | "evm";
         
-        export type TWalletKindOption = {
-          value: TWalletKind;
-          label: string;
-        };
-        
-        export const WALLET_KIND_OPTIONS: readonly TWalletKindOption[] = [
+        export const WALLET_KIND_OPTIONS = [
           { value: "substrate", label: "Substrate" },
           { value: "evm", label: "EVM" },
-        ];
+        ] as const;
         
         export const parseWalletKind = (value: string): TWalletKind => {
-          const option = WALLET_KIND_OPTIONS.find((item) => item.value === value);
-          if (!option) {
+          if (value !== "substrate" && value !== "evm") {
             throw new Error(\`Unsupported wallet kind: \${value}\`);
           }
-          return option.value;
+          return value;
         };
-        
-        export type TWalletAccountOption = {
+        `
+        : ''
+    }
+        ${
+          framework === 'vue' || (projectKind === 'sdk' && client !== 'papi')
+            ? 'export '
+            : ''
+        }type TWalletAccountOption = {
           address: string;
           name?: string;
-        };
+        };${
+          evmWallet
+            ? source`
         
         export type TEvmAccountOption = {
           address: string;
@@ -142,14 +150,18 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
         export type TEvmProviderOption = {
           uuid: string;
           label: string;
-        };
+        };`
+            : ''
+        }
         
         export type TSubstrateWalletConnection<TSigner> = {
           address: string;
           signer: TSigner;
         };
         
-        export type TWalletControlsSubstrateProps = {
+        ${
+          framework === 'react' || evmWallet
+            ? source`export type TWalletControlsSubstrateProps = {
           extensionNames: string[];
           selectedExtensionName: string | undefined;
           accounts: TWalletAccountOption[];
@@ -158,7 +170,11 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
           onExtensionChange: (name: string) => void;
           onAccountChange: (address: string) => void;
         };
-        
+        `
+            : ''
+        }${
+          evmWallet && framework === 'react'
+            ? source`
         export type TWalletControlsEvmProps = {
           providerOptions: TEvmProviderOption[];
           selectedProviderUuid: string | undefined;
@@ -168,7 +184,9 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
           onProviderChange: (uuid: string) => void;
           onAccountChange: (address: string) => void;
           onDisconnect?: () => void;
-        };
+        };`
+            : ''
+        }
         `,
     'types/sdk.frontend':
       () => source`import type { TAssetInfo, TChain${swap ? source`, TExchangeChain` : ''} } from "${sdkPackage}";
@@ -204,7 +222,6 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
         export type TFormValues = {
           from: TChain;
           to: TChain;
-          currencyOptionId: string;
           recipient: string;
           amount: string;
           currency: TAssetInfo;${
@@ -234,7 +251,7 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
           amount: string;
           currencyLocation?: TLocation;
           recipient: string;
-          currencyToLocation?: TLocation;
+          ${swap ? source`currencyToLocation?: TLocation;` : ''}
         };
         `,
     'types/wallet.evm': () => source`export type TWalletKindSelectorProps = {
@@ -299,9 +316,6 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
           selectEvmProvider: (uuid: string) => Promise<void>;
           selectEvmAccount: (address: string) => void;
           disconnectEvm: () => void;
-          getEvmWalletClient: (
-            origin: ${projectKind === 'sdk' ? 'TChain' : 'string'},
-          ) => WalletClient | undefined;
         };
         
         export type TUseWalletReturn = TUseWalletWithEvmReturn<${client === 'papi' ? 'PolkadotSigner' : 'Signer'}>;

@@ -249,7 +249,6 @@ export const createWalletVueFragments: TFragmentFactory<
         import {
           connectInjectedExtension,
           getInjectedExtensions,
-          type InjectedExtension,
           type InjectedPolkadotAccount,
         } from "polkadot-api/pjs-signer";
         import type { PolkadotSigner } from "polkadot-api";
@@ -257,7 +256,6 @@ export const createWalletVueFragments: TFragmentFactory<
         
         export const usePapiWallet = () => {
           const extensionNames = ref<string[]>([]);
-          const selectedExtension = ref<InjectedExtension | null>(null);
           const selectedExtensionName = ref<string>();
           const accounts = ref<InjectedPolkadotAccount[]>([]);
           const selectedAccount = ref<InjectedPolkadotAccount>();
@@ -273,7 +271,6 @@ export const createWalletVueFragments: TFragmentFactory<
         
           const selectExtension = async (name: string) => {
             const injected = await connectInjectedExtension(name);
-            selectedExtension.value = injected;
             selectedExtensionName.value = name;
             const nextAccounts = injected.getAccounts();
             accounts.value = nextAccounts;
@@ -285,7 +282,7 @@ export const createWalletVueFragments: TFragmentFactory<
             const names = getInjectedExtensions();
             if (names.length === 0) {
               alert("No wallet extension found, install it to connect");
-              throw new Error("No Wallet Extension Found!");
+              return;
             }
             extensionNames.value = names;
             await selectExtension(names[0]);
@@ -302,10 +299,8 @@ export const createWalletVueFragments: TFragmentFactory<
           return {
             extensionNames,
             selectedExtensionName,
-            selectedExtension,
             accounts,
             selectedAddress,
-            selectedAccount,
             connection,
             discoverExtensions,
             selectExtension,
@@ -452,7 +447,7 @@ export const createWalletVueFragments: TFragmentFactory<
               if (extensionNames.length === 0) return;
         
               const name = selectedExtensionName ?? extensionNames[0];
-              void substrate.selectExtension(name);
+              void substrate.selectExtension(name).catch(() => undefined);
             },
             { immediate: true },
           );
@@ -507,7 +502,6 @@ export const createWalletVueFragments: TFragmentFactory<
             selectEvmProvider: evm.selectProvider,
             selectEvmAccount: evm.selectAccountByAddress,
             disconnectEvm: evm.disconnect,
-            getEvmWalletClient: evm.getWalletClient,
           };
         };
         `,

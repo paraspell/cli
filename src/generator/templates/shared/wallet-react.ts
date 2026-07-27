@@ -228,7 +228,6 @@ export const createWalletReactFragments: TFragmentFactory<
         import {
           connectInjectedExtension,
           getInjectedExtensions,
-          type InjectedExtension,
           type InjectedPolkadotAccount,
         } from "polkadot-api/pjs-signer";
         import type { PolkadotSigner } from "polkadot-api";
@@ -236,8 +235,7 @@ export const createWalletReactFragments: TFragmentFactory<
         
         export const usePapiWallet = () => {
           const [extensionNames, setExtensionNames] = useState<string[]>([]);
-          const [selectedExtension, setSelectedExtension] =
-            useState<InjectedExtension | null>(null);
+          const [selectedExtensionName, setSelectedExtensionName] = useState<string>();
           const [accounts, setAccounts] = useState<InjectedPolkadotAccount[]>([]);
           const [selectedAccount, setSelectedAccount] =
             useState<InjectedPolkadotAccount>();
@@ -252,7 +250,7 @@ export const createWalletReactFragments: TFragmentFactory<
         
           const selectExtension = useCallback(async (name: string) => {
             const injected = await connectInjectedExtension(name);
-            setSelectedExtension(injected);
+            setSelectedExtensionName(name);
             const nextAccounts = injected.getAccounts();
             setAccounts(nextAccounts);
             if (nextAccounts.length > 0) setSelectedAccount(nextAccounts[0]);
@@ -263,7 +261,7 @@ export const createWalletReactFragments: TFragmentFactory<
             const names = getInjectedExtensions();
             if (names.length === 0) {
               alert("No wallet extension found, install it to connect");
-              throw new Error("No Wallet Extension Found!");
+              return;
             }
             setExtensionNames(names);
             await selectExtension(names[0]);
@@ -279,11 +277,9 @@ export const createWalletReactFragments: TFragmentFactory<
         
           return {
             extensionNames,
-            selectedExtensionName: selectedExtension?.name,
-            selectedExtension,
+            selectedExtensionName,
             accounts,
             selectedAddress: selectedAccount?.address,
-            selectedAccount,
             connection,
             discoverExtensions,
             selectExtension,
@@ -292,8 +288,7 @@ export const createWalletReactFragments: TFragmentFactory<
         };
         `,
     'wallet/useWalletWithEvm.api.react':
-      () => source`import { useCallback } from "react";
-        import type { PolkadotSigner } from "polkadot-api";
+      () => source`import type { PolkadotSigner } from "polkadot-api";
         import type { TFormValues } from "../../types";
         import { useEvmOriginChains } from "../../evm/useEvmOriginChains";
         import { submitUsingApi } from "../../submit/submitUsingApi";
@@ -321,22 +316,19 @@ export const createWalletReactFragments: TFragmentFactory<
             selectAccountByAddress: papi.selectAccountByAddress,
           });
         
-          const submitTransfer = useCallback(
-            async (formValues: TFormValues) => {
-              const options = core.buildSubmitOptions(formValues.from);
-              if (!options) {
-                connectWalletAlert(core);
-                return false;
-              }
-        
-              await submitUsingApi(formValues, options, {
-                ensureEvmOriginChains,
-                isEvmOrigin,
-              });
-              return true;
-            },
-            [core, ensureEvmOriginChains, isEvmOrigin],
-          );
+          const submitTransfer = async (formValues: TFormValues) => {
+            const options = core.buildSubmitOptions(formValues.from);
+            if (!options) {
+              connectWalletAlert(core);
+              return false;
+            }
+
+            await submitUsingApi(formValues, options, {
+              ensureEvmOriginChains,
+              isEvmOrigin,
+            });
+            return true;
+          };
         
           return { ...core, submitTransfer };
         };
@@ -347,7 +339,6 @@ export const createWalletReactFragments: TFragmentFactory<
       const signerType = client === 'papi' ? 'PolkadotSigner' : 'Signer';
 
       return source`
-        import { useCallback } from "react";
         ${
           client === 'papi'
             ? source`import type { PolkadotSigner } from "polkadot-api";
@@ -383,23 +374,20 @@ export const createWalletReactFragments: TFragmentFactory<
             selectAccountByAddress: ${client}.selectAccountByAddress,
           });
         
-          const submitTransfer = useCallback(
-            async (formValues: TFormValues) => {
-              const options = core.buildSubmitOptions(formValues.from);
-              if (!options) {
-                connectWalletAlert(core);
-                return false;
-              }
-        
-              if (await submitEvmIfNeeded(formValues, options)) {
-                return true;
-              }
-        
-              await submitUsingSdk(formValues, options);
+          const submitTransfer = async (formValues: TFormValues) => {
+            const options = core.buildSubmitOptions(formValues.from);
+            if (!options) {
+              connectWalletAlert(core);
+              return false;
+            }
+
+            if (await submitEvmIfNeeded(formValues, options)) {
               return true;
-            },
-            [core],
-          );
+            }
+
+            await submitUsingSdk(formValues, options);
+            return true;
+          };
         
           return { ...core, submitTransfer };
         };
@@ -423,50 +411,64 @@ export const createWalletReactFragments: TFragmentFactory<
           substrate: TSubstrateWalletBase<TSigner>,
         ) => {
           const evm = useEvmWallet();
+          const {
+            accounts,
+            connection: substrateConnection,
+            extensionNames,
+            selectedAddress: substrateAddress,
+            selectedExtensionName,
+            selectExtension,
+          } = substrate;
+          const { getWalletClient, selectedProvider } = evm;
         
           const [activeWalletKind, setActiveWalletKind] =
             useState<TWalletKind>("substrate");
         
           useEffect(() => {
             if (activeWalletKind !== "substrate") return;
-            if (substrate.accounts.length > 0) return;
-            if (substrate.extensionNames.length === 0) return;
+            if (accounts.length > 0) return;
+            if (extensionNames.length === 0) return;
         
-            const name =
-              substrate.selectedExtensionName ?? substrate.extensionNames[0];
-            void substrate.selectExtension(name);
-          }, [activeWalletKind, substrate]);
+            const name = selectedExtensionName ?? extensionNames[0];
+            void selectExtension(name).catch(() => undefined);
+          }, [
+            accounts.length,
+            activeWalletKind,
+            extensionNames,
+            selectedExtensionName,
+            selectExtension,
+          ]);
         
           const buildSubmitOptions = useCallback(
             (from: ${projectKind === 'sdk' ? 'TChain' : 'string'}): TWalletSubmitOptions<TSigner> | null => {
               if (activeWalletKind === "evm") {
-                const walletClient = evm.getWalletClient(from);
-                if (!walletClient || !evm.selectedProvider) return null;
+                const walletClient = getWalletClient(from);
+                if (!walletClient || !selectedProvider) return null;
                 return {
                   kind: "evm",
                   walletClient,
-                  provider: evm.selectedProvider.provider,
+                  provider: selectedProvider.provider,
                 };
               }
         
-              if (!substrate.connection) return null;
+              if (!substrateConnection) return null;
               return {
                 kind: "substrate",
-                signer: substrate.connection.signer,
-                senderAddress: substrate.connection.address,
+                signer: substrateConnection.signer,
+                senderAddress: substrateConnection.address,
               };
             },
-            [activeWalletKind, evm, substrate.connection],
+            [activeWalletKind, getWalletClient, selectedProvider, substrateConnection],
           );
         
           return {
             ...substrate,
             connection:
-              activeWalletKind === "substrate" ? substrate.connection : null,
+              activeWalletKind === "substrate" ? substrateConnection : null,
             selectedAddress:
               activeWalletKind === "evm"
                 ? evm.selectedAddress
-                : substrate.selectedAddress,
+                : substrateAddress,
             activeWalletKind,
             setActiveWalletKind,
             buildSubmitOptions,
@@ -477,7 +479,6 @@ export const createWalletReactFragments: TFragmentFactory<
             selectEvmProvider: evm.selectProvider,
             selectEvmAccount: evm.selectAccountByAddress,
             disconnectEvm: evm.disconnect,
-            getEvmWalletClient: evm.getWalletClient,
           };
         };
         `,

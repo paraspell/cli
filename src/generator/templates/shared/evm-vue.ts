@@ -153,24 +153,17 @@ export const createEvmVueFragments: TFragmentFactory<
           const isEvmOrigin = (chain: string) => chains.value.includes(chain);
         
           onMounted(() => {
-            void ensureEvmOriginChains();
+            void ensureEvmOriginChains().catch(() => undefined);
           });
         
           return { chains, isEvmOrigin, ensureEvmOriginChains };
         };
         `,
-    'evm/useEvmWallet.vue': () => source`import {
-        computed,
-        onMounted,
-        onUnmounted,
-        ref,
-        shallowRef,
-      } from "vue";
+    'evm/useEvmWallet.vue': () => source`import { computed, ref } from "vue";
         import type { EIP6963ProviderDetail } from "mipd";
         import { getAddress, type WalletClient, isAddress } from "viem";
         import { createWalletClient, custom } from "viem";
-        import { evmProviderStore, getEip6963Providers } from "../../evm/eip6963";
-        import { createEvmWalletClient } from "../../evm/evmWalletClient";
+        import { getEip6963Providers } from "../../evm/eip6963";
         import { getViemChainForOrigin } from "../../evm/getViemChain";
         import {
           parseRequestedAccounts,
@@ -180,23 +173,10 @@ export const createEvmVueFragments: TFragmentFactory<
         import type { TEvmAccountOption, TEvmProviderOption } from "../../types";
         
         export const useEvmWallet = () => {
-          const providers = ref<readonly EIP6963ProviderDetail[]>(getEip6963Providers());
           const accounts = ref<string[]>([]);
           const selectedAddress = ref<string>();
           const selectedProvider = ref<EIP6963ProviderDetail>();
           const providerOptions = ref<TEvmProviderOption[]>([]);
-        
-          const unsubscribe = shallowRef<() => void>();
-        
-          onMounted(() => {
-            unsubscribe.value = evmProviderStore?.subscribe((nextProviders) => {
-              providers.value = nextProviders;
-            });
-          });
-        
-          onUnmounted(() => {
-            unsubscribe.value?.();
-          });
         
           const handleAccountsChanged = (nextAccounts: string[]) => {
             if (nextAccounts.length === 0) {
@@ -292,25 +272,17 @@ export const createEvmVueFragments: TFragmentFactory<
             });
           };
         
-          const getConnectedWalletClient = (origin: string): WalletClient | undefined => {
-            if (!selectedProvider.value) return undefined;
-            return createEvmWalletClient(origin, selectedProvider.value.provider);
-          };
-        
           return {
             accounts: accountOptions,
-            providers,
             providerOptions,
             selectedAddress,
             selectedProvider,
             selectedProviderUuid,
             discoverProviders,
-            connectWithProvider,
             selectProvider,
             selectAccountByAddress,
             disconnect,
             getWalletClient,
-            getConnectedWalletClient,
           };
         };
         `,

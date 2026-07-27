@@ -24,6 +24,28 @@ export const createSdkFragments: TFragmentFactory<TSdkFragmentId> = (
             : ''
         }
         import { useMemo } from "react";
+
+        const assetKey = (asset: TAssetInfo): string =>
+          \`\${asset.symbol ?? "NO_SYMBOL"}-\${
+            ("assetId" in asset ? asset.assetId : JSON.stringify(asset.location)) ??
+            "NO_ID"
+          }\`;
+
+        const createAssetOptions = (assets: TAssetInfo[]) => {
+          const map = Object.fromEntries(
+            assets.map((asset) => [assetKey(asset), asset]),
+          ) as Record<string, TAssetInfo>;
+
+          return {
+            map,
+            options: Object.entries(map).map(([value, asset]) => ({
+              value,
+              label: \`\${asset.symbol ?? "Unknown"} - \${
+                ("assetId" in asset ? asset.assetId : "Location") ?? "Native"
+              }\`,
+            })),
+          };
+        };
         
         const useCurrencyOptions = (
           from: TChain,
@@ -57,66 +79,16 @@ export const createSdkFragments: TFragmentFactory<TSdkFragmentId> = (
               : ''
           }
         
-          const currencyMap = useMemo(
-            () =>
-              supportedAssets.reduce(
-                (map: Record<string, TAssetInfo>, asset: TAssetInfo) => {
-                  const key = \`\${asset.symbol ?? "NO_SYMBOL"}-\${
-                    ("assetId" in asset
-                      ? asset.assetId
-                      : JSON.stringify(asset?.location)) ?? "NO_ID"
-                  }\`;
-                  map[key] = asset;
-                  return map;
-                },
-                {},
-              ),
+          const { map: currencyMap, options: currencyOptions } = useMemo(
+            () => createAssetOptions(supportedAssets),
             [supportedAssets],
-          );
-        
-          const currencyOptions = useMemo(
-            () =>
-              Object.keys(currencyMap).map((key) => ({
-                value: key,
-                label: \`\${currencyMap[key].symbol} - \${
-                  ("assetId" in currencyMap[key]
-                    ? currencyMap[key].assetId
-                    : "Location") ?? "Native"
-                }\`,
-              })),
-            [currencyMap],
           );${
             swap
               ? source`
         
-          const currencyToMap = useMemo(
-            () =>
-              supportedAssetsTo.reduce(
-                (map: Record<string, TAssetInfo>, asset: TAssetInfo) => {
-                  const key = \`\${asset.symbol ?? "NO_SYMBOL"}-\${
-                    ("assetId" in asset
-                      ? asset.assetId
-                      : JSON.stringify(asset?.location)) ?? "NO_ID"
-                  }\`;
-                  map[key] = asset;
-                  return map;
-                },
-                {},
-              ),
+          const { map: currencyToMap, options: currencyToOptions } = useMemo(
+            () => createAssetOptions(supportedAssetsTo),
             [supportedAssetsTo],
-          );
-        
-          const currencyToOptions = useMemo(
-            () =>
-              Object.keys(currencyToMap).map((key) => ({
-                value: key,
-                label: \`\${currencyToMap[key].symbol} - \${
-                  ("assetId" in currencyToMap[key]
-                    ? currencyToMap[key].assetId
-                    : "Location") ?? "Native"
-                }\`,
-              })),
-            [currencyToMap],
           );`
               : ''
           }
@@ -153,6 +125,22 @@ export const createSdkFragments: TFragmentFactory<TSdkFragmentId> = (
             ("assetId" in asset ? asset.assetId : JSON.stringify(asset?.location)) ??
             "NO_ID"
           }\`;
+
+        const createAssetOptions = (assets: TAssetInfo[]) => {
+          const map = Object.fromEntries(
+            assets.map((asset) => [assetKey(asset), asset]),
+          ) as Record<string, TAssetInfo>;
+
+          return {
+            map,
+            options: Object.entries(map).map(([value, asset]) => ({
+              value,
+              label: \`\${asset.symbol ?? "Unknown"} - \${
+                ("assetId" in asset ? asset.assetId : "Location") ?? "Native"
+              }\`,
+            })),
+          };
+        };
         
         const useCurrencyOptions = (
           from: Ref<TChain>,
@@ -184,49 +172,19 @@ export const createSdkFragments: TFragmentFactory<TSdkFragmentId> = (
               : ''
           }
         
-          const currencyMap = computed(() =>
-            supportedAssets.value.reduce(
-              (map: Record<string, TAssetInfo>, asset: TAssetInfo) => {
-                map[assetKey(asset)] = asset;
-                return map;
-              },
-              {},
-            ),
+          const currencyData = computed(() =>
+            createAssetOptions(supportedAssets.value),
           );
-        
-          const currencyOptions = computed(() =>
-            Object.keys(currencyMap.value).map((key) => ({
-              value: key,
-              label: \`\${currencyMap.value[key].symbol} - \${
-                ("assetId" in currencyMap.value[key]
-                  ? currencyMap.value[key].assetId
-                  : "Location") ?? "Native"
-              }\`,
-            })),
-          );${
+          const currencyMap = computed(() => currencyData.value.map);
+          const currencyOptions = computed(() => currencyData.value.options);${
             swap
               ? source`
         
-          const currencyToMap = computed(() =>
-            supportedAssetsTo.value.reduce(
-              (map: Record<string, TAssetInfo>, asset: TAssetInfo) => {
-                map[assetKey(asset)] = asset;
-                return map;
-              },
-              {},
-            ),
+          const currencyToData = computed(() =>
+            createAssetOptions(supportedAssetsTo.value),
           );
-        
-          const currencyToOptions = computed(() =>
-            Object.keys(currencyToMap.value).map((key) => ({
-              value: key,
-              label: \`\${currencyToMap.value[key].symbol} - \${
-                ("assetId" in currencyToMap.value[key]
-                  ? currencyToMap.value[key].assetId
-                  : "Location") ?? "Native"
-              }\`,
-            })),
-          );`
+          const currencyToMap = computed(() => currencyToData.value.map);
+          const currencyToOptions = computed(() => currencyToData.value.options);`
               : ''
           }
         

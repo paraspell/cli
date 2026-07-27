@@ -122,7 +122,7 @@ export const createEvmReactFragments: TFragmentFactory<
           }, [chains]);
         
           useEffect(() => {
-            void ensureEvmOriginChains();
+            void ensureEvmOriginChains().catch(() => undefined);
           }, [ensureEvmOriginChains]);
         
           const isEvmOrigin = useCallback(
@@ -135,12 +135,10 @@ export const createEvmReactFragments: TFragmentFactory<
         `,
     'evm/useEvmWallet.react':
       () => source`import { useCallback, useEffect, useMemo, useState } from "react";
-        import { useSyncExternalStore } from "react";
         import type { EIP6963ProviderDetail } from "mipd";
         import { getAddress, type WalletClient } from "viem";
         import { createWalletClient, custom, isAddress } from "viem";
-        import { evmProviderStore, getEip6963Providers } from "../../evm/eip6963";
-        import { createEvmWalletClient } from "../../evm/evmWalletClient";
+        import { getEip6963Providers } from "../../evm/eip6963";
         import { getViemChainForOrigin } from "../../evm/getViemChain";
         import {
           parseRequestedAccounts,
@@ -150,11 +148,6 @@ export const createEvmReactFragments: TFragmentFactory<
         import type { TEvmAccountOption, TEvmProviderOption } from "../../types";
         
         export const useEvmWallet = () => {
-          const providers = useSyncExternalStore(
-            (onStoreChange) => evmProviderStore?.subscribe(onStoreChange) ?? (() => undefined),
-            () => getEip6963Providers(),
-            () => [],
-          );
           const [accounts, setAccounts] = useState<string[]>([]);
           const [selectedAddress, setSelectedAddress] = useState<string>();
           const [selectedProvider, setSelectedProvider] =
@@ -272,28 +265,17 @@ export const createEvmReactFragments: TFragmentFactory<
             [selectedAddress, selectedProvider],
           );
         
-          const getConnectedWalletClient = useCallback(
-            (origin: string): WalletClient | undefined => {
-              if (!selectedProvider) return undefined;
-              return createEvmWalletClient(origin, selectedProvider.provider);
-            },
-            [selectedProvider],
-          );
-        
           return {
             accounts: accountOptions,
-            providers,
             providerOptions,
             selectedAddress,
             selectedProvider,
             selectedProviderUuid,
             discoverProviders,
-            connectWithProvider,
             selectProvider,
             selectAccountByAddress,
             disconnect,
             getWalletClient,
-            getConnectedWalletClient,
           };
         };
         `,

@@ -29,22 +29,24 @@ const resolveOutputPath = (
   return resolvedPath;
 };
 
-const copyLogo = async (
+const copyAssets = async (
   meta: TGeneratorTarget,
   outputRoot: string,
 ): Promise<void> => {
-  if (!meta.logoFile) return;
+  await Promise.all(
+    (meta.assetFiles ?? []).map(async (assetFile) => {
+      const source = fileURLToPath(
+        new URL(`../../assets/${assetFile}`, import.meta.url),
+      );
+      if (!fs.existsSync(source)) {
+        throw new Error(`Missing generator asset: ${source}`);
+      }
 
-  const logoSource = fileURLToPath(
-    new URL(`../../assets/${meta.logoFile}`, import.meta.url),
+      const destination = path.join(outputRoot, 'public', assetFile);
+      await fs.promises.mkdir(path.dirname(destination), { recursive: true });
+      await fs.promises.copyFile(source, destination);
+    }),
   );
-  if (!fs.existsSync(logoSource)) {
-    throw new Error(`Missing generator asset: ${logoSource}`);
-  }
-
-  const logoDestination = path.join(outputRoot, 'public', meta.logoFile);
-  await fs.promises.mkdir(path.dirname(logoDestination), { recursive: true });
-  await fs.promises.copyFile(logoSource, logoDestination);
 };
 
 export const generateApp = async (
@@ -76,7 +78,7 @@ export const generateApp = async (
     }),
   );
 
-  await copyLogo(meta, opts.out);
+  await copyAssets(meta, opts.out);
 
   if (opts.framework === 'node') {
     await writeNodeEnv(opts.out, {

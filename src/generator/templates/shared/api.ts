@@ -14,20 +14,35 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
   } = context;
 
   return {
-    'api/buildApiParams': () => source`const buildApiParams = (
-          from: string | undefined,
-          to: string | undefined,
-          recipient: string,
-          sender: string,
-          amount: string,
-          currencyLocation: object,${
+    'api/buildApiParams': () => source`type TBuildApiParams = {
+          from: string | undefined;
+          to: string | undefined;
+          recipient: string;
+          sender: string;
+          amount: string;
+          currencyLocation: object;${
             swap
               ? source`
-          currencyToLocation?: object,
-          exchange?: string[],`
+          currencyToLocation?: object;
+          exchange?: string[];`
               : ''
           }
-        ): TApiParams => ({
+        };
+
+        const buildApiParams = ({
+          from,
+          to,
+          recipient,
+          sender,
+          amount,
+          currencyLocation,${
+            swap
+              ? source`
+          currencyToLocation,
+          exchange,`
+              : ''
+          }
+        }: TBuildApiParams): TApiParams => ({
           from,
           to,
           recipient,
@@ -146,13 +161,102 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
           });
         };
         `,
+    'api/useApiData.react': () => source`import axios from "axios";
+        import { useEffect, useState } from "react";
+
+        const toError = (error: unknown): Error =>
+          error instanceof Error ? error : new Error(String(error));
+
+        export const useApiData = <T>(url: string | undefined) => {
+          const [data, setData] = useState<T[]>([]);
+          const [loading, setLoading] = useState(false);
+          const [error, setError] = useState<Error | null>(null);
+
+          useEffect(() => {
+            if (!url) {
+              setData([]);
+              setLoading(false);
+              setError(null);
+              return;
+            }
+
+            const controller = new AbortController();
+            setData([]);
+            setLoading(true);
+            setError(null);
+
+            void axios
+              .get<T[]>(url, { signal: controller.signal })
+              .then((response) => {
+                setData(response.data);
+              })
+              .catch((error: unknown) => {
+                if (!controller.signal.aborted) setError(toError(error));
+              })
+              .finally(() => {
+                if (!controller.signal.aborted) setLoading(false);
+              });
+
+            return () => {
+              controller.abort();
+            };
+          }, [url]);
+
+          return { data, loading, error };
+        };
+        `,
+    'api/useApiData.vue': () => source`import axios from "axios";
+        import { ref, shallowRef, watch, type Ref } from "vue";
+
+        const toError = (error: unknown): Error =>
+          error instanceof Error ? error : new Error(String(error));
+
+        export const useApiData = <T>(url: Ref<string | undefined>) => {
+          const data = shallowRef<T[]>([]);
+          const loading = ref(false);
+          const error = shallowRef<Error | null>(null);
+
+          watch(
+            url,
+            (value, _previous, onCleanup) => {
+              if (!value) {
+                data.value = [];
+                loading.value = false;
+                error.value = null;
+                return;
+              }
+
+              const controller = new AbortController();
+              onCleanup(() => controller.abort());
+              data.value = [];
+              loading.value = true;
+              error.value = null;
+
+              void axios
+                .get<T[]>(value, { signal: controller.signal })
+                .then((response) => {
+                  data.value = response.data;
+                })
+                .catch((caught: unknown) => {
+                  if (!controller.signal.aborted) error.value = toError(caught);
+                })
+                .finally(() => {
+                  if (!controller.signal.aborted) loading.value = false;
+                });
+            },
+            { immediate: true },
+          );
+
+          return { data, loading, error };
+        };
+        `,
     'api/submitUsingApi': () => source`import axios from "axios";
         import { Binary } from "polkadot-api";
         import type { PolkadotSigner } from "polkadot-api";
         import { createWsClient } from "polkadot-api/ws";
         import { API_URL } from "../consts";
         import { fetchFromApi${evmWallet ? source`, fetchFromEvmApi` : ''} } from "../fetchFromApi";
-        import { requireCurrency${swap ? source`, requireSwapCurrencyTo` : ''} } from "../requireAsset";
+        import { requireCurrency${swap ? source`, requireSwapCurrency` : ''} } from "../requireAsset";
         ${
           evmWallet
             ? source`import { submitEvmTx } from "./submitEvmTx";
@@ -202,7 +306,7 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
           const currency = requireCurrency(formValues.currency);
         ${
           swap
-            ? source`  const swapCurrencyTo = requireSwapCurrencyTo(
+            ? source`  const swapCurrencyTo = requireSwapCurrency(
             formValues.swapEnabled,
             formValues.currencyTo,
           );
@@ -223,22 +327,22 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
             }
         
             const serializedTx = await fetchFromEvmApi(
-              buildApiParams(
-                formValues.from,
-                formValues.to,
-                formValues.recipient,
+              buildApiParams({
+                from: formValues.from,
+                to: formValues.to,
+                recipient: formValues.recipient,
                 sender,
-                formValues.amount,
-                currency.location,${
+                amount: formValues.amount,
+                currencyLocation: currency.location,${
                   swap
                     ? source`
-                formValues.swapEnabled && swapCurrencyTo
+                currencyToLocation: formValues.swapEnabled && swapCurrencyTo
                   ? swapCurrencyTo.location
                   : undefined,
-                formValues.exchange,`
+                exchange: formValues.exchange,`
                     : ''
                 }
-              ),
+              }),
             );
             await submitEvmTx(serializedTx, options.walletClient);
             return;
@@ -249,22 +353,22 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
           }
         
           const transactions = await fetchFromApi(
-            buildApiParams(
-              formValues.from,
-              formValues.to,
-              formValues.recipient,
-              options.senderAddress,
-              formValues.amount,
-              currency.location,${
+            buildApiParams({
+              from: formValues.from,
+              to: formValues.to,
+              recipient: formValues.recipient,
+              sender: options.senderAddress,
+              amount: formValues.amount,
+              currencyLocation: currency.location,${
                 swap
                   ? source`
-              formValues.swapEnabled && swapCurrencyTo
+              currencyToLocation: formValues.swapEnabled && swapCurrencyTo
                 ? swapCurrencyTo.location
                 : undefined,
-              formValues.exchange,`
+              exchange: formValues.exchange,`
                   : ''
               }
-            ),
+            }),
           );
         
           for (const apiTx of transactions) {
@@ -281,7 +385,7 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
           const currency = requireCurrency(formValues.currency);
         ${
           swap
-            ? source`  const swapCurrencyTo = requireSwapCurrencyTo(
+            ? source`  const swapCurrencyTo = requireSwapCurrency(
             formValues.swapEnabled,
             formValues.currencyTo,
           );
@@ -290,22 +394,22 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
         }
         
           const transactions = await fetchFromApi(
-            buildApiParams(
-              formValues.from,
-              formValues.to,
-              formValues.recipient,
-              senderAddress,
-              formValues.amount,
-              currency.location,${
+            buildApiParams({
+              from: formValues.from,
+              to: formValues.to,
+              recipient: formValues.recipient,
+              sender: senderAddress,
+              amount: formValues.amount,
+              currencyLocation: currency.location,${
                 swap
                   ? source`
-              formValues.swapEnabled && swapCurrencyTo
+              currencyToLocation: formValues.swapEnabled && swapCurrencyTo
                 ? swapCurrencyTo.location
                 : undefined,
-              formValues.exchange,`
+              exchange: formValues.exchange,`
                   : ''
               }
-            ),
+            }),
           );
         
           for (const apiTx of transactions) {
@@ -325,15 +429,10 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
         export const submitTransaction = async (
           tx: Transaction,
           signer: PolkadotSigner,
-          onSign?: () => void,
-        ): Promise<TxFinalizedPayload | { txHash: string }> => {
+        ): Promise<TxFinalizedPayload> => {
           return new Promise((resolve, reject) => {
             tx.signSubmitAndWatch(signer).subscribe({
               next: (event) => {
-                if (event.type === "signed") {
-                  onSign?.();
-                }
-        
                 if (event.type === "finalized") {
                   if (!event.ok) {
                     const errorMsg = event.dispatchError?.value

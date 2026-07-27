@@ -4,6 +4,7 @@ import type {
   TTemplateSetId,
 } from '../types.js';
 import { createQualityTemplates } from './quality.js';
+import { createScaffoldTemplates } from './scaffold.js';
 import { createFragmentRenderer } from './shared/index.js';
 import { createXcmApiNodeTemplates } from './xcm-api-node.js';
 import { createXcmApiReactTemplates } from './xcm-api-react.js';
@@ -32,6 +33,7 @@ export const createTemplateFiles = (
 ): readonly TTemplateFile[] => {
   const renderFragment = createFragmentRenderer(context);
   return [
+    ...createScaffoldTemplates(context, renderFragment),
     ...TEMPLATE_FACTORIES[templateSet](context, renderFragment),
     ...createQualityTemplates(context),
   ];
