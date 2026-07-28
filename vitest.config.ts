@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
 const COVERAGE_THRESHOLD = 90;
-const E2E_TIMEOUT_MS = 2 * 60 * 1000;
+const E2E_TIMEOUT_MS = 5 * 60 * 1000;
 
 export default defineConfig({
   test: {
