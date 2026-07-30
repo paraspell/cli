@@ -1,4 +1,3 @@
-import type { Code } from 'ts-poet';
 import type {
   TExtensions,
   TFramework,
@@ -38,5 +37,5 @@ export type TTemplateContext = TPackageVersions & {
 export type TTemplateFile = {
   path: string;
   skip?: boolean;
-  render: () => Code;
+  render: () => string;
 };

@@ -1,26 +1,16 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { writeNodeEnv } from './write-node-env.js';
 
-const outputs: string[] = [];
-
-const temporaryOutput = (): string => {
-  const output = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-env-'));
-  outputs.push(output);
-  return output;
-};
-
-afterEach(() => {
-  for (const output of outputs.splice(0)) {
-    fs.rmSync(output, { recursive: true, force: true });
-  }
-});
+const temporaryOutput = () =>
+  fs.mkdtempDisposableSync(path.join(os.tmpdir(), 'paraspell-env-'));
 
 describe('writeNodeEnv', () => {
   it('writes only the Substrate setting by default', async () => {
-    const out = temporaryOutput();
+    using output = temporaryOutput();
+    const out = output.path;
 
     await writeNodeEnv(out);
 
@@ -30,7 +20,8 @@ describe('writeNodeEnv', () => {
   });
 
   it('quotes and escapes sensitive values when needed', async () => {
-    const out = temporaryOutput();
+    using output = temporaryOutput();
+    const out = output.path;
 
     await writeNodeEnv(out, {
       evmWallet: true,

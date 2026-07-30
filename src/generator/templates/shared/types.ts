@@ -29,7 +29,6 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
             : ''
         }
         import type { WalletClient } from "viem";
-        import type { EIP1193Provider } from "mipd";
         `
         : ''
     }
@@ -82,7 +81,7 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
         };
         `,
     'types/api.shared': () => source`export type TAssetInfo = {
-          symbol?: string;
+          symbol: string;
           assetId?: string;
           location: object;
         };
@@ -160,7 +159,7 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
         };
         
         ${
-          framework === 'react' || evmWallet
+          framework === 'react'
             ? source`export type TWalletControlsSubstrateProps = {
           extensionNames: string[];
           selectedExtensionName: string | undefined;
@@ -212,7 +211,6 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
                   : ''
               }
         import type { WalletClient } from "viem";
-        import type { EIP1193Provider } from "mipd";
         `
             : ''
         }
@@ -287,7 +285,7 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
         };
         
         export type TWalletSubmitOptions<TSigner = unknown> =
-          | { kind: "evm"; walletClient: WalletClient; provider: EIP1193Provider }
+          | { kind: "evm"; walletClient: WalletClient }
           | { kind: "substrate"; signer: TSigner; senderAddress: string };
         
         export type TUseWalletWithEvmReturn<TSigner = unknown> = TSubstrateWalletBase<TSigner> & {

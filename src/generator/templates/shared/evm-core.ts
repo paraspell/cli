@@ -10,7 +10,6 @@ export const createEvmCoreFragments: TFragmentFactory<TEvmCoreFragmentId> = (
   context,
 ) => {
   const {
-    sdkPackage,
     extensions: { evm, snowbridge },
   } = context;
 
@@ -44,35 +43,6 @@ export const createEvmCoreFragments: TFragmentFactory<TEvmCoreFragmentId> = (
           chain: string,
           evmOriginChains: readonly string[],
         ): boolean => evmOriginChains.includes(chain);
-        `,
-    'evm/evmWalletClient':
-      () => source`import type { EIP1193Provider } from "mipd";
-        import {
-          createWalletClient,
-          custom,
-          type Address,
-          type WalletClient,
-        } from "viem";
-        import { getViemChainForOrigin } from "./getViemChain";
-        
-        export const ensureEvmWalletClient = async (
-          walletClient: WalletClient,
-          origin: string,
-          provider: EIP1193Provider,
-        ): Promise<WalletClient> => {
-          if (!walletClient.account) {
-            throw new Error(
-              "EVM wallet has no account. Disconnect and connect again.",
-            );
-          }
-          const address: Address = walletClient.account.address;
-        
-          return createWalletClient({
-            account: address,
-            chain: getViemChainForOrigin(origin),
-            transport: custom(provider),
-          });
-        };
         `,
     'evm/getViemChain': () => source`import type { Chain } from "viem";${
       evm
@@ -109,24 +79,6 @@ export const createEvmCoreFragments: TFragmentFactory<TEvmCoreFragmentId> = (
           return chain;
         };
         `,
-    'evm/isEvmOrigin.sdk': () => source`import {
-          isChainEvm,
-          type TChain,
-          type TSubstrateChain,
-        } from "${sdkPackage}";
-        
-        const isSubstrateOrigin = (
-          chain: TChain,
-        ): chain is TSubstrateChain => !isChainEvm(chain);
-        
-        export const assertSubstrateOrigin: (
-          chain: TChain,
-        ) => asserts chain is TSubstrateChain = (chain) => {
-          if (!isSubstrateOrigin(chain)) {
-            throw new Error("EVM origins are submitted via the EVM wallet path.");
-          }
-        };
-        `,
     'evm/utils.ts':
       () => source`import type { EIP6963ProviderDetail } from "mipd";
         import type { TEvmProviderOption } from "../types";
@@ -142,12 +94,6 @@ export const createEvmCoreFragments: TFragmentFactory<TEvmCoreFragmentId> = (
             label: entry.info.name,
           }));
         
-        export const parseRequestedAccounts = (result: unknown): string[] => {
-          if (!Array.isArray(result)) {
-            throw new Error("Wallet returned an invalid accounts response.");
-          }
-          return result.filter((value): value is string => typeof value === "string");
-        };
         `,
   };
 };

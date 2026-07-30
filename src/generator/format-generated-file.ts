@@ -1,7 +1,5 @@
-import path from 'node:path';
 import { parse as parseVue } from '@vue/compiler-sfc';
 import { format, getFileInfo } from 'prettier';
-import type { Code } from 'ts-poet';
 
 const validateVue = (relativePath: string, source: string): void => {
   const { errors } = parseVue(source, { filename: relativePath });
@@ -17,15 +15,12 @@ const validateVue = (relativePath: string, source: string): void => {
 
 export const formatGeneratedFile = async (
   relativePath: string,
-  sourceCode: Code,
+  sourceCode: string,
 ): Promise<string> => {
-  const extension = path.extname(relativePath);
   const { inferredParser: parser } = await getFileInfo(relativePath, {
     ignorePath: [],
   });
-  const source = sourceCode
-    .toString({ format: false, path: relativePath })
-    .replace(/^\n/, '');
+  const source = sourceCode.replace(/^\n/, '');
   if (!parser) return source;
 
   let formatted: string;
@@ -37,7 +32,7 @@ export const formatGeneratedFile = async (
     });
   }
 
-  if (extension === '.vue') {
+  if (parser === 'vue') {
     validateVue(relativePath, formatted);
   }
 

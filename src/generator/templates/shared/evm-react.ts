@@ -137,11 +137,10 @@ export const createEvmReactFragments: TFragmentFactory<
       () => source`import { useCallback, useEffect, useMemo, useState } from "react";
         import type { EIP6963ProviderDetail } from "mipd";
         import { getAddress, type WalletClient } from "viem";
-        import { createWalletClient, custom, isAddress } from "viem";
+        import { createWalletClient, custom } from "viem";
         import { getEip6963Providers } from "../evm/eip6963";
         import { getViemChainForOrigin } from "../evm/getViemChain";
         import {
-          parseRequestedAccounts,
           toProviderOptions,
           truncateAddress,
         } from "../evm/utils";
@@ -190,9 +189,10 @@ export const createEvmReactFragments: TFragmentFactory<
           const connectWithProvider = useCallback(
             async (providerDetail: EIP6963ProviderDetail) => {
               const provider = providerDetail.provider;
-              const requestedAccounts = parseRequestedAccounts(
-                await provider.request({ method: "eth_requestAccounts" }),
-              );
+              const walletClient = createWalletClient({
+                transport: custom(provider),
+              });
+              const requestedAccounts = await walletClient.requestAddresses();
         
               if (requestedAccounts.length === 0) {
                 alert("No accounts found in the connected wallet.");
@@ -252,9 +252,6 @@ export const createEvmReactFragments: TFragmentFactory<
           const getWalletClient = useCallback(
             (origin: string): WalletClient | undefined => {
               if (!selectedAddress || !selectedProvider) return undefined;
-              if (!isAddress(selectedAddress)) {
-                throw new Error("Selected EVM address is invalid.");
-              }
         
               return createWalletClient({
                 account: getAddress(selectedAddress),

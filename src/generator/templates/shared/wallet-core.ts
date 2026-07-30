@@ -38,7 +38,6 @@ export const createWalletCoreFragments: TFragmentFactory<
           await submitEvmTransferFromForm(
             formValues,
             options.walletClient,
-            options.provider,
           );
           return true;
         };

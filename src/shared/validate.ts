@@ -25,18 +25,14 @@ export const validateSubstrateMnemonic = (value: string): true | string => {
   const trimmed = value.trim();
   if (!trimmed || isSubstrateSecret(trimmed)) return true;
 
-  return 'Substrate mnemonic must be a BIP39 phrase (12–24 lowercase words) or a //Dev URI like //Alice.';
+  return 'Substrate mnemonic must be a BIP39 phrase (12-24 lowercase words) or a //Dev URI like //Alice.';
 };
 
 export const validateNameInput = (name: string): true | string => {
-  const trimmed = name.trim();
-  if (!trimmed) return 'Project name is required.';
-
-  const result = validateNpmPackageName(trimmed);
-  if (result.validForNewPackages) return true;
-
-  const reason = result.errors?.[0] ?? result.warnings?.[0];
-  return reason
-    ? `Invalid project name: ${reason}`
-    : `Invalid project name: ${name}`;
+  const { validForNewPackages, errors, warnings } = validateNpmPackageName(
+    name.trim(),
+  );
+  return validForNewPackages
+    ? true
+    : `Invalid project name: ${errors?.[0] ?? warnings?.[0] ?? name}`;
 };

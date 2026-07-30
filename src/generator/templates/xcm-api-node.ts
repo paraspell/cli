@@ -8,7 +8,7 @@ export const createXcmApiNodeTemplates = (
   renderFragment: TFragmentRenderer,
 ): readonly TTemplateFile[] => {
   const {
-    extensions: { evm, swap },
+    extensions: { swap },
     evmWallet,
     defaultOriginChain,
   } = context;
@@ -20,7 +20,6 @@ export const createXcmApiNodeTemplates = (
       path: 'src/evm.ts',
       skip: !evmWallet,
       render: () => source`${renderFragment('node/getEvmWalletClient')}
-        ${renderFragment('node/getEvmSenderAddress')}
         export { fetchEvmOriginChains, isEvmOrigin } from "./evmOrigins.js";
         `,
     },
@@ -32,17 +31,16 @@ export const createXcmApiNodeTemplates = (
     {
       path: 'src/submitSubstrate.ts',
       render: () => source`import axios from "axios";
+        import type { PolkadotSigner } from "polkadot-api";
         import { createWsClient } from "polkadot-api/ws";
         import { API_URL } from "./consts.js";
-        import {
-          Binary,
-          getSignerFromSecret,
-          getSubstrateMnemonic,
-        } from "./substrate.js";
+        import { submitPapiTransaction } from "./submitPapiTransaction.js";
+        import { Binary } from "./substrate.js";
         import type { TApiTransaction } from "./types.js";
         
         const submitApiTransaction = async (
           apiTx: TApiTransaction,
+          signer: PolkadotSigner,
         ): Promise<string> => {
           const response = await axios.get<string[]>(
             \`\${API_URL}/chains/\${apiTx.chain}/ws-endpoints\`,
@@ -51,24 +49,11 @@ export const createXcmApiNodeTemplates = (
         
           const client = createWsClient(endpoints[0]);
           try {
-            const signer = await getSignerFromSecret(getSubstrateMnemonic());
             const callData = Binary.fromHex(apiTx.tx);
             const tx = await client.getUnsafeApi().txFromCallData(callData);
         
-            return await new Promise<string>((resolve, reject) => {
-              tx.signSubmitAndWatch(signer).subscribe({
-                next: (event) => {
-                  if (event.type === "finalized") {
-                    if (!event.ok) {
-                      reject(new Error("Transaction failed"));
-                    } else {
-                      resolve(event.txHash);
-                    }
-                  }
-                },
-                error: reject,
-              });
-            });
+            const result = await submitPapiTransaction(tx, signer);
+            return result.txHash;
           } finally {
             client.destroy();
           }
@@ -76,34 +61,33 @@ export const createXcmApiNodeTemplates = (
         
         export const submitSubstrateTransfers = async (
           transactions: TApiTransaction[],
+          signer: PolkadotSigner,
         ): Promise<string[]> => {
           const hashes: string[] = [];
           for (const apiTx of transactions) {
-            hashes.push(await submitApiTransaction(apiTx));
+            hashes.push(await submitApiTransaction(apiTx, signer));
           }
           return hashes;
         };
         `,
     },
+    fragment('src/submitPapiTransaction.ts', 'papi/submitTransaction'),
     {
       path: 'src/substrate.ts',
       render: () => source`import { Binary } from "polkadot-api";
         import { getPolkadotSigner } from "polkadot-api/signer";
         ${renderFragment('node/substrate-keyring')}
         
-        export const getSubstrateSenderAddress = async (
-          secret: string,
-        ): Promise<string> => {
-          return createKeyringPair(secret).address;
-        };
-        
-        export const getSignerFromSecret = async (secret: string) => {
+        export const getSubstrateAccount = (secret: string) => {
           const pair = createKeyringPair(secret);
-          return getPolkadotSigner(
-            pair.publicKey,
-            "Sr25519",
-            (input) => signBytes(pair, input),
-          );
+          return {
+            address: pair.address,
+            signer: getPolkadotSigner(
+              pair.publicKey,
+              "Sr25519",
+              (input) => signBytes(pair, input),
+            ),
+          };
         };
         
         export { Binary };
@@ -111,28 +95,21 @@ export const createXcmApiNodeTemplates = (
     },
     {
       path: 'src/transfer.ts',
-      render: () => source`import axios from "axios";
-        import { API_URL } from "./consts.js";
-        import { fetchFromApi${evmWallet ? source`, fetchFromEvmApi` : ''} } from "./fetchFromApi.js";
+      render:
+        () => source`import { fetchFromApi${evmWallet ? source`, fetchFromEvmApi` : ''} } from "./fetchFromApi.js";
         import { submitSubstrateTransfers } from "./submitSubstrate.js";
         ${
           evmWallet
             ? source`import {
           fetchEvmOriginChains,
-          getEvmSenderAddress,
           getEvmWalletClient,
           isEvmOrigin,
         } from "./evm.js";
         import { submitEvmTx } from "./submitEvmTx.js";
         `
             : ''
-        }import { getSubstrateMnemonic, getSubstrateSenderAddress } from "./substrate.js";
-        import type {
-          TAssetInfo,
-          TApiErrorResponse,
-          TApiParams,
-          TTransferParams,
-        } from "./types.js";
+        }import { getSubstrateAccount, getSubstrateMnemonic } from "./substrate.js";
+        import type { TApiParams, TTransferParams } from "./types.js";
         
         ${renderFragment('api/buildApiParams')}
         
@@ -143,78 +120,21 @@ export const createXcmApiNodeTemplates = (
           recipient: "//Bob",
         };
         
-        type TResolveCurrencyOptions = {
-          location?: object;
-          origin: string;
-          destination: string;
-          preferredSymbol?: string;
-          label: string;
-        };
-
-        const resolveCurrencyLocation = async ({
-          location,
-          origin,
-          destination,
-          preferredSymbol,
-          label,
-        }: TResolveCurrencyOptions): Promise<object> => {
-          try {
-            const response = await axios.get<TAssetInfo[]>(
-              \`\${API_URL}/supported-assets?origin=\${encodeURIComponent(origin)}&destination=\${encodeURIComponent(destination)}\`,
-            );
-            const assets = response.data;
-            if (location) {
-              const asset = assets.find(
-                (entry) => JSON.stringify(entry.location) === JSON.stringify(location),
-              );
-              if (!asset) {
-                throw new Error(
-                  \`Configured \${label} location not found for \${origin} -> \${destination}\`,
-                );
-              }
-              return asset.location;
-            }
-
-            const fallbackAsset = preferredSymbol
-              ? assets.find((entry) => entry.symbol === preferredSymbol)
-              : assets.find((entry) => entry.symbol);
-            if (!fallbackAsset) {
-              const detail = preferredSymbol ? \` \${preferredSymbol}\` : "";
-              throw new Error(
-                \`No supported\${detail} asset found for \${origin} -> \${destination}\`,
-              );
-            }
-            return fallbackAsset.location;
-          } catch (error) {
-            if (axios.isAxiosError<TApiErrorResponse>(error)) {
-              const message = error.response?.data.message;
-              const serverMessage = message ? \` Server response: \${message}\` : "";
-              throw new Error(\`Error while resolving \${label}.\${serverMessage}\`, {
-                cause: error,
-              });
-            }
-            throw error;
-          }
-        };
-        
         export const transferViaApi = async (): Promise<string | string[]> => {
           const params = defaults;
-          const currencyLocation = await resolveCurrencyLocation({
-            location: params.currencyLocation,
-            origin: params.from,
-            destination: params.to,
-            label: "asset",
-          });
+          const { currencyLocation } = params;
+          if (!currencyLocation) {
+            throw new Error("Configure currencyLocation in defaults.");
+          }
         ${
           swap
             ? source`
-          const currencyToLocation = await resolveCurrencyLocation({
-            location: params.currencyToLocation,
-            origin: params.from,
-            destination: params.to,
-            preferredSymbol: "${evm ? 'USDC' : 'DOT'}",
-            label: "swap asset",
-          });
+          const { currencyToLocation } = params;
+          if (!currencyToLocation) {
+            throw new Error(
+              "Configure currencyToLocation in defaults when swap is enabled.",
+            );
+          }
         `
             : ''
         }
@@ -224,8 +144,8 @@ export const createXcmApiNodeTemplates = (
           const evmOriginChains = await fetchEvmOriginChains();
         
           if (isEvmOrigin(params.from, evmOriginChains)) {
-            const sender = getEvmSenderAddress(params.from);
             const walletClient = getEvmWalletClient(params.from);
+            const sender = walletClient.account.address;
             const serializedTx = await fetchFromEvmApi(
               buildApiParams({
                 from: params.from,
@@ -248,8 +168,9 @@ export const createXcmApiNodeTemplates = (
         `
             : ''
         }
-          const mnemonic = getSubstrateMnemonic();
-          const sender = await getSubstrateSenderAddress(mnemonic);
+          const { address: sender, signer } = getSubstrateAccount(
+            getSubstrateMnemonic(),
+          );
         
           const transactions = await fetchFromApi(
             buildApiParams({
@@ -267,7 +188,7 @@ export const createXcmApiNodeTemplates = (
               }
             }),
           );
-          return await submitSubstrateTransfers(transactions);
+          return submitSubstrateTransfers(transactions, signer);
         };
         `,
     },

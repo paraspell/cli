@@ -14,40 +14,26 @@ export const createWalletVueFragments: TFragmentFactory<
         
         defineProps<{
           extensionNames: string[];
-          selectedExtensionName: string | undefined;
           accounts: TWalletAccountOption[];
-          selectedAddress: string | undefined;
         }>();
         
+        const selectedExtensionName = defineModel<string>(
+          "selectedExtensionName",
+          { default: "" },
+        );
+        const selectedAddress = defineModel<string>("selectedAddress", {
+          default: "",
+        });
+
         const emit = defineEmits<{
           connectClick: [];
-          extensionChange: [name: string];
-          accountChange: [address: string];
         }>();
-        
-        const onExtensionChange = (event: Event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLSelectElement)) return;
-        
-          const name = target.value;
-          if (name) emit("extensionChange", name);
-        };
-        
-        const onAccountChange = (event: Event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLSelectElement)) return;
-        
-          emit("accountChange", target.value);
-        };
         </script>
         
         <template>
           <div v-if="extensionNames.length > 0">
             <h4>Select extension:</h4>
-            <select
-              :value="selectedExtensionName"
-              @change="onExtensionChange"
-            >
+            <select v-model="selectedExtensionName">
               <option
                 disabled
                 value=""
@@ -73,10 +59,7 @@ export const createWalletVueFragments: TFragmentFactory<
         
           <div v-if="accounts.length > 0">
             <h4>Select account:</h4>
-            <select
-              :value="selectedAddress"
-              @change="onAccountChange"
-            >
+            <select v-model="selectedAddress">
               <option
                 v-for="{ name, address } in accounts"
                 :key="address"
@@ -92,10 +75,7 @@ export const createWalletVueFragments: TFragmentFactory<
       () => source`import { defineComponent, h, unref } from "vue";
         import EvmWalletControls from "./EvmWalletControls.vue";
         import SubstrateWalletControls from "./SubstrateWalletControls.vue";
-        import type {
-          TUseWalletWithEvmReturn,
-          TWalletControlsSubstrateProps,
-        } from "../types";
+        import type { TUseWalletWithEvmReturn } from "../types";
 
         export const WalletControls = defineComponent(
           (props: { wallet: TUseWalletWithEvmReturn }) => {
@@ -107,29 +87,21 @@ export const createWalletVueFragments: TFragmentFactory<
                   selectedProviderUuid: unref(wallet.selectedEvmProviderUuid),
                   accounts: unref(wallet.evmAccounts),
                   selectedAddress: unref(wallet.selectedAddress),
-                  onConnectClick: () => {
-                    void wallet.discoverEvmProviders();
-                  },
-                  onProviderChange: (uuid: string) => {
-                    void wallet.selectEvmProvider(uuid);
-                  },
-                  onAccountChange: wallet.selectEvmAccount,
+                  onConnectClick: wallet.discoverEvmProviders,
+                  "onUpdate:selectedProviderUuid": wallet.selectEvmProvider,
+                  "onUpdate:selectedAddress": wallet.selectEvmAccount,
                   onDisconnect: wallet.disconnectEvm,
                 });
               }
 
-              const substrateProps: TWalletControlsSubstrateProps = {
+              const substrateProps = {
                 extensionNames: unref(wallet.extensionNames),
                 selectedExtensionName: unref(wallet.selectedExtensionName),
                 accounts: unref(wallet.accounts),
                 selectedAddress: unref(wallet.selectedAddress),
-                onConnectClick: () => {
-                  void wallet.discoverExtensions();
-                },
-                onExtensionChange: (name: string) => {
-                  void wallet.selectExtension(name);
-                },
-                onAccountChange: wallet.selectAccountByAddress,
+                onConnectClick: wallet.discoverExtensions,
+                "onUpdate:selectedExtensionName": wallet.selectExtension,
+                "onUpdate:selectedAddress": wallet.selectAccountByAddress,
               };
 
               return h(SubstrateWalletControls, substrateProps);
@@ -445,11 +417,10 @@ export const createWalletVueFragments: TFragmentFactory<
           ): TWalletSubmitOptions<TSigner> | null => {
             if (activeWalletKind.value === "evm") {
               const walletClient = evm.getWalletClient(from);
-              if (!walletClient || !evm.selectedProvider.value) return null;
+              if (!walletClient) return null;
               return {
                 kind: "evm",
                 walletClient,
-                provider: evm.selectedProvider.value.provider,
               };
             }
         

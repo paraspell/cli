@@ -188,10 +188,10 @@ export const createXcmSdkReactTemplates = (
           loading,
         }) => {
           const [destinationChain, setDestinationChain] = useState<TChain>("Hydration");
-          const [currencyOptionId, setCurrencyOptionId] = useState("");
+          const [currencyLocation, setCurrencyLocation] = useState("");
           ${
             swap
-              ? source`const [currencyToOptionId, setCurrencyToOptionId] = useState("");
+              ? source`const [currencyToLocation, setCurrencyToLocation] = useState("");
           const [swapEnabled, setSwapEnabled] = useState(false);
           const [exchange, setExchange] = useState<TExchangeChain[]>([]);
           const AUTO_EXCHANGE_VALUE = "";
@@ -207,19 +207,15 @@ export const createXcmSdkReactTemplates = (
           const { currencyOptions, currencyMap${swap ? source`, currencyToOptions, currencyToMap` : ''} } =
             useCurrencyOptions(originChain, destinationChain${swap ? source`, swapEnabled, exchange` : ''});
         
-          const selectedCurrencyOptionId = currencyOptions.some(
-            (option) => option.value === currencyOptionId,
-          )
-            ? currencyOptionId
-            : currencyOptions.at(-1)?.value;${
+          const selectedCurrencyLocation = currencyMap.has(currencyLocation)
+            ? currencyLocation
+            : currencyOptions.at(0)?.value;${
               swap
                 ? source`
         
-          const selectedCurrencyToOptionId = currencyToOptions.some(
-            (option) => option.value === currencyToOptionId,
-          )
-            ? currencyToOptionId
-            : currencyToOptions.at(-1)?.value;
+          const selectedCurrencyToLocation = currencyToMap.has(currencyToLocation)
+            ? currencyToLocation
+            : currencyToOptions.at(0)?.value;
         
           const handleExchangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
             setExchange(
@@ -232,14 +228,17 @@ export const createXcmSdkReactTemplates = (
         
           const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
             e.preventDefault();
-            if (!selectedCurrencyOptionId) return;${
+            if (!selectedCurrencyLocation) return;
+            const currency = currencyMap.get(selectedCurrencyLocation);
+            if (!currency) return;${
               swap
                 ? source`
-            if (swapEnabled && !selectedCurrencyToOptionId) return;
+            if (swapEnabled && !selectedCurrencyToLocation) return;
             const selectedCurrencyTo =
-              swapEnabled && selectedCurrencyToOptionId
-                ? currencyToMap[selectedCurrencyToOptionId]
-                : undefined;`
+              swapEnabled && selectedCurrencyToLocation
+                ? currencyToMap.get(selectedCurrencyToLocation)
+                : undefined;
+            if (swapEnabled && !selectedCurrencyTo) return;`
                 : ''
             }
         
@@ -248,7 +247,7 @@ export const createXcmSdkReactTemplates = (
               to: destinationChain,
               recipient,
               amount,
-              currency: currencyMap[selectedCurrencyOptionId],${
+              currency,${
                 swap
                   ? source`
               swapEnabled,
@@ -306,8 +305,8 @@ export const createXcmSdkReactTemplates = (
               <label>
                 Currency
                 <select
-                  value={selectedCurrencyOptionId}
-                  onChange={(e) => setCurrencyOptionId(e.target.value)}
+                  value={selectedCurrencyLocation}
+                  onChange={(e) => setCurrencyLocation(e.target.value)}
                   required
                 >
                   {currencyOptions.map((currency) => (
@@ -373,8 +372,8 @@ export const createXcmSdkReactTemplates = (
                   <label>
                     Currency To
                     <select
-                      value={selectedCurrencyToOptionId}
-                      onChange={(e) => setCurrencyToOptionId(e.target.value)}
+                      value={selectedCurrencyToLocation}
+                      onChange={(e) => setCurrencyToLocation(e.target.value)}
                       required
                     >
                       {currencyToOptions.map((currency) => (
@@ -399,16 +398,10 @@ export const createXcmSdkReactTemplates = (
         `,
     },
     fragment('src/evm/eip6963.ts', 'evm/eip6963.ts', !evmWallet),
-    fragment('src/evm/evmWalletClient.ts', 'evm/evmWalletClient', !evmWallet),
     fragment('src/evm/getViemChain.ts', 'evm/getViemChain', !evmWallet),
-    fragment(
-      'src/evm/isEvmOrigin.ts',
-      'evm/isEvmOrigin.sdk',
-      client === 'papi' && !evmWallet,
-    ),
     fragment('src/evm/utils.ts', 'evm/utils.ts', !evmWallet),
     fragment('src/index.css', 'spa/index.css'),
-    fragment('src/requireAsset.ts', 'requireAsset'),
+    fragment('src/requireAsset.ts', 'requireAsset', !swap),
     fragment('src/types.ts', 'types/sdk.frontend'),
     fragment('src/hooks/useCurrencyOptions.ts', 'sdk/useCurrencyOptions.react'),
     fragment('src/vite-env.d.ts', 'spa/vite-env.d'),
@@ -476,6 +469,11 @@ export const createXcmSdkReactTemplates = (
     fragment('src/xcm/dedot.ts', 'xcm/dedot', client !== 'dedot'),
     fragment('src/xcm/evmTransfer.ts', 'xcm/evmTransfer.sdk', !evmWallet),
     fragment('src/xcm/papi.ts', 'xcm/papi', client !== 'papi'),
+    fragment(
+      'src/xcm/submitPapiTransaction.ts',
+      'papi/submitTransaction',
+      client !== 'papi',
+    ),
     fragment('src/xcm/pjs.ts', 'xcm/pjs', client !== 'pjs'),
     ...createSpaToolingTemplates(context),
   ];

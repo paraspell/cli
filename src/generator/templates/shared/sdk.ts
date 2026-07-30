@@ -25,24 +25,16 @@ export const createSdkFragments: TFragmentFactory<TSdkFragmentId> = (
         }
         import { useMemo } from "react";
 
-        const assetKey = (asset: TAssetInfo): string =>
-          \`\${asset.symbol ?? "NO_SYMBOL"}-\${
-            ("assetId" in asset ? asset.assetId : JSON.stringify(asset.location)) ??
-            "NO_ID"
-          }\`;
-
         const createAssetOptions = (assets: TAssetInfo[]) => {
-          const map = Object.fromEntries(
-            assets.map((asset) => [assetKey(asset), asset]),
-          ) as Record<string, TAssetInfo>;
+          const map = new Map(
+            assets.map((asset) => [JSON.stringify(asset.location), asset]),
+          );
 
           return {
             map,
-            options: Object.entries(map).map(([value, asset]) => ({
+            options: Array.from(map, ([value, asset]) => ({
               value,
-              label: \`\${asset.symbol ?? "Unknown"} - \${
-                ("assetId" in asset ? asset.assetId : "Location") ?? "Native"
-              }\`,
+              label: \`\${asset.symbol} - \${asset.assetId ?? "Location"}\`,
             })),
           };
         };
@@ -119,24 +111,16 @@ export const createSdkFragments: TFragmentFactory<TSdkFragmentId> = (
             : ''
         }
         
-        const assetKey = (asset: TAssetInfo): string =>
-          \`\${asset.symbol ?? "NO_SYMBOL"}-\${
-            ("assetId" in asset ? asset.assetId : JSON.stringify(asset?.location)) ??
-            "NO_ID"
-          }\`;
-
         const createAssetOptions = (assets: TAssetInfo[]) => {
-          const map = Object.fromEntries(
-            assets.map((asset) => [assetKey(asset), asset]),
-          ) as Record<string, TAssetInfo>;
+          const map = new Map(
+            assets.map((asset) => [JSON.stringify(asset.location), asset]),
+          );
 
           return {
             map,
-            options: Object.entries(map).map(([value, asset]) => ({
+            options: Array.from(map, ([value, asset]) => ({
               value,
-              label: \`\${asset.symbol ?? "Unknown"} - \${
-                ("assetId" in asset ? asset.assetId : "Location") ?? "Native"
-              }\`,
+              label: \`\${asset.symbol} - \${asset.assetId ?? "Location"}\`,
             })),
           };
         };

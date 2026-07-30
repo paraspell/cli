@@ -1,31 +1,26 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { installDependencies } from './install-dependencies.js';
 
-const outputs: string[] = [];
-
-const temporaryProject = (): string => {
-  const output = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-install-'));
+const temporaryProject = () => {
+  const output = fs.mkdtempDisposableSync(
+    path.join(os.tmpdir(), 'paraspell-install-'),
+  );
   fs.writeFileSync(
-    path.join(output, 'package.json'),
+    path.join(output.path, 'package.json'),
     JSON.stringify({ private: true }),
   );
-  outputs.push(output);
   return output;
 };
 
-afterEach(() => {
-  for (const output of outputs.splice(0)) {
-    fs.rmSync(output, { recursive: true, force: true });
-  }
-});
-
 describe('installDependencies', () => {
   it('installs an empty project', async () => {
+    using project = temporaryProject();
+
     await expect(
-      installDependencies(temporaryProject(), 'npm'),
+      installDependencies(project.path, 'npm'),
     ).resolves.toMatchObject({ ok: true });
   });
 

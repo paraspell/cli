@@ -20,7 +20,7 @@ export const frameworkPositional: TypedPositionalParameters<
   kind: 'tuple',
   parameters: [
     {
-      brief: 'Target framework (react | vue | node)',
+      brief: `Target framework (${FRAMEWORKS.join(' | ')})`,
       parse: parseFrameworkArg,
       optional: true,
       placeholder: 'framework',
@@ -33,6 +33,6 @@ export const packageManagerFlag: TypedFlagParameter<
 > = {
   kind: 'enum',
   values: PACKAGE_MANAGERS,
-  brief: 'Package manager: npm | yarn | pnpm | bun',
+  brief: `Package manager: ${PACKAGE_MANAGERS.join(' | ')}`,
   optional: true,
 };

@@ -12,26 +12,15 @@ export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = (
     projectKind === 'sdk' ? 'transferAsset' : 'transferViaApi';
 
   return {
-    'node/getEvmSenderAddress':
-      () => source`export const getEvmSenderAddress = (origin: string): string => {
-          const walletClient = getEvmWalletClient(origin);
-          const account = walletClient.account;
-          if (!account) {
-            throw new Error("EVM wallet client has no account configured.");
-          }
-          return account.address;
-        };
-        `,
     'node/getEvmWalletClient': () => source`import {
           createWalletClient,
           http,
           isHex,
-          type WalletClient,
         } from "viem";
         import { privateKeyToAccount } from "viem/accounts";
         import { getViemChainForOrigin } from "./getViemChain.js";
         
-        export const getEvmWalletClient = (origin: string): WalletClient => {
+        export const getEvmWalletClient = (origin: string) => {
           const privateKey = process.env.PRIVATE_KEY;
           if (!privateKey) {
             throw new Error(
@@ -63,7 +52,7 @@ export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = (
             const result = await ${transferFunction}();
             res.status(200).json({ success: true, result });
           } catch (error) {
-            const message = error instanceof Error || error instanceof ErrorEvent ? error.message : String(error);
+            const message = error instanceof Error ? error.message : String(error);
             res.status(500).json({ success: false, error: message });
           }
         });
@@ -91,12 +80,6 @@ export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = (
         const createKeyringPair = (secret: string): KeyringPair => {
           const keyring = new Keyring({ type: "sr25519" });
           try {
-            if (secret.startsWith("//")) {
-              return keyring.addFromUri(secret);
-            }
-            if (secret.includes(" ")) {
-              return keyring.addFromMnemonic(secret);
-            }
             return keyring.addFromUri(secret);
           } catch {
             throw new Error(
