@@ -1,6 +1,4 @@
-import type { Code } from 'ts-poet';
 import type { TTemplateContext } from '../types.js';
-import { source } from './source.js';
 
 type TPackageJson = {
   name: string;
@@ -162,11 +160,10 @@ const nodeManifest = (context: TTemplateContext): TPackageJson => {
   };
 };
 
-export const renderPackageJson = (context: TTemplateContext): Code => {
+export const renderPackageJson = (context: TTemplateContext): string => {
   const manifest =
     context.framework === 'node'
       ? nodeManifest(context)
       : browserManifest(context);
-  return source`${JSON.stringify(manifest, null, 2)}
-`;
+  return `${JSON.stringify(manifest, null, 2)}\n`;
 };

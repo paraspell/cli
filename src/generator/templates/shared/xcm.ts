@@ -15,13 +15,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
   return {
     'xcm/dedot': () => source`import {
           Builder,
-          createChainClient,
           type TDedotExtrinsic,${
-            swap || evmWallet
-              ? source`
-          UnsupportedOperationError,`
-              : ''
-          }${
             evmWallet
               ? source`
           isChainEvm,`
@@ -30,8 +24,13 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         } from "@paraspell/sdk-dedot";
         import type { Signer } from "@polkadot/api/types";
         import type { TFormValues${evmWallet ? source`, TWalletSubmitOptions` : ''} } from "../types";
-        import { requireCurrency${swap ? source`, requireSwapCurrency` : ''} } from "../requireAsset";
-        import { assertSubstrateOrigin } from "../evm/isEvmOrigin";${
+        ${
+          swap
+            ? source`import { requireSwapCurrency } from "../requireAsset";
+        `
+            : ''
+        }
+        ${
           evmWallet
             ? source`
         import { submitEvmTransferFromForm } from "./evmTransfer";
@@ -42,19 +41,13 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
           formValues: TFormValues,
           senderAddress: string,
         ): Promise<TDedotExtrinsic[]> => {
-          const { from, to, recipient, amount${swap ? source`, swapEnabled, currencyTo, exchange` : ''} } =
+          const { from, to, recipient, amount, currency${swap ? source`, swapEnabled, currencyTo, exchange` : ''} } =
             formValues;
-        
-          assertSubstrateOrigin(from);
-          const currency = requireCurrency(formValues.currency);
         
         ${
           swap
             ? source`  if (swapEnabled) {
-            const resolvedCurrencyTo = requireSwapCurrency(swapEnabled, currencyTo);
-            if (!resolvedCurrencyTo) {
-              throw new UnsupportedOperationError("Swap destination currency is required.");
-            }
+            const resolvedCurrencyTo = requireSwapCurrency(currencyTo);
             const contexts = await Builder()
               .from(from)
               .to(to)
@@ -72,8 +65,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         
         `
             : ''
-        }  const client = await createChainClient(from);
-          const tx = await Builder(client)
+        }  const tx = await Builder()
             .from(from)
             .to(to)
             .currency({ location: currency.location, amount })
@@ -105,7 +97,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
           evmWallet
             ? source`  if (isChainEvm(formValues.from)) {
             if (options.kind !== "evm") {
-              throw new UnsupportedOperationError(
+              throw new Error(
                 "EVM origin requires a connected EVM wallet.",
               );
             }
@@ -113,13 +105,12 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
             await submitEvmTransferFromForm(
               formValues,
               options.walletClient,
-              options.provider,
             );
             return;
           }
         
           if (options.kind !== "substrate") {
-            throw new UnsupportedOperationError(
+            throw new Error(
               "Substrate origin requires a Polkadot extension wallet.",
             );
           }
@@ -148,39 +139,40 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
           : ''
       }
         import type { WalletClient } from "viem";
-        import type { EIP1193Provider } from "mipd";
         import type { TFormValues } from "../types";
-        import { requireCurrency${swap ? source`, requireSwapCurrency` : ''} } from "../requireAsset";
-        import { ensureEvmWalletClient } from "../evm/evmWalletClient";
+        ${
+          swap
+            ? source`import { requireSwapCurrency } from "../requireAsset";
+        `
+            : ''
+        }
         
         export const submitEvmTransferFromForm = async (
           formValues: TFormValues,
           walletClient: WalletClient,
-          provider: EIP1193Provider,
         ): Promise<void> => {
-          const { from, to, recipient, amount${swap ? source`, swapEnabled, currencyTo, exchange` : ''} } =
+          const { from, to, recipient, amount, currency${swap ? source`, swapEnabled, currencyTo, exchange` : ''} } =
             formValues;
         
           if (!isChainEvm(from)) {
             throw new Error(\`Unsupported EVM origin: \${from}\`);
           }
-        
-          const currency = requireCurrency(formValues.currency);
-          const signer = await ensureEvmWalletClient(walletClient, from, provider);
+          if (!walletClient.account) {
+            throw new Error(
+              "EVM wallet has no account. Disconnect and connect again.",
+            );
+          }
         
         ${
           swap
             ? source`  if (swapEnabled) {
-            const resolvedCurrencyTo = requireSwapCurrency(swapEnabled, currencyTo);
-            if (!resolvedCurrencyTo) {
-              throw new Error("Swap destination currency is required.");
-            }
+            const resolvedCurrencyTo = requireSwapCurrency(currencyTo);
             const builder = Builder()
               .from(from)
               .to(to)
               .currency({ location: currency.location, amount })
               .recipient(recipient)
-              .sender(signer)
+              .sender(walletClient)
               .swap({
                 currencyTo: { location: resolvedCurrencyTo.location },
                 ...(exchange?.length ? { exchange } : {}),
@@ -197,34 +189,32 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
             .to(to)
             .currency({ location: currency.location, amount })
             .recipient(recipient)
-            .sender(signer)
+            .sender(walletClient)
             .signAndSubmit();
         };
         `,
     'xcm/papi': () => source`import {
-          Builder,
-          type TPapiTransaction,
-          UnsupportedOperationError,${
+          Builder,${
             evmWallet
               ? source`
           isChainEvm,`
               : ''
           }
         } from "@paraspell/sdk";
-        import {
-          InvalidTxError,
-          type PolkadotSigner,
-          type TxFinalizedPayload,
-        } from "polkadot-api";
+        import type { PolkadotSigner } from "polkadot-api";
         import type { TFormValues${evmWallet ? source`, TWalletSubmitOptions` : ''} } from "../types";
-        import { requireCurrency${swap ? source`, requireSwapCurrency` : ''} } from "../requireAsset";${
+        ${
+          swap
+            ? source`import { requireSwapCurrency } from "../requireAsset";
+        `
+            : ''
+        }${
           evmWallet
             ? source`
-        import { assertSubstrateOrigin } from "../evm/isEvmOrigin";
         import { submitEvmTransferFromForm } from "./evmTransfer";
         `
             : ''
-        }
+        }import { submitPapiTransaction } from "./submitPapiTransaction";
         export const submitUsingSdk = async (
           formValues: TFormValues,
           ${
@@ -234,14 +224,14 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
           senderAddress: string,`
           }
         ): Promise<void> => {
-          const { from, to, recipient, amount${swap ? source`, swapEnabled, currencyTo, exchange` : ''} } =
+          const { from, to, recipient, amount, currency${swap ? source`, swapEnabled, currencyTo, exchange` : ''} } =
             formValues;
         
         ${
           evmWallet
             ? source`  if (isChainEvm(from)) {
             if (options.kind !== "evm") {
-              throw new UnsupportedOperationError(
+              throw new Error(
                 "EVM origin requires a connected EVM wallet.",
               );
             }
@@ -249,13 +239,12 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
             await submitEvmTransferFromForm(
               formValues,
               options.walletClient,
-              options.provider,
             );
             return;
           }
         
           if (options.kind !== "substrate") {
-            throw new UnsupportedOperationError(
+            throw new Error(
               "Substrate origin requires a Polkadot extension wallet.",
             );
           }
@@ -263,22 +252,11 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
           const { signer, senderAddress } = options;
         `
             : ''
-        }${
-          evmWallet
-            ? source`
-          assertSubstrateOrigin(from);
-        `
-            : ''
         }
-          const currency = requireCurrency(formValues.currency);
-        
         ${
           swap
             ? source`  if (swapEnabled) {
-            const resolvedCurrencyTo = requireSwapCurrency(swapEnabled, currencyTo);
-            if (!resolvedCurrencyTo) {
-              throw new UnsupportedOperationError("Swap destination currency is required.");
-            }
+            const resolvedCurrencyTo = requireSwapCurrency(currencyTo);
             const contexts = await Builder()
               .from(from)
               .to(to)
@@ -309,44 +287,9 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         
           await submitPapiTransaction(tx, signer);
         };
-        
-        const submitPapiTransaction = async (
-          tx: TPapiTransaction,
-          signer: PolkadotSigner,
-        ): Promise<TxFinalizedPayload> => {
-          return new Promise((resolve, reject) => {
-            tx.signSubmitAndWatch(signer).subscribe({
-              next: (event) => {
-                if (event.type === "finalized") {
-                  if (!event.ok) {
-                    const errorMsg = event.dispatchError?.value
-                      ? JSON.stringify(event.dispatchError.value)
-                      : "Transaction failed";
-                    reject(new UnsupportedOperationError(errorMsg));
-                  } else {
-                    resolve(event);
-                  }
-                }
-              },
-              error: (error) => {
-                if (error instanceof InvalidTxError) {
-                  reject(
-                    new UnsupportedOperationError(
-                      \`Invalid transaction: \${JSON.stringify(error.error)}\`,
-                    ),
-                  );
-                } else {
-                  reject(error);
-                }
-              },
-            });
-          });
-        };
         `,
     'xcm/pjs': () => source`import {
           Builder,
-          createChainClient,
-          UnsupportedOperationError,
           type Extrinsic,${
             evmWallet
               ? source`
@@ -356,8 +299,13 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         } from "@paraspell/sdk-pjs";
         import type { Signer } from "@polkadot/api/types";
         import type { TFormValues${evmWallet ? source`, TWalletSubmitOptions` : ''} } from "../types";
-        import { requireCurrency${swap ? source`, requireSwapCurrency` : ''} } from "../requireAsset";
-        import { assertSubstrateOrigin } from "../evm/isEvmOrigin";${
+        ${
+          swap
+            ? source`import { requireSwapCurrency } from "../requireAsset";
+        `
+            : ''
+        }
+        ${
           evmWallet
             ? source`
         import { submitEvmTransferFromForm } from "./evmTransfer";
@@ -368,18 +316,12 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
           formValues: TFormValues,
           senderAddress: string,
         ): Promise<Extrinsic[]> => {
-          const { from, to, recipient, amount${swap ? source`, swapEnabled, currencyTo, exchange` : ''} } =
+          const { from, to, recipient, amount, currency${swap ? source`, swapEnabled, currencyTo, exchange` : ''} } =
             formValues;
-        
-          assertSubstrateOrigin(from);
-          const currency = requireCurrency(formValues.currency);
         ${
           swap
             ? source`  if (swapEnabled) {
-            const resolvedCurrencyTo = requireSwapCurrency(swapEnabled, currencyTo);
-            if (!resolvedCurrencyTo) {
-              throw new UnsupportedOperationError("Swap destination currency is required.");
-            }
+            const resolvedCurrencyTo = requireSwapCurrency(currencyTo);
             const contexts = await Builder()
               .from(from)
               .to(to)
@@ -397,8 +339,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         
         `
             : ''
-        }  const api = await createChainClient(from);
-          const tx = await Builder(api)
+        }  const tx = await Builder()
             .from(from)
             .to(to)
             .currency({ location: currency.location, amount })
@@ -431,12 +372,12 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
                       dispatchError.asModule,
                     );
                     reject(
-                      new UnsupportedOperationError(
+                      new Error(
                         \`\${section}.\${name}: \${docs.join(" ")}\`,
                       ),
                     );
                   } else {
-                    reject(new UnsupportedOperationError(dispatchError.toString()));
+                    reject(new Error(dispatchError.toString()));
                   }
                   return;
                 }
@@ -462,7 +403,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
           evmWallet
             ? source`  if (isChainEvm(formValues.from)) {
             if (options.kind !== "evm") {
-              throw new UnsupportedOperationError(
+              throw new Error(
                 "EVM origin requires a connected EVM wallet.",
               );
             }
@@ -470,13 +411,12 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
             await submitEvmTransferFromForm(
               formValues,
               options.walletClient,
-              options.provider,
             );
             return;
           }
         
           if (options.kind !== "substrate") {
-            throw new UnsupportedOperationError(
+            throw new Error(
               "Substrate origin requires a Polkadot extension wallet.",
             );
           }

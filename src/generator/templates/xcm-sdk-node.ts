@@ -10,7 +10,7 @@ export const createXcmSdkNodeTemplates = (
   const {
     client,
     sdkPackage,
-    extensions: { evm, swap },
+    extensions: { swap },
     evmWallet,
     defaultOriginChain,
   } = context;
@@ -32,7 +32,7 @@ export const createXcmSdkNodeTemplates = (
       }${renderFragment('node/getEvmWalletClient')}${
         !swap
           ? source`
-        export const submitEvmTransfer = async (
+        export const submitEvmTransfer = (
           params: TTransferParams,
         ): Promise<string> => {
           const { from, to, recipient, amount, currencyLocation } = params;
@@ -46,7 +46,7 @@ export const createXcmSdkNodeTemplates = (
         
           const walletClient = getEvmWalletClient(from);
         
-          return await Builder()
+          return Builder()
             .from(from)
             .to(to)
             .currency({
@@ -64,11 +64,6 @@ export const createXcmSdkNodeTemplates = (
     },
     fragment('src/getViemChain.ts', 'evm/getViemChain', !evmWallet),
     fragment('src/index.ts', 'node/server'),
-    fragment(
-      'src/isEvmOrigin.ts',
-      'evm/isEvmOrigin.sdk',
-      client === 'papi' || swap,
-    ),
     {
       path: 'src/substrate.ts',
       render: () => source`${
@@ -112,13 +107,13 @@ export const createXcmSdkNodeTemplates = (
             : ''
         }
         
-        export const getSubstrateSigner = async (): Promise<${
+        export const getSubstrateSigner = (): ${
           client === 'papi'
             ? 'PolkadotSigner'
             : client === 'pjs'
               ? 'TPjsSigner'
               : 'KeyringPair'
-        }> => {
+        } => {
           const pair = createKeyringPair(getSubstrateMnemonic());
         ${
           client === 'papi'
@@ -151,31 +146,13 @@ export const createXcmSdkNodeTemplates = (
           : ''
       }import {
           Builder,
-          findAssetInfoOrThrow,
-          findNativeAssetInfoOrThrow,
-          ${
-            swap
-              ? source`getSupportedAssets,
-          `
-              : ''
-          }
-          assertToIsString,${
-            client !== 'papi' && !swap
-              ? source`
-          createChainClient,`
-              : ''
-          }${
+          findNativeAssetInfoOrThrow,${
             evmWallet
               ? source`
           isChainEvm,`
               : ''
           }
         } from "${sdkPackage}";${
-          (client === 'pjs' || client === 'dedot') && !swap
-            ? source`
-        import { assertSubstrateOrigin } from "./isEvmOrigin.js";`
-            : ''
-        }${
           evmWallet && swap
             ? source`
         import { getEvmWalletClient } from "./evm.js";`
@@ -187,7 +164,6 @@ export const createXcmSdkNodeTemplates = (
             : ''
         }
         import { getSubstrateSigner } from "./substrate.js";
-        import type { TChain, TDestination, TLocation } from "${sdkPackage}";
         import type { TTransferParams } from "./types.js";
         
         const defaults: TTransferParams = {
@@ -197,67 +173,27 @@ export const createXcmSdkNodeTemplates = (
           recipient: "//Bob",
         };
         
-        const resolveCurrencyLocation = async (
-          from: TChain,
-          to: TDestination,
-          location?: TLocation,
-        ) => {
-          if (location) {
-            assertToIsString(to);
-            findAssetInfoOrThrow(from, { location }, to);
-            return location;
-          }
-          return findNativeAssetInfoOrThrow(from).location;
-        };
+        export const transferAsset = async (): Promise<string | string[]> => {
+          const opts = defaults;
+          const currencyLocation =
+            opts.currencyLocation ?? findNativeAssetInfoOrThrow(opts.from).location;
         
         ${
           swap
-            ? source`const resolveCurrencyToLocation = async (
-          from: TChain,
-          to: TDestination,
-          location?: TLocation,
-        ) => {
-          assertToIsString(to);
-          if (location) {
-            findAssetInfoOrThrow(from, { location }, to);
-            return location;
-          }
-          const assets = await getSupportedAssets(from, to);
-          const targetSymbol = "${evm ? 'USDC' : 'DOT'}";
-          const asset = assets.find((entry) => entry.symbol === targetSymbol);
-          if (!asset) {
+            ? source`  const { currencyToLocation } = opts;
+          if (!currencyToLocation) {
             throw new Error(
-              \`Asset \${targetSymbol} not found for \${from} -> \${to}\`,
+              "Configure currencyToLocation in defaults when swap is enabled.",
             );
           }
-          return asset.location;
-        };
-        
-        `
-            : ''
-        }export const transferAsset = async (): Promise<string | string[]> => {
-          const opts = defaults;
-          const currencyLocation = await resolveCurrencyLocation(
-            opts.from,
-            opts.to,
-            opts.currencyLocation,
-          );
-        
-        ${
-          swap
-            ? source`  const currencyToLocation = await resolveCurrencyToLocation(
-            opts.from,
-            opts.to,
-            opts.currencyToLocation,
-          );
         
           ${
             evmWallet
               ? source`const swapSender = isChainEvm(opts.from)
             ? getEvmWalletClient(opts.from)
-            : await getSubstrateSigner();
+            : getSubstrateSigner();
           `
-              : source`const swapSender = await getSubstrateSigner();
+              : source`const swapSender = getSubstrateSigner();
           `
           }
           const swapBuilder = Builder()
@@ -273,13 +209,13 @@ export const createXcmSdkNodeTemplates = (
               currencyTo: { location: currencyToLocation },
             });
         
-          return await swapBuilder.signAndSubmitAll();
+          return swapBuilder.signAndSubmitAll();
         
         `
             : source`${
                 evmWallet
                   ? source`  if (isChainEvm(opts.from)) {
-            return await submitEvmTransfer({
+            return submitEvmTransfer({
               ...opts,
               currencyLocation,
             });
@@ -287,10 +223,7 @@ export const createXcmSdkNodeTemplates = (
         
         `
                   : ''
-              }  const sender = await getSubstrateSigner();
-        ${
-          client === 'papi'
-            ? source`
+              }  const sender = getSubstrateSigner();
           const builder = Builder()
             .from(opts.from)
             .to(opts.to)
@@ -300,23 +233,8 @@ export const createXcmSdkNodeTemplates = (
             })
             .recipient(opts.recipient)
             .sender(sender);
-        `
-            : source`
-          assertSubstrateOrigin(opts.from);
-          const client = await createChainClient(opts.from);
-          const builder = Builder(client)
-            .from(opts.from)
-            .to(opts.to)
-            .currency({
-              location: currencyLocation,
-              amount: opts.amount,
-            })
-            .recipient(opts.recipient)
-            .sender(sender);
-        `
-        }
         
-          return await builder.signAndSubmit();
+          return builder.signAndSubmit();
         `
         }
         };

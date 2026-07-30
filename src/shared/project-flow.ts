@@ -1,23 +1,14 @@
-import path from 'node:path';
-import { cancel, confirm, log, note, spinner } from '@clack/prompts';
+import { cancel, log, spinner } from '@clack/prompts';
 import { generateApp } from '../generator/generate.js';
 import type { TGenerateAppParams } from '../generator/types.js';
-import { ask } from './clack.js';
-import {
-  EXTENSION_KEYS,
-  EXTENSION_OPTIONS,
-  FRAMEWORK_OPTIONS,
-  PROJECT_TYPE_OPTIONS,
-  SDK_CLIENT_OPTIONS,
-  type TExtensions,
-} from './project-options.js';
+import { FRAMEWORK_OPTIONS, PROJECT_TYPE_OPTIONS } from './project-options.js';
 import { installDependencies } from './install-dependencies.js';
 import { printNextSteps, type TInstallationStatus } from './next-steps.js';
+import { promptGenerateOptions, reviewProject } from './prompts.js';
 import {
   applyGenerateDefaults,
   hasRejectedSecrets,
-  promptGenerateOptions,
-} from './prompt-options.js';
+} from './resolve-options.js';
 import type { TResolveInput } from './types.js';
 
 type TProjectFlowOptions = {
@@ -26,52 +17,6 @@ type TProjectFlowOptions = {
   validateTarget?: (name: string, outDir: string) => true | string;
   interactive: boolean;
   userFacing: boolean;
-};
-
-const enabledExtensions = (extensions: TExtensions): string =>
-  EXTENSION_KEYS.filter((extension) => extensions[extension])
-    .map((extension) => EXTENSION_OPTIONS[extension].label)
-    .join(', ') || 'None';
-
-const displayPath = (outDir: string): string => {
-  const relative = path.relative(process.cwd(), outDir);
-  const outsideCwd =
-    relative === '..' ||
-    relative.startsWith(`..${path.sep}`) ||
-    path.isAbsolute(relative);
-  return relative && !outsideCwd ? `.${path.sep}${relative}` : outDir;
-};
-
-const reviewProject = async (params: TGenerateAppParams): Promise<boolean> => {
-  const { kind, opts } = params;
-  const lines = [
-    `Project          ${PROJECT_TYPE_OPTIONS[kind].label}`,
-    `Framework        ${FRAMEWORK_OPTIONS[opts.framework].label}`,
-    kind === 'sdk'
-      ? `Client           ${SDK_CLIENT_OPTIONS[opts.client].label}`
-      : undefined,
-    `Extensions       ${enabledExtensions(opts.extensions)}`,
-    `Package manager  ${opts.packageManager}`,
-    `Directory        ${displayPath(opts.out)}`,
-    opts.framework === 'node'
-      ? `Dev wallet       ${
-          opts.substrateMnemonic || opts.privateKey
-            ? 'configured in .env'
-            : 'not configured'
-        }`
-      : undefined,
-  ].filter((line): line is string => line !== undefined);
-
-  note(lines.join('\n'), 'Project summary');
-  return ask(
-    confirm({
-      message: 'Continue with this configuration?',
-      active: 'Yes',
-      inactive: 'No',
-      initialValue: true,
-      vertical: true,
-    }),
-  );
 };
 
 const scaffoldProject = async (

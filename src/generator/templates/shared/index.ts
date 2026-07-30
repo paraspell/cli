@@ -9,6 +9,7 @@ import { createEvmCoreFragments } from './evm-core.js';
 import { createEvmReactFragments } from './evm-react.js';
 import { createEvmVueFragments } from './evm-vue.js';
 import { createNodeFragments } from './node.js';
+import { createPapiFragments } from './papi.js';
 import { createSdkFragments } from './sdk.js';
 import { createSpaFragments } from './spa.js';
 import { createSwapFragments } from './swap.js';
@@ -36,6 +37,7 @@ export const createFragmentRenderer = (
     ...createEvmReactFragments(context, renderFragment),
     ...createEvmVueFragments(context, renderFragment),
     ...createNodeFragments(context, renderFragment),
+    ...createPapiFragments(context, renderFragment),
     ...createSdkFragments(context, renderFragment),
     ...createSpaFragments(context, renderFragment),
     ...createSwapFragments(context, renderFragment),

@@ -122,20 +122,14 @@ export const generateProject = async (
   ]);
 };
 
-const listFiles = (root: string, current = root): string[] => {
-  const files: string[] = [];
-
-  for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-    const absolutePath = path.join(current, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...listFiles(root, absolutePath));
-    } else {
-      files.push(path.relative(root, absolutePath));
-    }
-  }
-
-  return files.sort();
-};
+const listFiles = (root: string): string[] =>
+  fs
+    .readdirSync(root, { recursive: true, withFileTypes: true })
+    .filter((entry) => !entry.isDirectory())
+    .map((entry) =>
+      path.relative(root, path.join(entry.parentPath, entry.name)),
+    )
+    .sort();
 
 export const compareProjects = (actual: string, expected: string): void => {
   const actualFiles = listFiles(actual);

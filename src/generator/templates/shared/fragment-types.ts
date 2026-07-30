@@ -1,4 +1,3 @@
-import type { Code } from 'ts-poet';
 import type { TTemplateContext } from '../../types.js';
 
 export type TFragmentId =
@@ -10,7 +9,6 @@ export type TFragmentId =
   | 'api/submitUsingApi'
   | 'api/useApiData.react'
   | 'api/useApiData.vue'
-  | 'api/utils'
   | 'evm/EvmWalletControls.react'
   | 'evm/EvmWalletControls.vue'
   | 'evm/WalletKindSelector.react'
@@ -18,19 +16,17 @@ export type TFragmentId =
   | 'evm/eip6963.ts'
   | 'evm/evmOrigins.api.frontend'
   | 'evm/evmOrigins.api.node'
-  | 'evm/evmWalletClient'
   | 'evm/getViemChain'
-  | 'evm/isEvmOrigin.sdk'
   | 'evm/useEvmOriginChains.react'
   | 'evm/useEvmOriginChains.vue'
   | 'evm/useEvmWallet.react'
   | 'evm/useEvmWallet.vue'
   | 'evm/utils.ts'
-  | 'node/getEvmSenderAddress'
   | 'node/getEvmWalletClient'
   | 'node/server'
   | 'node/substrate-keyring'
   | 'node/tsconfig'
+  | 'papi/submitTransaction'
   | 'paraspell-side-effects'
   | 'requireAsset'
   | 'sdk/useCurrencyOptions.react'
@@ -71,11 +67,11 @@ export type TFragmentId =
   | 'xcm/papi'
   | 'xcm/pjs';
 
-export type TFragmentRenderer = (template: TFragmentId) => Code;
+export type TFragmentRenderer = (template: TFragmentId) => string;
 
 export type TFragmentTemplates<Id extends TFragmentId = TFragmentId> = Record<
   Id,
-  () => Code
+  () => string
 >;
 
 export type TFragmentFactory<Id extends TFragmentId> = (

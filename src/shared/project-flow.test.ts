@@ -1,10 +1,10 @@
-import { cancel, confirm, log, spinner } from '@clack/prompts';
+import { cancel, log, spinner } from '@clack/prompts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateApp } from '../generator/generate.js';
 import { installDependencies } from './install-dependencies.js';
 import { printNextSteps } from './next-steps.js';
 import { runProjectFlow } from './project-flow.js';
-import { promptGenerateOptions } from './prompt-options.js';
+import { promptGenerateOptions, reviewProject } from './prompts.js';
 
 vi.mock('@clack/prompts');
 
@@ -12,13 +12,7 @@ vi.mock('../generator/generate.js');
 vi.mock('./install-dependencies.js');
 vi.mock('./next-steps.js');
 
-vi.mock('./prompt-options.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./prompt-options.js')>();
-  return {
-    ...actual,
-    promptGenerateOptions: vi.fn(),
-  };
-});
+vi.mock('./prompts.js');
 
 const resolvedOptions: Awaited<ReturnType<typeof promptGenerateOptions>> = {
   name: 'example',
@@ -55,10 +49,10 @@ describe('runProjectFlow', () => {
       clear: vi.fn(),
       isCancelled: false,
     });
-    vi.mocked(confirm).mockResolvedValue(true);
     vi.mocked(generateApp).mockResolvedValue();
     vi.mocked(installDependencies).mockResolvedValue({ ok: true, output: '' });
     vi.mocked(promptGenerateOptions).mockResolvedValue(resolvedOptions);
+    vi.mocked(reviewProject).mockResolvedValue(true);
   });
 
   it('generates resolved non-interactive options', async () => {
@@ -103,7 +97,7 @@ describe('runProjectFlow', () => {
   });
 
   it('stops when an interactive review is declined', async () => {
-    vi.mocked(confirm).mockResolvedValue(false);
+    vi.mocked(reviewProject).mockResolvedValue(false);
 
     await runProjectFlow({
       ...flowOptions,

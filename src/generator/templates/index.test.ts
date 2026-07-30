@@ -59,10 +59,7 @@ const renderTemplates = (
     },
   });
   return new Map(
-    createTemplateFiles(context).map((file) => [
-      file.path,
-      file.render().toString({ format: false, path: file.path }),
-    ]),
+    createTemplateFiles(context).map((file) => [file.path, file.render()]),
   );
 };
 
@@ -88,9 +85,7 @@ describe('createTemplateFiles', () => {
         expect(new Set(paths).size).toBe(paths.length);
         expect(paths).toContain('package.json');
         for (const file of files) {
-          const output = file
-            .render()
-            .toString({ format: false, path: file.path });
+          const output = file.render();
           expect(output.length).toBeGreaterThan(0);
         }
       }
@@ -113,9 +108,9 @@ describe('createTemplateFiles', () => {
     const manifestFile = files.find((file) => file.path === 'package.json');
     expect(manifestFile).toBeDefined();
 
-    const manifest = JSON.parse(
-      manifestFile!.render().toString({ format: false, path: 'package.json' }),
-    ) as { dependencies: Record<string, string> };
+    const manifest = JSON.parse(manifestFile!.render()) as {
+      dependencies: Record<string, string>;
+    };
 
     expect(manifest.dependencies).toHaveProperty('@polkadot/api');
     expect(manifest.dependencies).toHaveProperty('@polkadot/types');
@@ -157,8 +152,18 @@ describe('createTemplateFiles', () => {
     const apiReact = renderTemplates('api', 'react', 'papi', fullExtensions);
     expect(apiReact.has('src/evm/index.ts')).toBe(false);
     expect(apiReact.has('src/wallet/evm/index.ts')).toBe(false);
-    expect(apiReact.get('src/utils.ts')).not.toContain('onSign');
-    expect(apiReact.get('src/utils.ts')).not.toContain('{ txHash: string }');
+    expect(apiReact.has('src/utils.ts')).toBe(false);
+    const apiPapiSubmit = apiReact.get('src/submit/submitPapiTransaction.ts');
+    expect(apiPapiSubmit).toContain('tx.signAndSubmit(signer)');
+    expect(apiPapiSubmit).toContain('throw new Error(message)');
+    expect(apiPapiSubmit).not.toContain('UnsupportedOperationError');
+    expect(apiPapiSubmit).not.toContain('signSubmitAndWatch');
+    expect(apiReact.get('src/submit/submitEvmTx.ts')).toContain(
+      'walletClient.sendTransaction',
+    );
+    expect(apiReact.get('src/submit/submitEvmTx.ts')).not.toContain(
+      'createPublicClient',
+    );
 
     const minimalPapiReact = renderTemplates(
       'sdk',
@@ -173,6 +178,13 @@ describe('createTemplateFiles', () => {
     expect(minimalPapiReact.get('src/hooks/usePapiWallet.ts')).not.toMatch(
       /return\s*\{[\s\S]*?\bselectedAccount,/,
     );
+    expect(minimalPapiReact.get('src/xcm/papi.ts')).toContain(
+      'submitPapiTransaction(tx, signer)',
+    );
+    const sdkPapiSubmit = minimalPapiReact.get(
+      'src/xcm/submitPapiTransaction.ts',
+    );
+    expect(sdkPapiSubmit).toBe(apiPapiSubmit);
 
     const fullPapiNode = renderTemplates('sdk', 'node', 'papi', fullExtensions);
     expect(fullPapiNode.has('src/isEvmOrigin.ts')).toBe(false);
@@ -184,7 +196,7 @@ describe('createTemplateFiles', () => {
       'dedot',
       minimalExtensions,
     );
-    expect(minimalDedotNode.has('src/isEvmOrigin.ts')).toBe(true);
+    expect(minimalDedotNode.has('src/isEvmOrigin.ts')).toBe(false);
     expect(minimalDedotNode.get('src/substrate.ts')).not.toContain('signBytes');
     expect(minimalDedotNode.get('src/types.ts')).not.toContain(
       'currencyToLocation',
@@ -198,6 +210,21 @@ describe('createTemplateFiles', () => {
     );
     expect(minimalApiNode.get('src/substrate.ts')).toContain(
       'export const getSubstrateMnemonic',
+    );
+    expect(minimalApiNode.get('src/substrate.ts')).toContain(
+      'keyring.addFromUri(secret)',
+    );
+    expect(minimalApiNode.get('src/substrate.ts')).not.toContain(
+      'addFromMnemonic',
+    );
+    expect(minimalApiNode.get('src/submitSubstrate.ts')).toContain(
+      'submitPapiTransaction(tx, signer)',
+    );
+    expect(minimalApiNode.get('src/submitSubstrate.ts')).not.toContain(
+      'signSubmitAndWatch',
+    );
+    expect(minimalApiNode.get('src/submitPapiTransaction.ts')).toBe(
+      apiPapiSubmit,
     );
     expect(minimalApiNode.get('src/types.ts')).not.toContain(
       'currencyToLocation',
@@ -237,10 +264,7 @@ describe('createTemplateFiles', () => {
     });
     const files = createTemplateFiles(context);
     const outputByPath = new Map(
-      files.map((file) => [
-        file.path,
-        file.render().toString({ format: false, path: file.path }),
-      ]),
+      files.map((file) => [file.path, file.render()]),
     );
 
     expect(outputByPath.get('src/App.tsx')).toContain('/paraspell.png');

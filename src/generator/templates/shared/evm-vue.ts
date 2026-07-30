@@ -12,41 +12,26 @@ export const createEvmVueFragments: TFragmentFactory<
         
         defineProps<{
           providerOptions: TEvmProviderOption[];
-          selectedProviderUuid: string | undefined;
           accounts: TEvmAccountOption[];
-          selectedAddress: string | undefined;
         }>();
         
+        const selectedProviderUuid = defineModel<string>("selectedProviderUuid", {
+          default: "",
+        });
+        const selectedAddress = defineModel<string>("selectedAddress", {
+          default: "",
+        });
+
         const emit = defineEmits<{
           connectClick: [];
-          providerChange: [uuid: string];
-          accountChange: [address: string];
           disconnect: [];
         }>();
-        
-        const onProviderChange = (event: Event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLSelectElement)) return;
-        
-          const uuid = target.value;
-          if (uuid) emit("providerChange", uuid);
-        };
-        
-        const onAccountChange = (event: Event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLSelectElement)) return;
-        
-          emit("accountChange", target.value);
-        };
         </script>
         
         <template>
           <div v-if="providerOptions.length > 0">
             <h4>Select provider:</h4>
-            <select
-              :value="selectedProviderUuid ?? ''"
-              @change="onProviderChange"
-            >
+            <select v-model="selectedProviderUuid">
               <option disabled value="">
                 -- select an option --
               </option>
@@ -69,10 +54,7 @@ export const createEvmVueFragments: TFragmentFactory<
         
           <div v-if="accounts.length > 0">
             <h4>Select account:</h4>
-            <select
-              :value="selectedAddress"
-              @change="onAccountChange"
-            >
+            <select v-model="selectedAddress">
               <option
                 v-for="{ label, address } in accounts"
                 :key="address"
@@ -93,29 +75,17 @@ export const createEvmVueFragments: TFragmentFactory<
         </template>
         `,
     'evm/WalletKindSelector.vue': () => source`<script setup lang="ts">
-        import { parseWalletKind, WALLET_KIND_OPTIONS } from "../types";
-        import type { TWalletKind } from "../types";
+        import { WALLET_KIND_OPTIONS, type TWalletKind } from "../types";
         
-        defineProps<{
-          activeWalletKind: TWalletKind;
-        }>();
-        
-        const emit = defineEmits<{
-          "update:activeWalletKind": [kind: TWalletKind];
-        }>();
-        
-        const onWalletKindChange = (event: Event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLSelectElement)) return;
-        
-          emit("update:activeWalletKind", parseWalletKind(target.value));
-        };
+        const activeWalletKind = defineModel<TWalletKind>("activeWalletKind", {
+          required: true,
+        });
         </script>
         
         <template>
           <div>
             <h4>Select wallet type:</h4>
-            <select :value="activeWalletKind" @change="onWalletKindChange">
+            <select v-model="activeWalletKind">
               <option
                 v-for="{ value, label } in WALLET_KIND_OPTIONS"
                 :key="value"
@@ -161,12 +131,11 @@ export const createEvmVueFragments: TFragmentFactory<
         `,
     'evm/useEvmWallet.vue': () => source`import { computed, ref } from "vue";
         import type { EIP6963ProviderDetail } from "mipd";
-        import { getAddress, type WalletClient, isAddress } from "viem";
+        import { getAddress, type WalletClient } from "viem";
         import { createWalletClient, custom } from "viem";
         import { getEip6963Providers } from "../evm/eip6963";
         import { getViemChainForOrigin } from "../evm/getViemChain";
         import {
-          parseRequestedAccounts,
           toProviderOptions,
           truncateAddress,
         } from "../evm/utils";
@@ -203,9 +172,10 @@ export const createEvmVueFragments: TFragmentFactory<
         
           const connectWithProvider = async (providerDetail: EIP6963ProviderDetail) => {
             const provider = providerDetail.provider;
-            const requestedAccounts = parseRequestedAccounts(
-              await provider.request({ method: "eth_requestAccounts" }),
-            );
+            const walletClient = createWalletClient({
+              transport: custom(provider),
+            });
+            const requestedAccounts = await walletClient.requestAddresses();
         
             if (requestedAccounts.length === 0) {
               alert("No accounts found in the connected wallet.");
@@ -261,9 +231,6 @@ export const createEvmVueFragments: TFragmentFactory<
         
           const getWalletClient = (origin: string): WalletClient | undefined => {
             if (!selectedAddress.value || !selectedProvider.value) return undefined;
-            if (!isAddress(selectedAddress.value)) {
-              throw new Error("Selected EVM address is invalid.");
-            }
         
             return createWalletClient({
               account: getAddress(selectedAddress.value),

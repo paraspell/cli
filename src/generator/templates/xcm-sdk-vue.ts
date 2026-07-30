@@ -85,14 +85,6 @@ export const createXcmSdkVueTemplates = (
         ${
           evmWallet
             ? source`const wallet = useWalletWithEvm();
-        
-        const handleOriginChange = (origin: TChain) => {
-          originChain.value = origin;
-        };
-        
-        const setWalletKind = (kind: typeof wallet.activeWalletKind.value) => {
-          wallet.setActiveWalletKind(kind);
-        };
         `
             : source`const {
           extensionNames,
@@ -104,10 +96,6 @@ export const createXcmSdkVueTemplates = (
           selectExtension,
           selectAccountByAddress,
         } = use${clientName}Wallet();
-        
-        const handleOriginChange = (origin: TChain) => {
-          originChain.value = origin;
-        };
         `
         }
         const onSubmit = async (formValues: TFormValues) => {
@@ -148,7 +136,7 @@ export const createXcmSdkVueTemplates = (
             <div class="formHeader">
               <WalletKindSelector
                 :active-wallet-kind="wallet.activeWalletKind.value"
-                @update:active-wallet-kind="setWalletKind"
+                @update:active-wallet-kind="wallet.setActiveWalletKind"
               />
               <WalletControls :wallet="wallet" />
             </div>
@@ -160,18 +148,17 @@ export const createXcmSdkVueTemplates = (
               :selected-extension-name="selectedExtensionName"
               :accounts="accounts"
               :selected-address="selectedAddress"
-              @connect-click="() => { void discoverExtensions(); }"
-              @extension-change="(name: string) => { void selectExtension(name); }"
-              @account-change="selectAccountByAddress"
+              @connect-click="discoverExtensions"
+              @update:selected-extension-name="selectExtension"
+              @update:selected-address="selectAccountByAddress"
             />
             </div>
             `
             }
             <TransferForm
               :loading="loading"
-              :origin-chain="originChain"
+              v-model:origin-chain="originChain"
               @submit="onSubmit"
-              @origin-change="handleOriginChange"
             />
             <p v-if="errorVisible" class="transferError">{{ error?.message }}</p>
           </div>
@@ -192,26 +179,27 @@ export const createXcmSdkVueTemplates = (
           type TExchangeChain,`
               : ''
           }
-          isChain,
           type TChain,
         } from "${sdkPackage}";
         import type { TFormValues } from "../types";
         
-        const props = defineProps<{
+        defineProps<{
           loading: boolean;
-          originChain: TChain;
         }>();
         
+        const originChain = defineModel<TChain>("originChain", {
+          required: true,
+        });
+
         const emit = defineEmits<{
           submit: [values: TFormValues];
-          originChange: [origin: TChain];
         }>();
         
         const destinationChain = ref<TChain>("Hydration");
-        const currencyOptionId = ref("");
+        const currencyLocation = ref("");
         ${
           swap
-            ? source`const currencyToOptionId = ref("");
+            ? source`const currencyToLocation = ref("");
         const swapEnabled = ref(false);
         const exchange = ref<TExchangeChain[]>([]);
         const AUTO_EXCHANGE_VALUE = "";
@@ -224,7 +212,7 @@ export const createXcmSdkVueTemplates = (
         }const recipient = ref("5F5586mfsnM6durWRLptYt3jSUs55KEmahdodQ5tQMr9iY96");
         const amount = ref("5");
         
-        const from = computed(() => props.originChain);
+        const from = computed(() => originChain.value);
         const to = computed(() => destinationChain.value);
         
         const { currencyOptions, currencyMap${swap ? source`, currencyToOptions, currencyToMap` : ''} } =
@@ -234,7 +222,7 @@ export const createXcmSdkVueTemplates = (
           currencyOptions,
           (opts) => {
             if (opts.length > 0) {
-              currencyOptionId.value = opts[opts.length - 1].value;
+              currencyLocation.value = opts[0].value;
             }
           },
           { immediate: true },
@@ -246,7 +234,7 @@ export const createXcmSdkVueTemplates = (
           currencyToOptions,
           (opts) => {
             if (opts.length > 0) {
-              currencyToOptionId.value = opts[opts.length - 1].value;
+              currencyToLocation.value = opts[0].value;
             }
           },
           { immediate: true },
@@ -267,37 +255,29 @@ export const createXcmSdkVueTemplates = (
         
         `
             : ''
-        }const onOriginChange = (e: Event) => {
-          const target = e.target;
-          if (!(target instanceof HTMLSelectElement)) return;
-        
-          const chain = target.value;
-          if (isChain(chain)) {
-            emit("originChange", chain);
-          }
-        };
-        
-        const handleSubmit = (e: Event) => {
+        }const handleSubmit = (e: Event) => {
           e.preventDefault();
-          if (!currencyOptionId.value) return;${
+          const currency = currencyMap.value.get(currencyLocation.value);
+          if (!currency) return;${
             swap
               ? source`
-          if (swapEnabled.value && !currencyToOptionId.value) return;
+          const selectedCurrencyTo = swapEnabled.value
+            ? currencyToMap.value.get(currencyToLocation.value)
+            : undefined;
+          if (swapEnabled.value && !selectedCurrencyTo) return;
         `
               : ''
           }
           emit("submit", {
-            from: props.originChain,
+            from: originChain.value,
             to: destinationChain.value,
             recipient: recipient.value,
             amount: amount.value,
-            currency: currencyMap.value[currencyOptionId.value],${
+            currency,${
               swap
                 ? source`
             swapEnabled: swapEnabled.value,
-            currencyTo: swapEnabled.value
-              ? currencyToMap.value[currencyToOptionId.value]
-              : undefined,
+            currencyTo: selectedCurrencyTo,
             exchange: exchange.value,`
                 : ''
             }
@@ -310,10 +290,9 @@ export const createXcmSdkVueTemplates = (
             <label>
               Origin chain
               <select
-                :value="originChain"
+                v-model="originChain"
                 required
                 :disabled="loading"
-                @change="onOriginChange"
               >
                 <option
                   v-for="chain in CHAINS"
@@ -345,7 +324,7 @@ export const createXcmSdkVueTemplates = (
             <label>
               Currency
               <select
-                v-model="currencyOptionId"
+                v-model="currencyLocation"
                 required
               >
                 <option
@@ -414,7 +393,7 @@ export const createXcmSdkVueTemplates = (
               <label>
                 Currency To
                 <select
-                  v-model="currencyToOptionId"
+                  v-model="currencyToLocation"
                   required
                 >
                   <option
@@ -441,16 +420,10 @@ export const createXcmSdkVueTemplates = (
         `,
     },
     fragment('src/evm/eip6963.ts', 'evm/eip6963.ts', !evmWallet),
-    fragment('src/evm/evmWalletClient.ts', 'evm/evmWalletClient', !evmWallet),
     fragment('src/evm/getViemChain.ts', 'evm/getViemChain', !evmWallet),
-    fragment(
-      'src/evm/isEvmOrigin.ts',
-      'evm/isEvmOrigin.sdk',
-      client === 'papi' && !evmWallet,
-    ),
     fragment('src/evm/utils.ts', 'evm/utils.ts', !evmWallet),
     fragment('src/index.css', 'spa/index.css'),
-    fragment('src/requireAsset.ts', 'requireAsset'),
+    fragment('src/requireAsset.ts', 'requireAsset', !swap),
     fragment('src/types.ts', 'types/sdk.frontend'),
     fragment(
       'src/composables/useCurrencyOptions.ts',
@@ -525,6 +498,11 @@ export const createXcmSdkVueTemplates = (
     fragment('src/xcm/dedot.ts', 'xcm/dedot', client !== 'dedot'),
     fragment('src/xcm/evmTransfer.ts', 'xcm/evmTransfer.sdk', !evmWallet),
     fragment('src/xcm/papi.ts', 'xcm/papi', client !== 'papi'),
+    fragment(
+      'src/xcm/submitPapiTransaction.ts',
+      'papi/submitTransaction',
+      client !== 'papi',
+    ),
     fragment('src/xcm/pjs.ts', 'xcm/pjs', client !== 'pjs'),
     ...createSpaToolingTemplates(context),
   ];

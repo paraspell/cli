@@ -108,13 +108,8 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
             : ''
         }
         `,
-    'api/submitEvmTx': () => source`import {
-          createPublicClient,
-          http,
-          parseTransaction,
-          type Hex,
-          type WalletClient,
-        } from "viem";
+    'api/submitEvmTx':
+      () => source`import { parseTransaction, type Hex, type WalletClient } from "viem";
         
         export const submitEvmTx = async (
           serializedTx: Hex,
@@ -130,23 +125,7 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
             throw new Error("Wallet client has no chain configured.");
           }
         
-          const publicClient = createPublicClient({
-            chain,
-            transport: http(),
-          });
-        
           const parsed = parseTransaction(serializedTx);
-        
-          const [gas, fees, nonce] = await Promise.all([
-            publicClient.estimateGas({
-              account,
-              to: parsed.to ?? undefined,
-              data: parsed.data,
-              value: parsed.value,
-            }),
-            publicClient.estimateFeesPerGas(),
-            publicClient.getTransactionCount({ address: account.address, blockTag: "pending" }),
-          ]);
         
           return walletClient.sendTransaction({
             account,
@@ -154,10 +133,6 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
             to: parsed.to ?? undefined,
             data: parsed.data,
             value: parsed.value,
-            gas,
-            maxFeePerGas: fees.maxFeePerGas,
-            maxPriorityFeePerGas: fees.maxPriorityFeePerGas,
-            nonce,
           });
         };
         `,
@@ -256,13 +231,18 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
         import { createWsClient } from "polkadot-api/ws";
         import { API_URL } from "../consts";
         import { fetchFromApi${evmWallet ? source`, fetchFromEvmApi` : ''} } from "../fetchFromApi";
-        import { requireCurrency${swap ? source`, requireSwapCurrency` : ''} } from "../requireAsset";
+        ${
+          swap
+            ? source`import { requireSwapCurrency } from "../requireAsset";
+        `
+            : ''
+        }
         ${
           evmWallet
             ? source`import { submitEvmTx } from "./submitEvmTx";
         `
             : ''
-        }import { submitTransaction } from "../utils";
+        }import { submitPapiTransaction } from "./submitPapiTransaction";
         import type {
           TApiParams,
           TApiTransaction,
@@ -290,7 +270,7 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
           try {
             const callData = Binary.fromHex(apiTx.tx);
             const tx = await client.getUnsafeApi().txFromCallData(callData);
-            await submitTransaction(tx, signer);
+            await submitPapiTransaction(tx, signer);
           } finally {
             client.destroy();
           }
@@ -303,13 +283,12 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
           options: TWalletSubmitOptions<PolkadotSigner>,
           evmOrigins: TEvmOriginHelpers,
         ): Promise<void> => {
-          const currency = requireCurrency(formValues.currency);
+          const currency = formValues.currency;
         ${
           swap
-            ? source`  const swapCurrencyTo = requireSwapCurrency(
-            formValues.swapEnabled,
-            formValues.currencyTo,
-          );
+            ? source`  const swapCurrencyTo = formValues.swapEnabled
+            ? requireSwapCurrency(formValues.currencyTo)
+            : undefined;
         `
             : ''
         }
@@ -382,13 +361,12 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
           signer: PolkadotSigner,
           senderAddress: string,
         ): Promise<void> => {
-          const currency = requireCurrency(formValues.currency);
+          const currency = formValues.currency;
         ${
           swap
-            ? source`  const swapCurrencyTo = requireSwapCurrency(
-            formValues.swapEnabled,
-            formValues.currencyTo,
-          );
+            ? source`  const swapCurrencyTo = formValues.swapEnabled
+            ? requireSwapCurrency(formValues.currencyTo)
+            : undefined;
         `
             : ''
         }
@@ -418,44 +396,6 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
         };
         `
         }
-        `,
-    'api/utils': () => source`import {
-          InvalidTxError,
-          type PolkadotSigner,
-          type Transaction,
-          type TxFinalizedPayload,
-        } from "polkadot-api";
-        
-        export const submitTransaction = async (
-          tx: Transaction,
-          signer: PolkadotSigner,
-        ): Promise<TxFinalizedPayload> => {
-          return new Promise((resolve, reject) => {
-            tx.signSubmitAndWatch(signer).subscribe({
-              next: (event) => {
-                if (event.type === "finalized") {
-                  if (!event.ok) {
-                    const errorMsg = event.dispatchError?.value
-                      ? JSON.stringify(event.dispatchError.value)
-                      : "Transaction failed";
-                    reject(new Error(errorMsg));
-                  } else {
-                    resolve(event);
-                  }
-                }
-              },
-              error: (error) => {
-                if (error instanceof InvalidTxError) {
-                  reject(
-                    new Error(\`Invalid transaction: \${JSON.stringify(error.error)}\`),
-                  );
-                } else {
-                  reject(error);
-                }
-              },
-            });
-          });
-        };
         `,
   };
 };

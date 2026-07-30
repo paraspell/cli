@@ -7,7 +7,7 @@ export const createBaseFragments: TFragmentFactory<TBaseFragmentId> = (
   context,
 ) => {
   const {
-    extensions: { evm, snowbridge, swap },
+    extensions: { evm, snowbridge },
   } = context;
 
   return {
@@ -46,31 +46,14 @@ export const createBaseFragments: TFragmentFactory<TBaseFragmentId> = (
           : ''
       }`,
     requireAsset:
-      () => source`export const requireCurrency = <T extends { location: object }>(
-          currency: T | undefined,
-        ): T => {
-          if (!currency?.location) {
-            throw new Error("Currency is required.");
-          }
-          return currency;
-        };${
-          swap
-            ? source`
-        
-        export const requireSwapCurrency = <T extends { location: object }>(
-          swapEnabled: boolean | undefined,
+      () => source`export const requireSwapCurrency = <T extends { location: object }>(
           currencyTo: T | undefined,
-        ): T | undefined => {
-          if (!swapEnabled) {
-            return undefined;
-          }
+        ): T => {
           if (!currencyTo?.location) {
             throw new Error("Swap destination currency is required.");
           }
           return currencyTo;
-        };`
-            : ''
-        }
+        };
         `,
   };
 };

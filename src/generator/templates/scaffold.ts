@@ -1,11 +1,10 @@
-import type { Code } from 'ts-poet';
 import type { TTemplateContext, TTemplateFile } from '../types.js';
 import { createFragmentFile } from './fragment-file.js';
 import { renderPackageJson } from './package-json.js';
 import type { TFragmentRenderer } from './shared/fragment-types.js';
 import { source } from './source.js';
 
-const renderGitignore = (framework: TTemplateContext['framework']): Code =>
+const renderGitignore = (framework: TTemplateContext['framework']): string =>
   framework === 'node'
     ? source`node_modules
       dist
@@ -35,7 +34,7 @@ const renderGitignore = (framework: TTemplateContext['framework']): Code =>
       .DS_Store
       `;
 
-const renderScripts = (context: TTemplateContext): Code => {
+const renderScripts = (context: TTemplateContext): string => {
   const { framework, packageManager, startCmd } = context;
 
   return framework === 'node'
@@ -58,7 +57,7 @@ const renderScripts = (context: TTemplateContext): Code => {
       `;
 };
 
-const renderBrowserReadme = (context: TTemplateContext): Code => {
+const renderBrowserReadme = (context: TTemplateContext): string => {
   const {
     projectKind,
     installCmd,
@@ -111,7 +110,7 @@ const renderBrowserReadme = (context: TTemplateContext): Code => {
     `;
 };
 
-const renderNodeReadme = (context: TTemplateContext): Code => {
+const renderNodeReadme = (context: TTemplateContext): string => {
   const {
     projectKind,
     installCmd,

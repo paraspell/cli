@@ -126,6 +126,6 @@ export const createQualityTemplates = (
   {
     path: 'pnpm-workspace.yaml',
     skip: context.packageManager !== 'pnpm',
-    render: () => source`${pnpmWorkspace}`,
+    render: () => pnpmWorkspace,
   },
 ];

@@ -1,12 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { intro } from '@clack/prompts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runInteractiveGenerate } from './interactive.js';
 import { runProjectFlow } from './shared/project-flow.js';
 import { promptProjectBasics } from './shared/prompts.js';
 
-vi.mock('@clack/prompts');
 vi.mock('./shared/project-flow.js');
 vi.mock('./shared/prompts.js');
 
@@ -26,7 +24,6 @@ describe('runInteractiveGenerate', () => {
     await runInteractiveGenerate();
 
     const options = vi.mocked(runProjectFlow).mock.calls[0]?.[0];
-    expect(intro).toHaveBeenCalled();
     expect(options?.input).toEqual({
       kind: 'api',
       framework: 'vue',

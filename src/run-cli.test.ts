@@ -12,14 +12,10 @@ vi.mock('@clack/prompts');
 vi.mock('./interactive.js');
 vi.mock('./shared/project-flow.js');
 
-const outputs: string[] = [];
 const isTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
 
-const temporaryRoot = (): string => {
-  const output = fs.mkdtempSync(path.join(os.tmpdir(), 'paraspell-cli-'));
-  outputs.push(output);
-  return output;
-};
+const temporaryRoot = () =>
+  fs.mkdtempDisposableSync(path.join(os.tmpdir(), 'paraspell-cli-'));
 
 describe('CLI routing', () => {
   beforeEach(() => {
@@ -42,13 +38,11 @@ describe('CLI routing', () => {
     }
 
     vi.restoreAllMocks();
-    for (const output of outputs.splice(0)) {
-      fs.rmSync(output, { recursive: true, force: true });
-    }
   });
 
   it('routes SDK flags into a consumer project flow', async () => {
-    const root = temporaryRoot();
+    using temporary = temporaryRoot();
+    const root = temporary.path;
 
     await runFromArgv(
       [
@@ -82,8 +76,10 @@ describe('CLI routing', () => {
   });
 
   it.each(SDK_CLIENTS)('accepts the lowercase %s client', async (client) => {
+    using temporary = temporaryRoot();
+
     await runFromArgv(['sdk', '--client', client], {
-      root: temporaryRoot(),
+      root: temporary.path,
     });
 
     const options = vi.mocked(runProjectFlow).mock.calls[0]?.[0];
@@ -91,7 +87,8 @@ describe('CLI routing', () => {
   });
 
   it('uses internal defaults for API generation', async () => {
-    const root = temporaryRoot();
+    using temporary = temporaryRoot();
+    const root = temporary.path;
 
     await runFromArgv(
       ['api', '--name', 'example', '--package-manager', 'pnpm'],
@@ -111,7 +108,8 @@ describe('CLI routing', () => {
   });
 
   it('uses an explicit output directory for internal generation', async () => {
-    const root = temporaryRoot();
+    using temporary = temporaryRoot();
+    const root = temporary.path;
 
     await runFromArgv(
       [
@@ -131,7 +129,8 @@ describe('CLI routing', () => {
   });
 
   it('provides consumer validation and interactive presentation', async () => {
-    const root = temporaryRoot();
+    using temporary = temporaryRoot();
+    const root = temporary.path;
     Object.defineProperty(process.stdin, 'isTTY', {
       configurable: true,
       value: true,
@@ -143,7 +142,7 @@ describe('CLI routing', () => {
     });
 
     const options = vi.mocked(runProjectFlow).mock.calls[0]?.[0];
-    expect(intro).toHaveBeenCalled();
+    expect(intro).not.toHaveBeenCalled();
     expect(options?.interactive).toBe(true);
     expect(
       options?.validateTarget?.('available', path.join(root, 'available')),
@@ -157,6 +156,9 @@ describe('CLI routing', () => {
 
   it('runs the interactive wizard for empty arguments', async () => {
     await runCli([]);
+
+    expect(intro).toHaveBeenCalledOnce();
+    expect(intro).toHaveBeenCalledWith('Welcome to ParaSpell✨ CLI');
     expect(runInteractiveGenerate).toHaveBeenCalledOnce();
   });
 
@@ -167,6 +169,7 @@ describe('CLI routing', () => {
 
     await runCli(['--help']);
 
+    expect(intro).toHaveBeenCalledOnce();
     expect(stdout).toHaveBeenCalled();
     expect(runProjectFlow).not.toHaveBeenCalled();
   });

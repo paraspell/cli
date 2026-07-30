@@ -17,7 +17,6 @@ import {
   frameworkPositional,
   packageManagerFlag,
 } from './shared/cli-params.js';
-import { CLI_INTRO } from './shared/messages.js';
 import {
   DEFAULT_FRAMEWORK,
   EXTENSION_KEYS,
@@ -34,6 +33,8 @@ import { runProjectFlow } from './shared/project-flow.js';
 import type { TResolveInput } from './shared/types.js';
 import { validateProjectTarget } from './shared/utils.js';
 import { validateNameInput } from './shared/validate.js';
+
+const CLI_INTRO = 'Welcome to ParaSpell✨ CLI';
 
 interface TAppContext extends CommandContext {
   root: string;
@@ -79,7 +80,7 @@ const sharedFlagParams: FlagParametersForType<TCliSharedFlags> = {
   framework: {
     kind: 'enum',
     values: FRAMEWORKS,
-    brief: 'Target framework: react | vue | node',
+    brief: `Target framework: ${FRAMEWORKS.join(' | ')}`,
     optional: true,
   },
   extensions: {
@@ -143,7 +144,6 @@ const runGenerate = async (
         ? path.resolve(ctx.root, flags.out ?? name)
         : defaultInternalOut(ctx.root, kind, framework, name);
 
-    if (ctx.consumer && interactive) intro(CLI_INTRO);
     await runProjectFlow({
       input,
       resolveOut,
@@ -211,6 +211,8 @@ export const runFromArgv = (rawArgv: string[], ctx: TRunContext) => {
 };
 
 export const runCli = async (rawArgv: string[]) => {
+  intro(CLI_INTRO);
+
   if (rawArgv.length === 0) {
     await runInteractiveGenerate();
     return;

@@ -189,18 +189,15 @@ export const createXcmApiReactTemplates = (
         };
 
         const createAssetOptions = (assets: TAssetInfo[]) => {
-          const map = Object.fromEntries(
-            assets.map((asset) => [
-              \`\${asset.symbol ?? "NO_SYMBOL"}-\${JSON.stringify(asset.location)}\`,
-              asset,
-            ]),
-          ) as Record<string, TAssetInfo>;
+          const assetsByLocation = new Map(
+            assets.map((asset) => [JSON.stringify(asset.location), asset]),
+          );
 
           return {
-            map,
-            options: Object.entries(map).map(([value, asset]) => ({
+            assetsByLocation,
+            options: Array.from(assetsByLocation, ([value, asset]) => ({
               value,
-              label: \`\${asset.symbol ?? "Unknown"} - \${asset.assetId ?? "Location"}\`,
+              label: \`\${asset.symbol} - \${asset.assetId ?? "Location"}\`,
             })),
           };
         };
@@ -212,10 +209,10 @@ export const createXcmApiReactTemplates = (
           onOriginChange,
         }) => {
           const [destinationChain, setDestinationChain] = useState("Hydration");
-          const [currencyOptionId, setCurrencyOptionId] = useState("");
+          const [currencyLocation, setCurrencyLocation] = useState("");
           ${
             swap
-              ? source`const [currencyToOptionId, setCurrencyToOptionId] = useState("");
+              ? source`const [currencyToLocation, setCurrencyToLocation] = useState("");
           const [swapEnabled, setSwapEnabled] = useState(false);
           const [exchange, setExchange] = useState<string[]>([]);
           const AUTO_EXCHANGE_VALUE = "";
@@ -242,30 +239,26 @@ export const createXcmApiReactTemplates = (
           );`
               : ''
           }
-          const { map: currencyMap, options: currencyOptions } = useMemo(
+          const { assetsByLocation: currencies, options: currencyOptions } = useMemo(
             () => createAssetOptions(assetsRequest.data),
             [assetsRequest.data],
           );
         
-          const selectedCurrencyOptionId = currencyOptions.some(
-            (option) => option.value === currencyOptionId,
-          )
-            ? currencyOptionId
-            : currencyOptions.at(-1)?.value;
+          const selectedCurrencyLocation = currencies.has(currencyLocation)
+            ? currencyLocation
+            : currencyOptions.at(0)?.value;
         ${
           swap
             ? source`
         
-          const { map: currencyToMap, options: currencyToOptions } = useMemo(
+          const { assetsByLocation: currenciesTo, options: currencyToOptions } = useMemo(
             () => createAssetOptions(swapAssetsRequest.data),
             [swapAssetsRequest.data],
           );
         
-          const selectedCurrencyToOptionId = currencyToOptions.some(
-            (option) => option.value === currencyToOptionId,
-          )
-            ? currencyToOptionId
-            : currencyToOptions.at(-1)?.value;
+          const selectedCurrencyToLocation = currenciesTo.has(currencyToLocation)
+            ? currencyToLocation
+            : currencyToOptions.at(0)?.value;
         
           const handleExchangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
             const selected = Array.from(e.target.selectedOptions, (o) => o.value);
@@ -285,14 +278,16 @@ export const createXcmApiReactTemplates = (
         
           const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
             e.preventDefault();
-            if (!selectedCurrencyOptionId) return;
+            if (!selectedCurrencyLocation) return;
+            const currency = currencies.get(selectedCurrencyLocation);
+            if (!currency) return;
         ${
           swap
             ? source`
-            if (swapEnabled && !selectedCurrencyToOptionId) return;
+            if (swapEnabled && !selectedCurrencyToLocation) return;
             const selectedCurrencyTo =
-              swapEnabled && selectedCurrencyToOptionId
-                ? currencyToMap[selectedCurrencyToOptionId]
+              swapEnabled && selectedCurrencyToLocation
+                ? currenciesTo.get(selectedCurrencyToLocation)
                 : undefined;
             if (swapEnabled && !selectedCurrencyTo) return;
         `
@@ -304,7 +299,7 @@ export const createXcmApiReactTemplates = (
               to: destinationChain,
               recipient,
               amount,
-              currency: currencyMap[selectedCurrencyOptionId],${
+              currency,${
                 swap
                   ? source`
               swapEnabled,
@@ -355,8 +350,8 @@ export const createXcmApiReactTemplates = (
               <label>
                 Currency
                 <select
-                  value={selectedCurrencyOptionId}
-                  onChange={(e) => setCurrencyOptionId(e.target.value)}
+                  value={selectedCurrencyLocation}
+                  onChange={(e) => setCurrencyLocation(e.target.value)}
                   required
                 >
                   {currencyOptions.map((option) => (
@@ -425,8 +420,8 @@ export const createXcmApiReactTemplates = (
                       <label>
                         Currency To
                         <select
-                          value={selectedCurrencyToOptionId}
-                          onChange={(e) => setCurrencyToOptionId(e.target.value)}
+                          value={selectedCurrencyToLocation}
+                          onChange={(e) => setCurrencyToLocation(e.target.value)}
                           required
                         >
                           {currencyToOptions.map((option) => (
@@ -468,8 +463,9 @@ export const createXcmApiReactTemplates = (
     fragment('src/evm/utils.ts', 'evm/utils.ts', !evmWallet),
     fragment('src/fetchFromApi.ts', 'api/fetchFromApi'),
     fragment('src/index.css', 'spa/index.css'),
-    fragment('src/requireAsset.ts', 'requireAsset'),
+    fragment('src/requireAsset.ts', 'requireAsset', !swap),
     fragment('src/submit/submitEvmTx.ts', 'api/submitEvmTx', !evmWallet),
+    fragment('src/submit/submitPapiTransaction.ts', 'papi/submitTransaction'),
     fragment('src/submit/submitUsingApi.ts', 'api/submitUsingApi'),
     fragment(
       'src/swap/exchangeChains.ts',
@@ -483,7 +479,6 @@ export const createXcmApiReactTemplates = (
     ),
     fragment('src/types.ts', 'types/api.frontend'),
     fragment('src/hooks/useApiData.ts', 'api/useApiData.react'),
-    fragment('src/utils.ts', 'api/utils'),
     fragment('src/vite-env.d.ts', 'spa/vite-env.d'),
     fragment(
       'src/components/EvmWalletControls.tsx',

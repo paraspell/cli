@@ -1,5 +1,3 @@
-import { code, type Code } from 'ts-poet';
-
 const sourceIndent = (strings: TemplateStringsArray): string => {
   const indentation = strings.flatMap((value) =>
     value
@@ -19,18 +17,18 @@ const sourceIndent = (strings: TemplateStringsArray): string => {
 
 const stripTemplateIndent = (
   strings: TemplateStringsArray,
-): TemplateStringsArray => {
+): readonly string[] => {
   const indent = sourceIndent(strings);
   const stripIndent = (value: string): string =>
     indent ? value.replaceAll(`\n${indent}`, '\n') : value;
-  const stripped = strings.map(stripIndent) as unknown as TemplateStringsArray;
-  Object.defineProperty(stripped, 'raw', {
-    value: strings.raw.map(stripIndent),
-  });
-  return stripped;
+  return strings.map(stripIndent);
 };
 
 export const source = (
   strings: TemplateStringsArray,
-  ...values: readonly unknown[]
-): Code => code(stripTemplateIndent(strings), ...values);
+  ...values: readonly string[]
+): string =>
+  stripTemplateIndent(strings).reduce(
+    (result, literal, index) => result + literal + (values[index] ?? ''),
+    '',
+  );

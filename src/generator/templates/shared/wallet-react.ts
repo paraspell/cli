@@ -400,7 +400,7 @@ export const createWalletReactFragments: TFragmentFactory<
             selectedExtensionName,
             selectExtension,
           } = substrate;
-          const { getWalletClient, selectedProvider } = evm;
+          const { getWalletClient } = evm;
         
           const [activeWalletKind, setActiveWalletKind] =
             useState<TWalletKind>("substrate");
@@ -424,11 +424,10 @@ export const createWalletReactFragments: TFragmentFactory<
             (from: ${projectKind === 'sdk' ? 'TChain' : 'string'}): TWalletSubmitOptions<TSigner> | null => {
               if (activeWalletKind === "evm") {
                 const walletClient = getWalletClient(from);
-                if (!walletClient || !selectedProvider) return null;
+                if (!walletClient) return null;
                 return {
                   kind: "evm",
                   walletClient,
-                  provider: selectedProvider.provider,
                 };
               }
         
@@ -439,7 +438,7 @@ export const createWalletReactFragments: TFragmentFactory<
                 senderAddress: substrateConnection.address,
               };
             },
-            [activeWalletKind, getWalletClient, selectedProvider, substrateConnection],
+            [activeWalletKind, getWalletClient, substrateConnection],
           );
         
           return {

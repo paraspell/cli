@@ -83,18 +83,10 @@ export const createXcmApiVueTemplates = (
         const loading = ref(false);
         const originChain = ref("Astar");
         
-        const handleOriginChange = (origin: string) => {
-          originChain.value = origin;
-        };
-        
         ${
           evmWallet
             ? source`
         const wallet = useWalletWithEvm();
-        
-        const setWalletKind = (kind: typeof wallet.activeWalletKind.value) => {
-          wallet.setActiveWalletKind(kind);
-        };
         `
             : source`
         const {
@@ -151,7 +143,7 @@ export const createXcmApiVueTemplates = (
             <div class="formHeader">
               <WalletKindSelector
                 :active-wallet-kind="wallet.activeWalletKind.value"
-                @update:active-wallet-kind="setWalletKind"
+                @update:active-wallet-kind="wallet.setActiveWalletKind"
               />
               <WalletControls :wallet="wallet" />
             </div>
@@ -163,17 +155,16 @@ export const createXcmApiVueTemplates = (
               :selected-extension-name="selectedExtensionName"
               :accounts="accounts"
               :selected-address="selectedAddress"
-              @connect-click="() => { void discoverExtensions(); }"
-              @extension-change="(name: string) => { void selectExtension(name); }"
-              @account-change="selectAccountByAddress"
+              @connect-click="discoverExtensions"
+              @update:selected-extension-name="selectExtension"
+              @update:selected-address="selectAccountByAddress"
             />
             </div>
             `
             }
             <TransferForm
               :loading="loading"
-              :origin-chain="originChain"
-              @origin-change="handleOriginChange"
+              v-model:origin-chain="originChain"
               @submit="onSubmit"
             />
             <p
@@ -199,38 +190,37 @@ export const createXcmApiVueTemplates = (
             : ''
         }
         
-        const props = defineProps<{
+        defineProps<{
           loading: boolean;
-          originChain: string;
         }>();
         
+        const originChain = defineModel<string>("originChain", {
+          required: true,
+        });
+
         const emit = defineEmits<{
           submit: [values: TFormValues];
-          originChange: [origin: string];
         }>();
 
         const createAssetOptions = (assets: TAssetInfo[]) => {
-          const map = Object.fromEntries(
-            assets.map((asset) => [
-              \`\${asset.symbol ?? "NO_SYMBOL"}-\${JSON.stringify(asset.location)}\`,
-              asset,
-            ]),
-          ) as Record<string, TAssetInfo>;
+          const assetsByLocation = new Map(
+            assets.map((asset) => [JSON.stringify(asset.location), asset]),
+          );
 
           return {
-            map,
-            options: Object.entries(map).map(([value, asset]) => ({
+            assetsByLocation,
+            options: Array.from(assetsByLocation, ([value, asset]) => ({
               value,
-              label: \`\${asset.symbol ?? "Unknown"} - \${asset.assetId ?? "Location"}\`,
+              label: \`\${asset.symbol} - \${asset.assetId ?? "Location"}\`,
             })),
           };
         };
         
         const destinationChain = ref("Hydration");
-        const currencyOptionId = ref("");
+        const currencyLocation = ref("");
         ${
           swap
-            ? source`const currencyToOptionId = ref("");
+            ? source`const currencyToLocation = ref("");
         const swapEnabled = ref(false);
         const exchange = ref<string[]>([]);
         const AUTO_EXCHANGE_VALUE = "";
@@ -249,7 +239,7 @@ export const createXcmApiVueTemplates = (
         const chainsUrl = computed(() => \`\${API_URL}/chains\`);
         const assetsUrl = computed(
           () =>
-            \`\${API_URL}/supported-assets?origin=\${encodeURIComponent(props.originChain)}&destination=\${encodeURIComponent(destinationChain.value)}\`,
+            \`\${API_URL}/supported-assets?origin=\${encodeURIComponent(originChain.value)}&destination=\${encodeURIComponent(destinationChain.value)}\`,
         );
         const {
           data: chains,
@@ -265,7 +255,7 @@ export const createXcmApiVueTemplates = (
             ? source`
         const swapAssetsUrl = computed(() =>
           swapEnabled.value
-            ? \`\${API_URL}/supported-assets?origin=\${encodeURIComponent(destinationChain.value)}&destination=\${encodeURIComponent(props.originChain)}\`
+            ? \`\${API_URL}/supported-assets?origin=\${encodeURIComponent(destinationChain.value)}&destination=\${encodeURIComponent(originChain.value)}\`
             : undefined,
         );
         const {
@@ -279,14 +269,14 @@ export const createXcmApiVueTemplates = (
         const currencyData = computed(() =>
           createAssetOptions(supportedAssets.value),
         );
-        const currencyMap = computed(() => currencyData.value.map);
+        const currencies = computed(() => currencyData.value.assetsByLocation);
         const currencyOptions = computed(() => currencyData.value.options);
         
         watch(
           currencyOptions,
           (opts) => {
             if (opts.length > 0) {
-              currencyOptionId.value = opts[opts.length - 1].value;
+              currencyLocation.value = opts[0].value;
             }
           },
           { immediate: true },
@@ -297,14 +287,14 @@ export const createXcmApiVueTemplates = (
             ? source`const currencyToData = computed(() =>
           createAssetOptions(supportedSwapAssets.value),
         );
-        const currencyToMap = computed(() => currencyToData.value.map);
+        const currenciesTo = computed(() => currencyToData.value.assetsByLocation);
         const currencyToOptions = computed(() => currencyToData.value.options);
         
         watch(
           currencyToOptions,
           (opts) => {
             if (opts.length > 0) {
-              currencyToOptionId.value = opts[opts.length - 1].value;
+              currencyToLocation.value = opts[0].value;
             }
           },
           { immediate: true },
@@ -333,28 +323,22 @@ export const createXcmApiVueTemplates = (
           },
         );
 
-        const onOriginSelect = (e: Event) => {
-          const target = e.target;
-          if (!(target instanceof HTMLSelectElement)) return;
-          emit("originChange", target.value);
-        };
-        
         const handleSubmit = (e: Event) => {
           e.preventDefault();
-          const currency = currencyMap.value[currencyOptionId.value];
+          const currency = currencies.value.get(currencyLocation.value);
           if (!currency) return;
         ${
           swap
             ? source`
           const selectedCurrencyTo = swapEnabled.value
-            ? currencyToMap.value[currencyToOptionId.value]
+            ? currenciesTo.value.get(currencyToLocation.value)
             : undefined;
           if (swapEnabled.value && !selectedCurrencyTo) return;
         `
             : ''
         }
           emit("submit", {
-            from: props.originChain,
+            from: originChain.value,
             to: destinationChain.value,
             recipient: recipient.value,
             amount: amount.value,
@@ -378,10 +362,9 @@ export const createXcmApiVueTemplates = (
             <label>
               Origin chain
               <select
-                :value="originChain"
+                v-model="originChain"
                 required
                 :disabled="loading || dataLoading"
-                @change="onOriginSelect"
               >
                 <option
                   v-for="chain in chains"
@@ -413,7 +396,7 @@ export const createXcmApiVueTemplates = (
             <label>
               Currency
               <select
-                v-model="currencyOptionId"
+                v-model="currencyLocation"
                 required
               >
                 <option
@@ -484,7 +467,7 @@ export const createXcmApiVueTemplates = (
                 <label>
                   Currency To
                   <select
-                    v-model="currencyToOptionId"
+                    v-model="currencyToLocation"
                     required
                   >
                     <option
@@ -527,8 +510,9 @@ export const createXcmApiVueTemplates = (
     fragment('src/evm/utils.ts', 'evm/utils.ts', !evmWallet),
     fragment('src/fetchFromApi.ts', 'api/fetchFromApi'),
     fragment('src/index.css', 'spa/index.css'),
-    fragment('src/requireAsset.ts', 'requireAsset'),
+    fragment('src/requireAsset.ts', 'requireAsset', !swap),
     fragment('src/submit/submitEvmTx.ts', 'api/submitEvmTx', !evmWallet),
+    fragment('src/submit/submitPapiTransaction.ts', 'papi/submitTransaction'),
     fragment('src/submit/submitUsingApi.ts', 'api/submitUsingApi'),
     fragment(
       'src/swap/exchangeChains.ts',
@@ -542,7 +526,6 @@ export const createXcmApiVueTemplates = (
     ),
     fragment('src/types.ts', 'types/api.frontend'),
     fragment('src/composables/useApiData.ts', 'api/useApiData.vue'),
-    fragment('src/utils.ts', 'api/utils'),
     fragment('src/vite-env.d.ts', 'spa/vite-env.d'),
     fragment(
       'src/components/EvmWalletControls.vue',
