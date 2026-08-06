@@ -7,7 +7,6 @@ import {
 } from '../shared/project-options.js';
 import { SDK_PACKAGE_BY_CLIENT } from './config.js';
 import type { TGenerateAppParams, TTemplateContext } from './types.js';
-import { PACKAGE_VERSIONS, SDK_VERSION } from './versions.js';
 
 export const createTemplateContext = ({
   kind,
@@ -17,11 +16,9 @@ export const createTemplateContext = ({
   const packageManager = opts.packageManager;
 
   return {
-    ...PACKAGE_VERSIONS,
     client,
     clientName: SDK_CLIENT_NAMES[client],
     sdkPackage: SDK_PACKAGE_BY_CLIENT[client],
-    sdkVersion: SDK_VERSION,
     clientLabel: SDK_CLIENT_OPTIONS[client].label,
     projectName: opts.name,
     packageManager,

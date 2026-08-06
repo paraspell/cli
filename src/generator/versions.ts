@@ -1,41 +1,15 @@
-export const SDK_VERSION = '14.0.0';
+import templateDependencies from './template-dependencies/package.json' with { type: 'json' };
 
-export const PACKAGE_VERSIONS = {
-  polkadotApi: '^2.2.1',
-  polkadotKeyring: '^14.0.3',
-  polkadotUtil: '^14.0.3',
-  dotenv: '^17.4.2',
-  express: '^5.2.1',
-  viem: '2.55.5',
-  polkadotJsApi: '^16.5.6',
-  polkadotExtensionDapp: '^0.63.1',
-  dedot: '^1.3.0',
-  mipd: '^0.0.7',
-  axios: '^1.18.1',
-  vue: '^3.5.40',
-  typesExpress: '^5.0.6',
-  typesNode: '^24.13.3',
-  tsx: '^4.23.1',
-  typescript: '^6.0.3',
-  eslintJs: '^10.0.1',
-  eslint: '^10.7.0',
-  eslintConfigPrettier: '^10.1.8',
-  globals: '^17.7.0',
-  prettier: '3.9.6',
-  typescriptEslint: '^8.65.0',
-  vite: '^8.1.5',
-  typesReact: '^19.2.17',
-  typesReactDom: '^19.2.3',
-  vitejsPluginReact: '^6.0.4',
-  eslintPluginReactHooks: '^7.1.1',
-  eslintPluginReactRefresh: '^0.5.3',
-  react: '^19.2.8',
-  reactDom: '^19.2.8',
-  vitePluginWasm: '^3.6.0',
-  vitejsPluginVue: '^6.0.8',
-  eslintPluginVue: '^10.10.0',
-  vueEslintParser: '^10.4.1',
-  vueTsc: '^3.3.8',
-} as const;
+export const TEMPLATE_PACKAGE_VERSIONS = templateDependencies.dependencies;
 
-export type TPackageVersions = typeof PACKAGE_VERSIONS;
+export type TTemplatePackage = keyof typeof TEMPLATE_PACKAGE_VERSIONS;
+
+export const dependencyVersions = (
+  ...packageNames: TTemplatePackage[]
+): Record<string, string> =>
+  Object.fromEntries(
+    packageNames.map((packageName) => [
+      packageName,
+      TEMPLATE_PACKAGE_VERSIONS[packageName],
+    ]),
+  );
