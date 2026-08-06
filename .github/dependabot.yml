@@ -1,0 +1,21 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /src/generator/template-dependencies
+    schedule:
+      interval: daily
+    versioning-strategy: increase
+    commit-message:
+      prefix: fix
+      include: scope
+    groups:
+      paraspell:
+        patterns:
+          - "@paraspell/*"
+      generated-app-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch

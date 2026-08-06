@@ -7,7 +7,6 @@ import type {
   TSdkClientName,
 } from '../shared/project-options.js';
 import type { TGenerateOptions } from '../shared/types.js';
-import type { TPackageVersions } from './versions.js';
 
 export type TGenerateAppParams = {
   kind: TProjectType;
@@ -17,11 +16,10 @@ export type TGenerateAppParams = {
 export type TSdkPackage =
   '@paraspell/sdk' | '@paraspell/sdk-pjs' | '@paraspell/sdk-dedot';
 
-export type TTemplateContext = TPackageVersions & {
+export type TTemplateContext = {
   client: TSdkClient;
   clientName: TSdkClientName;
   sdkPackage: TSdkPackage;
-  sdkVersion: string;
   clientLabel: string;
   projectName: string;
   packageManager: TPackageManager;
