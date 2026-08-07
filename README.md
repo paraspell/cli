@@ -1,4 +1,4 @@
-<h1 align="center">create-paraspell ✨</h1>
+<h1 align="center">paraspell-cli ✨</h1>
 
 <p align="center">
   <img width="400" alt="ParaSpell logo" src="https://github.com/paraspell/xcm-tools/assets/55763425/a65e3626-84cf-444b-ab77-9375508e5895">
@@ -23,7 +23,7 @@
 ## Get started
 
 ```bash
-pnpm create-paraspell
+pnpm dlx paraspell-cli@latest
 ```
 
 The wizard helps you choose what to build, shows you the final setup, creates
@@ -37,9 +37,9 @@ pnpm dev
 Use npm, Yarn, or Bun instead if that is what your project uses:
 
 ```bash
-npm create paraspell@latest
-yarn create paraspell
-bun create paraspell
+npx paraspell-cli@latest
+yarn dlx paraspell-cli@latest
+bunx paraspell-cli@latest
 ```
 
 Requires Node.js 24 or newer.
@@ -85,19 +85,19 @@ Prefer explicit commands in CI or when you already know the setup you want:
 
 ```bash
 # React app using the XCM SDK and PAPI
-npx create-paraspell@latest sdk react \
+npx paraspell-cli@latest sdk react \
   --name my-xcm-app \
   --client papi \
   --package-manager pnpm
 
 # Vue app using the XCM API with EVM origins and swaps
-npx create-paraspell@latest api vue \
+npx paraspell-cli@latest api vue \
   --name my-xcm-api \
   --extensions evm,swap \
   --package-manager npm
 
 # Headless SDK server with swaps
-npx create-paraspell@latest sdk node \
+npx paraspell-cli@latest sdk node \
   --name my-xcm-server \
   --client dedot \
   --extensions swap
@@ -107,9 +107,9 @@ Non-interactive environments use sensible defaults and leave dependency
 installation as an explicit CI step.
 
 ```bash
-create-paraspell --help
-create-paraspell sdk --help
-create-paraspell api --help
+paraspell-cli --help
+paraspell-cli sdk --help
+paraspell-cli api --help
 ```
 
 ## A note about wallet secrets

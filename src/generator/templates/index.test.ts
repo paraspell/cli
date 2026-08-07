@@ -1,45 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
+  FRAMEWORKS,
+  PROJECT_TYPES,
+  SDK_CLIENTS,
   type TExtensions,
   type TFramework,
-  type TPackageManager,
   type TProjectType,
   type TSdkClient,
 } from '../../shared/project-options.js';
 import { createTemplateContext } from '../context.js';
 import { createTemplateFiles } from './index.js';
 
-type TTemplateCase = [
-  kind: TProjectType,
-  framework: TFramework,
-  client: TSdkClient,
-  packageManager: TPackageManager,
-  extensions?: TExtensions[],
-];
-
-const templateCases: TTemplateCase[] = [
-  ['sdk', 'react', 'papi', 'pnpm'],
-  ['sdk', 'vue', 'pjs', 'npm'],
-  [
-    'sdk',
-    'vue',
-    'papi',
-    'pnpm',
-    [{ evm: false, swap: false, snowbridge: false }],
-  ],
-  ['sdk', 'node', 'dedot', 'yarn'],
-  ['api', 'react', 'pjs', 'yarn'],
-  ['api', 'vue', 'dedot', 'pnpm'],
-  ['api', 'node', 'papi', 'npm'],
-];
-
-const extensionSets: TExtensions[] = [
-  { evm: false, swap: false, snowbridge: false },
-  { evm: true, swap: false, snowbridge: false },
-  { evm: false, swap: true, snowbridge: false },
-  { evm: false, swap: false, snowbridge: true },
-  { evm: true, swap: true, snowbridge: true },
-];
+const EXTENSION_COMBINATIONS: readonly TExtensions[] = [false, true].flatMap(
+  (evm) =>
+    [false, true].flatMap((swap) =>
+      [false, true].map((snowbridge) => ({ evm, swap, snowbridge })),
+    ),
+);
 
 const renderTemplates = (
   kind: TProjectType,
@@ -64,33 +41,49 @@ const renderTemplates = (
 };
 
 describe('createTemplateFiles', () => {
-  it.each(templateCases)(
-    'renders the %s %s templates',
-    (kind, framework, client, packageManager, caseExtensions) => {
-      for (const extensions of caseExtensions ?? extensionSets) {
-        const context = createTemplateContext({
-          kind,
-          opts: {
-            framework,
-            name: `${kind}-${framework}`,
-            client,
-            packageManager,
-            out: '/tmp/not-written',
-            extensions,
-          },
-        });
-        const files = createTemplateFiles(context);
-        const paths = files.map((file) => file.path);
+  it('renders every supported project combination without invalid files', () => {
+    let combinations = 0;
 
-        expect(new Set(paths).size).toBe(paths.length);
-        expect(paths).toContain('package.json');
-        for (const file of files) {
-          const output = file.render();
-          expect(output.length).toBeGreaterThan(0);
+    for (const kind of PROJECT_TYPES) {
+      for (const framework of FRAMEWORKS) {
+        const clients = kind === 'sdk' ? SDK_CLIENTS : (['papi'] as const);
+
+        for (const client of clients) {
+          for (const extensions of EXTENSION_COMBINATIONS) {
+            const caseName = [
+              kind,
+              framework,
+              client,
+              ...Object.entries(extensions)
+                .filter(([, enabled]) => enabled)
+                .map(([extension]) => extension),
+            ].join('-');
+            const context = createTemplateContext({
+              kind,
+              opts: {
+                framework,
+                name: caseName,
+                client,
+                packageManager: 'pnpm',
+                out: '/tmp/not-written',
+                extensions,
+              },
+            });
+            const files = createTemplateFiles(context);
+            const paths = files.map((file) => file.path);
+
+            expect(new Set(paths).size, caseName).toBe(paths.length);
+            for (const file of files) {
+              expect(file.render(), `${caseName}:${file.path}`).not.toBe('');
+            }
+            combinations += 1;
+          }
         }
       }
-    },
-  );
+    }
+
+    expect(combinations).toBe(96);
+  });
 
   it('keeps minimal Node SDK manifests free of browser and extension dependencies', () => {
     const context = createTemplateContext({
@@ -123,24 +116,6 @@ describe('createTemplateFiles', () => {
     expect(manifest.dependencies).not.toHaveProperty('@paraspell/swap');
   });
 
-  it.each([
-    ['react', 'src/main.tsx'],
-    ['vue', 'src/main.ts'],
-  ] as const)(
-    'shares the %s entrypoint across SDK and API templates',
-    (framework, mainPath) => {
-      const extensions = {
-        evm: false,
-        swap: false,
-        snowbridge: false,
-      };
-      const sdk = renderTemplates('sdk', framework, 'papi', extensions);
-      const api = renderTemplates('api', framework, 'papi', extensions);
-
-      expect(sdk.get(mainPath)).toBe(api.get(mainPath));
-    },
-  );
-
   it('omits configuration-specific dead output', () => {
     const minimalExtensions = {
       evm: false,
@@ -153,17 +128,21 @@ describe('createTemplateFiles', () => {
     expect(apiReact.has('src/evm/index.ts')).toBe(false);
     expect(apiReact.has('src/wallet/evm/index.ts')).toBe(false);
     expect(apiReact.has('src/utils.ts')).toBe(false);
-    const apiPapiSubmit = apiReact.get('src/submit/submitPapiTransaction.ts');
+    const apiPapiSubmit = apiReact.get('src/utils/submitPapiTransaction.ts');
     expect(apiPapiSubmit).toContain('tx.signAndSubmit(signer)');
     expect(apiPapiSubmit).toContain('throw new Error(message)');
+    expect(apiPapiSubmit).toContain('{ cause: error }');
     expect(apiPapiSubmit).not.toContain('UnsupportedOperationError');
     expect(apiPapiSubmit).not.toContain('signSubmitAndWatch');
-    expect(apiReact.get('src/submit/submitEvmTx.ts')).toContain(
+    expect(apiReact.get('src/utils/submitEvmTx.ts')).toContain(
       'walletClient.sendTransaction',
     );
-    expect(apiReact.get('src/submit/submitEvmTx.ts')).not.toContain(
+    expect(apiReact.get('src/utils/submitEvmTx.ts')).not.toContain(
       'createPublicClient',
     );
+    const apiDataHook = apiReact.get('src/hooks/useApiData.ts');
+    expect(apiDataHook).toContain('state?.url === url');
+    expect(apiDataHook).not.toContain('setLoading');
 
     const minimalPapiReact = renderTemplates(
       'sdk',
@@ -178,11 +157,11 @@ describe('createTemplateFiles', () => {
     expect(minimalPapiReact.get('src/hooks/usePapiWallet.ts')).not.toMatch(
       /return\s*\{[\s\S]*?\bselectedAccount,/,
     );
-    expect(minimalPapiReact.get('src/xcm/papi.ts')).toContain(
+    expect(minimalPapiReact.get('src/utils/submitUsingSdk.ts')).toContain(
       'submitPapiTransaction(tx, signer)',
     );
     const sdkPapiSubmit = minimalPapiReact.get(
-      'src/xcm/submitPapiTransaction.ts',
+      'src/utils/submitPapiTransaction.ts',
     );
     expect(sdkPapiSubmit).toBe(apiPapiSubmit);
 
@@ -244,11 +223,37 @@ describe('createTemplateFiles', () => {
     expect(minimalPapiVue.get('src/types.ts')).not.toContain(
       'TWalletControlsSubstrateProps',
     );
+    expect(minimalPapiVue.get('src/components/TransferForm.vue')).toContain(
+      'import { ref, watch } from "vue";',
+    );
     const fullPapiVue = renderTemplates('sdk', 'vue', 'papi', fullExtensions);
     expect(fullPapiVue.get('src/types.ts')).not.toContain(
       'TWalletControlsEvmProps',
     );
   });
+
+  it.each([
+    ['react', 'src/hooks/useWalletWithEvm.ts'],
+    ['vue', 'src/composables/useWalletWithEvm.ts'],
+  ] as const)(
+    'keeps generated %s SDK submission routing in one place',
+    (framework, walletPath) => {
+      const output = renderTemplates('sdk', framework, 'papi', {
+        evm: true,
+        swap: true,
+        snowbridge: true,
+      });
+      const wallet = output.get(walletPath)!;
+      const submitUsingSdk = output.get('src/utils/submitUsingSdk.ts')!;
+
+      expect(output.has('src/utils/connectWalletAlert.ts')).toBe(true);
+      expect(output.has('src/utils/submitTransfer.ts')).toBe(false);
+      expect(wallet).toContain('await submitUsingSdk(formValues, options);');
+      expect(wallet).not.toContain('submitEvmIfNeeded');
+      expect(submitUsingSdk).toContain('isChainEvm');
+      expect(submitUsingSdk).toContain('submitEvmTransferFromForm');
+    },
+  );
 
   it('renders the ParaSpell wordmark and dedicated favicon in browser apps', () => {
     const context = createTemplateContext({
@@ -272,7 +277,7 @@ describe('createTemplateFiles', () => {
   });
 
   it.each(['sdk', 'api'] as const)(
-    'organizes generated React %s hooks and components behind folder barrels',
+    'organizes generated React %s source into components, hooks, and utils',
     (kind) => {
       const output = renderTemplates(kind, 'react', 'dedot', {
         evm: true,
@@ -289,6 +294,9 @@ describe('createTemplateFiles', () => {
           filePath !== 'src/main.tsx' &&
           filePath !== 'src/App.tsx',
       );
+      const utilityPaths = paths.filter((filePath) =>
+        filePath.startsWith('src/utils/'),
+      );
 
       expect(hookPaths.length).toBeGreaterThan(0);
       expect(
@@ -300,21 +308,20 @@ describe('createTemplateFiles', () => {
           /^src\/components(?:\/common)?\/[^/]+\.tsx$/.test(filePath),
         ),
       ).toBe(true);
+      expect(utilityPaths.length).toBeGreaterThan(0);
       expect(
-        paths.some((filePath) => filePath.startsWith('src/components/common/')),
-      ).toBe(false);
-      expect(output.get('src/components/index.ts')).toContain(
-        'export { XcmTransfer }',
-      );
+        utilityPaths.every((filePath) => /^src\/utils\/[^/]+$/.test(filePath)),
+      ).toBe(true);
+      expect(output.has('src/components/index.ts')).toBe(false);
+      expect(output.has('src/hooks/index.ts')).toBe(false);
       expect(output.has('src/components/TransferForm.tsx')).toBe(true);
       expect(output.has('src/components/XcmTransferForm.tsx')).toBe(false);
-      expect(output.get('src/hooks/index.ts')).toContain(
-        'export { useWalletWithEvm }',
-      );
       expect(output.get('src/main.tsx')).toContain('from "./App.tsx"');
-      expect(output.get('src/App.tsx')).toContain('from "./components"');
+      expect(output.get('src/App.tsx')).toContain(
+        'from "./components/XcmTransfer"',
+      );
       expect(output.get('src/components/XcmTransfer.tsx')).toContain(
-        'from "../hooks"',
+        'from "../hooks/useWalletWithEvm"',
       );
       if (kind === 'sdk') {
         expect(output.get('src/components/XcmTransfer.tsx')).toContain(
@@ -325,7 +332,7 @@ describe('createTemplateFiles', () => {
   );
 
   it.each(['sdk', 'api'] as const)(
-    'organizes generated Vue %s composables and components conventionally',
+    'organizes generated Vue %s source into components, composables, and utils',
     (kind) => {
       const output = renderTemplates(kind, 'vue', 'dedot', {
         evm: true,
@@ -338,6 +345,9 @@ describe('createTemplateFiles', () => {
       );
       const componentPaths = paths.filter(
         (filePath) => filePath.endsWith('.vue') && filePath !== 'src/App.vue',
+      );
+      const utilityPaths = paths.filter((filePath) =>
+        filePath.startsWith('src/utils/'),
       );
 
       expect(composablePaths.length).toBeGreaterThan(0);
@@ -352,21 +362,53 @@ describe('createTemplateFiles', () => {
           /^src\/components(?:\/common)?\/[^/]+\.vue$/.test(filePath),
         ),
       ).toBe(true);
+      expect(utilityPaths.length).toBeGreaterThan(0);
       expect(
-        paths.some((filePath) => filePath.startsWith('src/components/common/')),
-      ).toBe(false);
-      expect(output.get('src/composables/index.ts')).toContain(
-        'export { useWalletWithEvm }',
-      );
-      expect(output.get('src/components/index.ts')).toContain(
-        'export { default as XcmTransfer }',
-      );
+        utilityPaths.every((filePath) => /^src\/utils\/[^/]+$/.test(filePath)),
+      ).toBe(true);
+      expect(output.has('src/components/index.ts')).toBe(false);
+      expect(output.has('src/composables/index.ts')).toBe(false);
       expect(output.has('src/components/TransferForm.vue')).toBe(true);
       expect(output.has('src/components/XcmTransferForm.vue')).toBe(false);
-      expect(output.get('src/App.vue')).toContain('from "./components"');
-      expect(output.get('src/components/XcmTransfer.vue')).toContain(
-        'from "../composables"',
+      expect(output.get('src/App.vue')).toContain(
+        'from "./components/XcmTransfer.vue"',
       );
+      expect(output.get('src/components/XcmTransfer.vue')).toContain(
+        'from "../composables/useWalletWithEvm"',
+      );
+      const transferForm = output.get('src/components/TransferForm.vue')!;
+      expect(transferForm).toContain('const handleSubmit = () => {');
+      expect(transferForm).toContain('<form @submit.prevent="handleSubmit">');
+      if (kind === 'sdk') {
+        expect(transferForm).toContain(
+          'useCurrencyOptions(originChain, destinationChain, swapEnabled, exchange)',
+        );
+        expect(transferForm).not.toContain('const from = computed');
+        expect(transferForm).not.toContain('const to = computed');
+      }
+      const transferComponent = output.get('src/components/XcmTransfer.vue')!;
+      expect(transferComponent.indexOf('v-model:origin-chain')).toBeLessThan(
+        transferComponent.indexOf(':loading'),
+      );
+    },
+  );
+
+  it.each(['sdk', 'api'] as const)(
+    'keeps generated Node %s source compact and flat',
+    (kind) => {
+      const output = renderTemplates(kind, 'node', 'dedot', {
+        evm: true,
+        swap: true,
+        snowbridge: true,
+      });
+      const sourcePaths = [...output.keys()].filter((filePath) =>
+        filePath.startsWith('src/'),
+      );
+
+      expect(sourcePaths.length).toBeGreaterThan(0);
+      expect(
+        sourcePaths.every((filePath) => /^src\/[^/]+\.ts$/.test(filePath)),
+      ).toBe(true);
     },
   );
 });

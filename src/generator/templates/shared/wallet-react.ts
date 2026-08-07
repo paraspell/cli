@@ -6,7 +6,7 @@ type TWalletReactFragmentId = Extract<TFragmentId, `wallet/${string}.react`>;
 export const createWalletReactFragments: TFragmentFactory<
   TWalletReactFragmentId
 > = (context) => {
-  const { projectKind, client, clientName, sdkPackage } = context;
+  const { projectKind, clientName, sdkPackage } = context;
 
   return {
     'wallet/SubstrateWalletControls.react':
@@ -57,7 +57,7 @@ export const createWalletReactFragments: TFragmentFactory<
                 >
                   {accounts.map(({ name, address }) => (
                     <option key={address} value={address}>
-                      {name} — {address}
+                      {name ?? "Account"} — {address}
                     </option>
                   ))}
                 </select>
@@ -169,13 +169,6 @@ export const createWalletReactFragments: TFragmentFactory<
             if (!selectedAddress) {
               return;
             }
-            void web3Enable(DAPP_ORIGIN);
-          }, [selectedAddress]);
-        
-          useEffect(() => {
-            if (!selectedAddress) {
-              return;
-            }
             const abortController = new AbortController();
             void web3FromAddress(selectedAddress)
               .then((injector) => {
@@ -280,100 +273,6 @@ export const createWalletReactFragments: TFragmentFactory<
           };
         };
         `,
-    'wallet/useWalletWithEvm.api.react':
-      () => source`import type { PolkadotSigner } from "polkadot-api";
-        import type { TFormValues, TUseWalletReturn } from "../types";
-        import { submitUsingApi } from "../submit/submitUsingApi";
-        import { connectWalletAlert } from "../wallet/shared/submitTransfer";
-        import { useEvmOriginChains } from "./useEvmOriginChains";
-        import { usePapiWallet } from "./usePapiWallet";
-        import { useWalletWithEvmCore } from "./useWalletWithEvmCore";
-        
-        export const useWalletWithEvm = (): TUseWalletReturn => {
-          const { ensureEvmOriginChains, isEvmOrigin } = useEvmOriginChains();
-          const papi = usePapiWallet();
-        
-          const core = useWalletWithEvmCore<PolkadotSigner>({
-            extensionNames: papi.extensionNames,
-            selectedExtensionName: papi.selectedExtensionName,
-            accounts: papi.accounts,
-            selectedAddress: papi.selectedAddress,
-            connection: papi.connection,
-            discoverExtensions: papi.discoverExtensions,
-            selectExtension: papi.selectExtension,
-            selectAccountByAddress: papi.selectAccountByAddress,
-          });
-        
-          const submitTransfer = async (formValues: TFormValues) => {
-            const options = core.buildSubmitOptions(formValues.from);
-            if (!options) {
-              connectWalletAlert(core);
-              return false;
-            }
-
-            await submitUsingApi(formValues, options, {
-              ensureEvmOriginChains,
-              isEvmOrigin,
-            });
-            return true;
-          };
-        
-          return { ...core, submitTransfer };
-        };
-        `,
-    'wallet/useWalletWithEvm.sdk.react': () => {
-      const signerType = client === 'papi' ? 'PolkadotSigner' : 'Signer';
-
-      return source`
-        ${
-          client === 'papi'
-            ? source`import type { PolkadotSigner } from "polkadot-api";
-        `
-            : source`import type { Signer } from "@polkadot/api/types";
-        `
-        }
-        import type { TFormValues, TUseWalletReturn } from "../types";
-        import { submitUsingSdk } from "../xcm/${client}";
-        import {
-          connectWalletAlert,
-          submitEvmIfNeeded,
-        } from "../wallet/shared/submitTransfer";
-        import { use${clientName}Wallet } from "./use${clientName}Wallet";
-        import { useWalletWithEvmCore } from "./useWalletWithEvmCore";
-        
-        export const useWalletWithEvm = (): TUseWalletReturn => {
-          const ${client} = use${clientName}Wallet();
-        
-          const core = useWalletWithEvmCore<${signerType}>({
-            extensionNames: ${client}.extensionNames,
-            selectedExtensionName: ${client}.selectedExtensionName,
-            accounts: ${client}.accounts,
-            selectedAddress: ${client}.selectedAddress,
-            connection: ${client}.connection,
-            discoverExtensions: ${client}.discoverExtensions,
-            selectExtension: ${client}.selectExtension,
-            selectAccountByAddress: ${client}.selectAccountByAddress,
-          });
-        
-          const submitTransfer = async (formValues: TFormValues) => {
-            const options = core.buildSubmitOptions(formValues.from);
-            if (!options) {
-              connectWalletAlert(core);
-              return false;
-            }
-
-            if (await submitEvmIfNeeded(formValues, options)) {
-              return true;
-            }
-
-            await submitUsingSdk(formValues, options);
-            return true;
-          };
-        
-          return { ...core, submitTransfer };
-        };
-        `;
-    },
     'wallet/useWalletWithEvmCore.react':
       () => source`import { useCallback, useEffect, useState } from "react";
         ${

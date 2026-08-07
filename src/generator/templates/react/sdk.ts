@@ -1,11 +1,10 @@
-import type { TTemplateContext, TTemplateFile } from '../types.js';
-import { createFragmentFile } from './fragment-file.js';
-import type { TFragmentRenderer } from './shared/fragment-types.js';
-import { createSpaBarrelTemplates } from './spa-barrels.js';
-import { createSpaToolingTemplates } from './spa-tooling.js';
-import { source } from './source.js';
+import type { TTemplateContext, TTemplateFile } from '../../types.js';
+import { createFragmentFile } from '../fragment-file.js';
+import type { TFragmentRenderer } from '../shared/fragment-types.js';
+import { createSpaToolingTemplates } from '../spa-tooling.js';
+import { source } from '../source.js';
 
-export const createXcmSdkReactTemplates = (
+export const createReactSdkTemplates = (
   context: TTemplateContext,
   renderFragment: TFragmentRenderer,
 ): readonly TTemplateFile[] => {
@@ -28,7 +27,7 @@ export const createXcmSdkReactTemplates = (
             ? source`import "@paraspell/swap";
         `
             : ''
-        }${renderFragment('paraspell-side-effects')}import { XcmTransfer } from "./components";
+        }${renderFragment('paraspell-side-effects')}import { XcmTransfer } from "./components/XcmTransfer";
         
         const App = () => (
           <>
@@ -59,22 +58,21 @@ export const createXcmSdkReactTemplates = (
         import { TransferForm } from "./TransferForm";
         import type { TFormValues } from "../types";
         import type { TChain } from "${sdkPackage}";
+        import { toError } from "../utils/toError";
         ${
           evmWallet
             ? source`import { WalletControls } from "./WalletControls";
         import { WalletKindSelector } from "./WalletKindSelector";
-        import { useWalletWithEvm } from "../hooks";`
+        import { useWalletWithEvm } from "../hooks/useWalletWithEvm";`
             : source`import { SubstrateWalletControls } from "./SubstrateWalletControls";
-        import { use${clientName}Wallet } from "../hooks";`
+        import { use${clientName}Wallet } from "../hooks/use${clientName}Wallet";`
         }${
           !evmWallet
             ? source`
-        import { submitUsingSdk } from "../xcm/${client}";`
+        import { submitUsingSdk } from "../utils/submitUsingSdk";`
             : ''
         }
-        ${renderFragment('spa/toError')}
         export const XcmTransfer: FC = () => {
-          const [errorVisible, setErrorVisible] = useState(false);
           const [error, setError] = useState<Error | null>(null);
           const [loading, setLoading] = useState(false);
         
@@ -85,7 +83,7 @@ export const createXcmSdkReactTemplates = (
         
           const onSubmit = async (formValues: TFormValues) => {
             setLoading(true);
-            setErrorVisible(false);
+            setError(null);
         
             try {
               ${
@@ -106,7 +104,6 @@ export const createXcmSdkReactTemplates = (
               alert("Transaction was successful!");
             } catch (error) {
               setError(toError(error));
-              setErrorVisible(true);
             } finally {
               setLoading(false);
             }
@@ -149,7 +146,11 @@ export const createXcmSdkReactTemplates = (
                 originChain={originChain}
                 onOriginChange={setOriginChain}
               />
-              {errorVisible && <p className="transferError">{error?.message}</p>}
+              {error && (
+                <p className="transferError" role="alert">
+                  {error.message}
+                </p>
+              )}
             </div>
           );
         };
@@ -158,8 +159,9 @@ export const createXcmSdkReactTemplates = (
     },
     {
       path: 'src/components/TransferForm.tsx',
-      render: () => source`import { useState, FormEvent, FC } from "react";
-        import { useCurrencyOptions } from "../hooks";
+      render:
+        () => source`import { useState, type FC, type FormEvent } from "react";
+        import { useCurrencyOptions } from "../hooks/useCurrencyOptions";
         import {
           CHAINS,${
             swap
@@ -331,6 +333,8 @@ export const createXcmSdkReactTemplates = (
                 Amount
                 <input
                   type="number"
+                  min="0"
+                  step="any"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   required
@@ -397,23 +401,24 @@ export const createXcmSdkReactTemplates = (
         
         `,
     },
-    fragment('src/evm/eip6963.ts', 'evm/eip6963.ts', !evmWallet),
-    fragment('src/evm/getViemChain.ts', 'evm/getViemChain', !evmWallet),
-    fragment('src/evm/utils.ts', 'evm/utils.ts', !evmWallet),
+    fragment('src/utils/eip6963.ts', 'evm/eip6963.ts', !evmWallet),
+    fragment('src/utils/getViemChain.ts', 'evm/getViemChain', !evmWallet),
+    fragment('src/utils/evmWallet.ts', 'evm/utils.ts', !evmWallet),
     fragment('src/index.css', 'spa/index.css'),
-    fragment('src/requireAsset.ts', 'requireAsset', !swap),
+    fragment('src/utils/toError.ts', 'spa/toError'),
+    fragment('src/utils/requireSwapCurrency.ts', 'requireAsset', !swap),
     fragment('src/types.ts', 'types/sdk.frontend'),
     fragment('src/hooks/useCurrencyOptions.ts', 'sdk/useCurrencyOptions.react'),
-    fragment('src/vite-env.d.ts', 'spa/vite-env.d'),
     fragment(
-      'src/hooks/useDedotWallet.ts',
-      'wallet/useExtensionWallet.react',
-      client !== 'dedot',
+      `src/hooks/use${clientName}Wallet.ts`,
+      client === 'papi'
+        ? 'wallet/usePapiWallet.react'
+        : 'wallet/useExtensionWallet.react',
     ),
     fragment(
       'src/hooks/useWalletWithEvm.ts',
-      'wallet/useWalletWithEvm.sdk.react',
-      !(evmWallet && client === 'dedot'),
+      'wallet/useWalletWithEvm.sdk',
+      !evmWallet,
     ),
     fragment(
       'src/components/EvmWalletControls.tsx',
@@ -427,26 +432,6 @@ export const createXcmSdkReactTemplates = (
     ),
     fragment('src/hooks/useEvmWallet.ts', 'evm/useEvmWallet.react', !evmWallet),
     fragment(
-      'src/hooks/usePapiWallet.ts',
-      'wallet/usePapiWallet.react',
-      client !== 'papi',
-    ),
-    fragment(
-      'src/hooks/useWalletWithEvm.ts',
-      'wallet/useWalletWithEvm.sdk.react',
-      !(evmWallet && client === 'papi'),
-    ),
-    fragment(
-      'src/hooks/usePjsWallet.ts',
-      'wallet/useExtensionWallet.react',
-      client !== 'pjs',
-    ),
-    fragment(
-      'src/hooks/useWalletWithEvm.ts',
-      'wallet/useWalletWithEvm.sdk.react',
-      !(evmWallet && client === 'pjs'),
-    ),
-    fragment(
       'src/components/SubstrateWalletControls.tsx',
       'wallet/SubstrateWalletControls.react',
     ),
@@ -456,8 +441,8 @@ export const createXcmSdkReactTemplates = (
       !evmWallet,
     ),
     fragment(
-      'src/wallet/shared/submitTransfer.ts',
-      'wallet/submitTransfer.sdk',
+      'src/utils/connectWalletAlert.ts',
+      'wallet/connectWalletAlert',
       !evmWallet,
     ),
     fragment(
@@ -465,16 +450,17 @@ export const createXcmSdkReactTemplates = (
       'wallet/useWalletWithEvmCore.react',
       !evmWallet,
     ),
-    ...createSpaBarrelTemplates(context),
-    fragment('src/xcm/dedot.ts', 'xcm/dedot', client !== 'dedot'),
-    fragment('src/xcm/evmTransfer.ts', 'xcm/evmTransfer.sdk', !evmWallet),
-    fragment('src/xcm/papi.ts', 'xcm/papi', client !== 'papi'),
+    fragment('src/utils/submitUsingSdk.ts', `xcm/${client}`),
     fragment(
-      'src/xcm/submitPapiTransaction.ts',
+      'src/utils/submitEvmTransfer.ts',
+      'xcm/evmTransfer.sdk',
+      !evmWallet,
+    ),
+    fragment(
+      'src/utils/submitPapiTransaction.ts',
       'papi/submitTransaction',
       client !== 'papi',
     ),
-    fragment('src/xcm/pjs.ts', 'xcm/pjs', client !== 'pjs'),
     ...createSpaToolingTemplates(context),
   ];
 };

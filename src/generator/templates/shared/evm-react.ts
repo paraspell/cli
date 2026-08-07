@@ -100,7 +100,7 @@ export const createEvmReactFragments: TFragmentFactory<
         `,
     'evm/useEvmOriginChains.react':
       () => source`import { useCallback, useEffect, useRef, useState } from "react";
-        import { loadEvmOriginChains } from "../evm/evmOrigins";
+        import { loadEvmOriginChains } from "../utils/evmOrigins";
         
         export const useEvmOriginChains = () => {
           const [chains, setChains] = useState<readonly string[]>([]);
@@ -138,12 +138,12 @@ export const createEvmReactFragments: TFragmentFactory<
         import type { EIP6963ProviderDetail } from "mipd";
         import { getAddress, type WalletClient } from "viem";
         import { createWalletClient, custom } from "viem";
-        import { getEip6963Providers } from "../evm/eip6963";
-        import { getViemChainForOrigin } from "../evm/getViemChain";
+        import { getEip6963Providers } from "../utils/eip6963";
+        import { getViemChainForOrigin } from "../utils/getViemChain";
         import {
           toProviderOptions,
           truncateAddress,
-        } from "../evm/utils";
+        } from "../utils/evmWallet";
         import type { TEvmAccountOption, TEvmProviderOption } from "../types";
         
         export const useEvmWallet = () => {
@@ -266,7 +266,6 @@ export const createEvmReactFragments: TFragmentFactory<
             accounts: accountOptions,
             providerOptions,
             selectedAddress,
-            selectedProvider,
             selectedProviderUuid,
             discoverProviders,
             selectProvider,

@@ -11,27 +11,64 @@ type TPackageJson = {
   devDependencies: Record<string, string>;
 };
 
-const qualityScripts = {
+type TPackageJsonBase = Pick<
+  TPackageJson,
+  'name' | 'private' | 'version' | 'type'
+>;
+
+const QUALITY_SCRIPTS = {
   lint: 'eslint . --max-warnings 0',
   'lint:fix': 'eslint . --fix',
   format: 'prettier . --write',
   'format:check': 'prettier . --check',
 };
 
-const qualityDependencies = (): Record<string, string> =>
-  dependencyVersions(
-    '@eslint/js',
-    'eslint',
-    'eslint-config-prettier',
-    'globals',
-    'prettier',
-    'typescript',
-    'typescript-eslint',
-  );
+const QUALITY_DEPENDENCIES = dependencyVersions(
+  '@eslint/js',
+  'eslint',
+  'eslint-config-prettier',
+  'globals',
+  'prettier',
+  'typescript',
+  'typescript-eslint',
+);
+
+const baseManifest = (context: TTemplateContext): TPackageJsonBase => ({
+  name: context.projectName,
+  private: true,
+  version: '1.0.0',
+  type: 'module',
+});
+
+const sdkClientDependencies = (
+  context: TTemplateContext,
+): Record<string, string> => {
+  const isNode = context.framework === 'node';
+
+  switch (context.client) {
+    case 'papi':
+      return dependencyVersions('@paraspell/descriptors', 'polkadot-api');
+    case 'pjs':
+      return isNode
+        ? dependencyVersions(
+            '@polkadot/api',
+            '@polkadot/types',
+            '@polkadot/util',
+          )
+        : dependencyVersions('@polkadot/api', '@polkadot/extension-dapp');
+    case 'dedot':
+      return isNode
+        ? dependencyVersions('dedot')
+        : dependencyVersions(
+            'dedot',
+            '@polkadot/api',
+            '@polkadot/extension-dapp',
+          );
+  }
+};
 
 const sdkDependencies = (context: TTemplateContext): Record<string, string> => {
   const {
-    client,
     framework,
     sdkPackage,
     extensions: { evm, snowbridge, swap },
@@ -40,7 +77,7 @@ const sdkDependencies = (context: TTemplateContext): Record<string, string> => {
 
   return {
     ...dependencyVersions(sdkPackage),
-    ...(client === 'papi' ? dependencyVersions('@paraspell/descriptors') : {}),
+    ...sdkClientDependencies(context),
     ...(swap ? dependencyVersions('@paraspell/swap') : {}),
     ...(evm ? dependencyVersions('@paraspell/evm') : {}),
     ...(snowbridge ? dependencyVersions('@paraspell/evm-snowbridge') : {}),
@@ -49,100 +86,78 @@ const sdkDependencies = (context: TTemplateContext): Record<string, string> => {
         ? dependencyVersions('viem')
         : dependencyVersions('mipd', 'viem')
       : {}),
-    ...(client === 'papi' ? dependencyVersions('polkadot-api') : {}),
-    ...(client === 'pjs'
-      ? framework === 'node'
-        ? dependencyVersions(
-            '@polkadot/api',
-            '@polkadot/types',
-            '@polkadot/util',
-          )
-        : dependencyVersions('@polkadot/api', '@polkadot/extension-dapp')
-      : {}),
-    ...(client === 'dedot'
-      ? framework === 'node'
-        ? dependencyVersions('dedot')
-        : dependencyVersions(
-            'dedot',
-            '@polkadot/api',
-            '@polkadot/extension-dapp',
-          )
-      : {}),
   };
 };
 
 const browserManifest = (context: TTemplateContext): TPackageJson => {
-  const react = context.framework === 'react';
-  const sdk = context.projectKind === 'sdk';
+  const isReact = context.framework === 'react';
+  const isSdk = context.projectKind === 'sdk';
 
   return {
-    name: context.projectName,
-    private: true,
-    version: '1.0.0',
-    type: 'module',
+    ...baseManifest(context),
     scripts: {
       dev: 'vite',
-      build: react ? 'tsc -b && vite build' : 'vue-tsc --noEmit && vite build',
-      compile: react ? 'tsc -b --noEmit' : 'vue-tsc --noEmit',
-      ...qualityScripts,
+      build: isReact
+        ? 'tsc -b && vite build'
+        : 'vue-tsc --noEmit && vite build',
+      compile: isReact ? 'tsc -b --noEmit' : 'vue-tsc --noEmit',
+      ...QUALITY_SCRIPTS,
       preview: 'vite preview',
     },
     dependencies: {
-      ...(sdk
+      ...(isSdk
         ? sdkDependencies(context)
         : {
             ...dependencyVersions('axios', 'polkadot-api'),
             ...(context.evmWallet ? dependencyVersions('mipd', 'viem') : {}),
           }),
-      ...(react ? {} : dependencyVersions('vue')),
+      ...(isReact
+        ? dependencyVersions('react', 'react-dom')
+        : dependencyVersions('vue')),
     },
     devDependencies: {
-      ...qualityDependencies(),
-      ...dependencyVersions('vite'),
-      ...(react
+      ...QUALITY_DEPENDENCIES,
+      ...dependencyVersions('@types/node', 'vite'),
+      ...(isReact
         ? dependencyVersions(
             '@types/react',
             '@types/react-dom',
             '@vitejs/plugin-react',
             'eslint-plugin-react-hooks',
             'eslint-plugin-react-refresh',
-            'react',
-            'react-dom',
           )
         : dependencyVersions(
             '@vitejs/plugin-vue',
+            '@vue/tsconfig',
             'eslint-plugin-vue',
             'vue-eslint-parser',
             'vue-tsc',
           )),
-      ...(sdk ? dependencyVersions('vite-plugin-wasm') : {}),
+      ...(isSdk ? dependencyVersions('vite-plugin-wasm') : {}),
     },
   };
 };
 
 const nodeManifest = (context: TTemplateContext): TPackageJson => {
-  const sdk = context.projectKind === 'sdk';
+  const isSdk = context.projectKind === 'sdk';
 
   return {
-    name: context.projectName,
-    private: true,
-    version: '1.0.0',
-    type: 'module',
+    ...baseManifest(context),
     scripts: {
       start: 'tsx src/index.ts',
       build: 'tsc',
       compile: 'tsc --noEmit',
-      ...qualityScripts,
+      ...QUALITY_SCRIPTS,
     },
     dependencies: {
-      ...(sdk
+      ...(isSdk
         ? sdkDependencies(context)
         : dependencyVersions('axios', 'polkadot-api')),
       ...dependencyVersions('@polkadot/keyring', 'dotenv', 'express'),
-      ...(!sdk && context.evmWallet ? dependencyVersions('viem') : {}),
+      ...(!isSdk && context.evmWallet ? dependencyVersions('viem') : {}),
     },
     devDependencies: {
-      ...qualityDependencies(),
+      ...QUALITY_DEPENDENCIES,
       ...dependencyVersions('@types/express', '@types/node', 'tsx'),
     },
   };

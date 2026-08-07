@@ -99,7 +99,7 @@ export const createEvmVueFragments: TFragmentFactory<
         `,
     'evm/useEvmOriginChains.vue':
       () => source`import { onMounted, ref, shallowRef } from "vue";
-        import { loadEvmOriginChains } from "../evm/evmOrigins";
+        import { loadEvmOriginChains } from "../utils/evmOrigins";
         
         export const useEvmOriginChains = () => {
           const chains = ref<readonly string[]>([]);
@@ -133,12 +133,12 @@ export const createEvmVueFragments: TFragmentFactory<
         import type { EIP6963ProviderDetail } from "mipd";
         import { getAddress, type WalletClient } from "viem";
         import { createWalletClient, custom } from "viem";
-        import { getEip6963Providers } from "../evm/eip6963";
-        import { getViemChainForOrigin } from "../evm/getViemChain";
+        import { getEip6963Providers } from "../utils/eip6963";
+        import { getViemChainForOrigin } from "../utils/getViemChain";
         import {
           toProviderOptions,
           truncateAddress,
-        } from "../evm/utils";
+        } from "../utils/evmWallet";
         import type { TEvmAccountOption, TEvmProviderOption } from "../types";
         
         export const useEvmWallet = () => {
@@ -182,6 +182,10 @@ export const createEvmVueFragments: TFragmentFactory<
               return;
             }
         
+            selectedProvider.value?.provider.removeListener?.(
+              "accountsChanged",
+              handleAccountsChanged,
+            );
             selectedProvider.value = providerDetail;
             accounts.value = requestedAccounts;
             selectedAddress.value = requestedAccounts[0];
@@ -243,7 +247,6 @@ export const createEvmVueFragments: TFragmentFactory<
             accounts: accountOptions,
             providerOptions,
             selectedAddress,
-            selectedProvider,
             selectedProviderUuid,
             discoverProviders,
             selectProvider,

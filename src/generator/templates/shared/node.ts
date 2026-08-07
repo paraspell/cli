@@ -102,7 +102,11 @@ export const createNodeFragments: TFragmentFactory<TNodeFragmentId> = (
           "moduleResolution": "NodeNext",
           "strict": true,
           "skipLibCheck": true,
-          "esModuleInterop": true,
+          "verbatimModuleSyntax": true,
+          "isolatedModules": true,
+          "noUnusedLocals": true,
+          "noUnusedParameters": true,
+          "erasableSyntaxOnly": true,
           "types": ["node"],
           "outDir": "dist",
           "rootDir": "src"

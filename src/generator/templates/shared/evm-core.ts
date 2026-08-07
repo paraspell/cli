@@ -24,7 +24,7 @@ export const createEvmCoreFragments: TFragmentFactory<TEvmCoreFragmentId> = (
           evmProviderStore?.getProviders() ?? [];
         `,
     'evm/evmOrigins.api.frontend': () => source`import axios from "axios";
-        import { API_URL } from "../consts";
+        import { API_URL } from "./constants";
         
         export const loadEvmOriginChains = async (): Promise<readonly string[]> => {
           const response = await axios.get<string[]>(\`\${API_URL}/chains/evm\`);

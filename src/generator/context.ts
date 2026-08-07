@@ -31,10 +31,5 @@ export const createTemplateContext = ({
     projectKind: kind,
     extensions: opts.extensions,
     evmWallet: requiresEvmWallet(opts.extensions),
-    defaultOriginChain: opts.extensions.snowbridge
-      ? 'Ethereum'
-      : opts.extensions.evm
-        ? 'Moonbeam'
-        : 'Astar',
   };
 };

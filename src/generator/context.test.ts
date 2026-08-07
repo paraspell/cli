@@ -47,11 +47,7 @@ describe('createTemplateContext', () => {
     },
   );
 
-  it.each([
-    [{ evm: false, swap: false, snowbridge: false }, 'Astar'],
-    [{ evm: true, swap: false, snowbridge: false }, 'Moonbeam'],
-    [{ evm: true, swap: false, snowbridge: true }, 'Ethereum'],
-  ])('selects the default origin for %o', (extensions, expected) => {
+  it('selects the Node start command', () => {
     const context = createTemplateContext({
       kind: 'sdk',
       opts: {
@@ -60,11 +56,10 @@ describe('createTemplateContext', () => {
         client: 'papi',
         packageManager: 'pnpm',
         out: '/tmp/example',
-        extensions,
+        extensions: { evm: false, swap: false, snowbridge: false },
       },
     });
 
-    expect(context.defaultOriginChain).toBe(expected);
     expect(context.startCmd).toBe('pnpm start');
   });
 });

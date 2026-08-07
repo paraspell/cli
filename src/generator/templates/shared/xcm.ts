@@ -26,14 +26,14 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         import type { TFormValues${evmWallet ? source`, TWalletSubmitOptions` : ''} } from "../types";
         ${
           swap
-            ? source`import { requireSwapCurrency } from "../requireAsset";
+            ? source`import { requireSwapCurrency } from "./requireSwapCurrency";
         `
             : ''
         }
         ${
           evmWallet
             ? source`
-        import { submitEvmTransferFromForm } from "./evmTransfer";
+        import { submitEvmTransferFromForm } from "./submitEvmTransfer";
         `
             : ''
         }
@@ -142,7 +142,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         import type { TFormValues } from "../types";
         ${
           swap
-            ? source`import { requireSwapCurrency } from "../requireAsset";
+            ? source`import { requireSwapCurrency } from "./requireSwapCurrency";
         `
             : ''
         }
@@ -205,13 +205,13 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         import type { TFormValues${evmWallet ? source`, TWalletSubmitOptions` : ''} } from "../types";
         ${
           swap
-            ? source`import { requireSwapCurrency } from "../requireAsset";
+            ? source`import { requireSwapCurrency } from "./requireSwapCurrency";
         `
             : ''
         }${
           evmWallet
             ? source`
-        import { submitEvmTransferFromForm } from "./evmTransfer";
+        import { submitEvmTransferFromForm } from "./submitEvmTransfer";
         `
             : ''
         }import { submitPapiTransaction } from "./submitPapiTransaction";
@@ -301,14 +301,14 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
         import type { TFormValues${evmWallet ? source`, TWalletSubmitOptions` : ''} } from "../types";
         ${
           swap
-            ? source`import { requireSwapCurrency } from "../requireAsset";
+            ? source`import { requireSwapCurrency } from "./requireSwapCurrency";
         `
             : ''
         }
         ${
           evmWallet
             ? source`
-        import { submitEvmTransferFromForm } from "./evmTransfer";
+        import { submitEvmTransferFromForm } from "./submitEvmTransfer";
         `
             : ''
         }

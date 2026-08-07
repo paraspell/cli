@@ -28,6 +28,7 @@ export const createPapiFragments: TFragmentFactory<TPapiFragmentId> = () => ({
         if (error instanceof InvalidTxError) {
           throw new Error(
             \`Invalid transaction: \${JSON.stringify(error.error)}\`,
+            { cause: error },
           );
         }
         throw error;
