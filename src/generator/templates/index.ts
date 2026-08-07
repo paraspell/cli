@@ -2,23 +2,23 @@ import type { TTemplateContext, TTemplateFile } from '../types.js';
 import { createQualityTemplates } from './quality.js';
 import { createScaffoldTemplates } from './scaffold.js';
 import { createFragmentRenderer } from './shared/index.js';
-import { createXcmApiNodeTemplates } from './xcm-api-node.js';
-import { createXcmApiReactTemplates } from './xcm-api-react.js';
-import { createXcmApiVueTemplates } from './xcm-api-vue.js';
-import { createXcmSdkNodeTemplates } from './xcm-sdk-node.js';
-import { createXcmSdkReactTemplates } from './xcm-sdk-react.js';
-import { createXcmSdkVueTemplates } from './xcm-sdk-vue.js';
+import { createNodeApiTemplates } from './node/api.js';
+import { createNodeSdkTemplates } from './node/sdk.js';
+import { createReactApiTemplates } from './react/api.js';
+import { createReactSdkTemplates } from './react/sdk.js';
+import { createVueApiTemplates } from './vue/api.js';
+import { createVueSdkTemplates } from './vue/sdk.js';
 
 const TEMPLATE_FACTORIES = {
   api: {
-    node: createXcmApiNodeTemplates,
-    react: createXcmApiReactTemplates,
-    vue: createXcmApiVueTemplates,
+    node: createNodeApiTemplates,
+    react: createReactApiTemplates,
+    vue: createVueApiTemplates,
   },
   sdk: {
-    node: createXcmSdkNodeTemplates,
-    react: createXcmSdkReactTemplates,
-    vue: createXcmSdkVueTemplates,
+    node: createNodeSdkTemplates,
+    react: createReactSdkTemplates,
+    vue: createVueSdkTemplates,
   },
 };
 

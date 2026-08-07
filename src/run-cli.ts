@@ -183,7 +183,7 @@ const createApp = (): Application<TAppContext> => {
   return buildApplication(
     routes,
     {
-      name: 'create-paraspell',
+      name: 'paraspell-cli',
       scanner: { caseStyle: 'allow-kebab-for-camel' },
     },
     {

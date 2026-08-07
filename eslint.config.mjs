@@ -6,7 +6,7 @@ import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig({
-  name: 'create-paraspell/typescript',
+  name: 'paraspell-cli/typescript',
   files: ['src/**/*.ts', 'e2e/**/*.ts'],
   extends: [
     js.configs.recommended,

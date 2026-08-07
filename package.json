@@ -1,12 +1,12 @@
 {
-  "name": "create-paraspell",
+  "name": "paraspell-cli",
   "version": "1.0.0",
   "description": "Scaffold ParaSpell XCM SDK and XCM API starter apps",
   "type": "module",
   "license": "MIT",
   "author": "ParaSpell",
   "bin": {
-    "create-paraspell": "dist/index.js"
+    "paraspell-cli": "dist/index.js"
   },
   "files": [
     "dist",

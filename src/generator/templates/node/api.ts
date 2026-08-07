@@ -1,16 +1,15 @@
-import type { TTemplateContext, TTemplateFile } from '../types.js';
-import { createFragmentFile } from './fragment-file.js';
-import type { TFragmentRenderer } from './shared/fragment-types.js';
-import { source } from './source.js';
+import type { TTemplateContext, TTemplateFile } from '../../types.js';
+import { createFragmentFile } from '../fragment-file.js';
+import type { TFragmentRenderer } from '../shared/fragment-types.js';
+import { source } from '../source.js';
 
-export const createXcmApiNodeTemplates = (
+export const createNodeApiTemplates = (
   context: TTemplateContext,
   renderFragment: TFragmentRenderer,
 ): readonly TTemplateFile[] => {
   const {
     extensions: { swap },
     evmWallet,
-    defaultOriginChain,
   } = context;
   const fragment = createFragmentFile(renderFragment);
 
@@ -45,9 +44,12 @@ export const createXcmApiNodeTemplates = (
           const response = await axios.get<string[]>(
             \`\${API_URL}/chains/\${apiTx.chain}/ws-endpoints\`,
           );
-          const endpoints = response.data;
+          const [endpoint] = response.data;
+          if (!endpoint) {
+            throw new Error(\`No WebSocket endpoint returned for \${apiTx.chain}.\`);
+          }
         
-          const client = createWsClient(endpoints[0]);
+          const client = createWsClient(endpoint);
           try {
             const callData = Binary.fromHex(apiTx.tx);
             const tx = await client.getUnsafeApi().txFromCallData(callData);
@@ -114,7 +116,7 @@ export const createXcmApiNodeTemplates = (
         ${renderFragment('api/buildApiParams')}
         
         const defaults: TTransferParams = {
-          from: "${defaultOriginChain}",
+          from: "Astar",
           to: "Hydration",
           amount: "0.1",
           recipient: "//Bob",

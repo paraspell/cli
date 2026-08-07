@@ -36,25 +36,16 @@ const renderGitignore = (framework: TTemplateContext['framework']): string =>
 
 const renderScripts = (context: TTemplateContext): string => {
   const { framework, packageManager, startCmd } = context;
+  const isNode = framework === 'node';
 
-  return framework === 'node'
-    ? source`| Command | Description |
-      | --- | --- |
-      | **${startCmd}** | Start the HTTP server |
-      | **${packageManager} run build** | Compile TypeScript |
-      | **${packageManager} run compile** | Check TypeScript types |
-      | **${packageManager} run lint** | Lint the project |
-      | **${packageManager} run format** | Format the project |
-      `
-    : source`| Command | Description |
-      | --- | --- |
-      | **${startCmd}** | Start the Vite development server |
-      | **${packageManager} run build** | Create a production build |
-      | **${packageManager} run compile** | Check TypeScript types |
-      | **${packageManager} run lint** | Lint the project |
-      | **${packageManager} run format** | Format the project |
-      | **${packageManager} run preview** | Preview the production build |
-      `;
+  return `| Command | Description |
+| --- | --- |
+| **${startCmd}** | Start the ${isNode ? 'HTTP server' : 'Vite development server'} |
+| **${packageManager} run build** | ${isNode ? 'Compile TypeScript' : 'Create a production build'} |
+| **${packageManager} run compile** | Check TypeScript types |
+| **${packageManager} run lint** | Lint the project |
+| **${packageManager} run format** | Format the project |
+${isNode ? '' : `| **${packageManager} run preview** | Preview the production build |\n`}`;
 };
 
 const renderBrowserReadme = (context: TTemplateContext): string => {

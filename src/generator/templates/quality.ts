@@ -24,7 +24,7 @@ const renderReactEslintConfig = () => source`
       extends: [js.configs.recommended, ...tseslint.configs.recommended],
       files: ["**/*.{ts,tsx}"],
       languageOptions: {
-        ecmaVersion: 2020,
+        ecmaVersion: 2023,
         globals: globals.browser,
       },
       plugins: {
@@ -59,7 +59,7 @@ const renderVueEslintConfig = () => source`
     {
       files: ["**/*.{ts,vue}"],
       languageOptions: {
-        ecmaVersion: 2020,
+        ecmaVersion: 2023,
         globals: globals.browser,
       },
     },
@@ -89,7 +89,7 @@ const renderNodeEslintConfig = () => source`
       extends: [js.configs.recommended, ...tseslint.configs.recommended],
       files: ["**/*.ts"],
       languageOptions: {
-        ecmaVersion: 2022,
+        ecmaVersion: 2023,
         globals: globals.node,
       },
     },

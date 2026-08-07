@@ -29,7 +29,6 @@ export type TTemplateContext = {
   projectKind: TProjectType;
   extensions: TExtensions;
   evmWallet: boolean;
-  defaultOriginChain: 'Astar' | 'Moonbeam' | 'Ethereum';
 };
 
 export type TTemplateFile = {

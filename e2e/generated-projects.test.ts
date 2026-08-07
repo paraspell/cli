@@ -33,6 +33,7 @@ const PACKAGE_MANAGER_COMMANDS: Record<
 const GENERATION_CASES = BUILD_CASES.map(
   (testCase) => [caseId(testCase), testCase] as const,
 );
+const MATRIX_BUILD_TIMEOUT_MS = 10 * 60 * 1000;
 
 let root: string;
 let projectsRoot: string;
@@ -59,35 +60,40 @@ describe('generated projects', () => {
     await generateProject(testCase, projectPath(testCase));
   });
 
-  it('builds every supported project combination', async () => {
-    const firstWorkspace = projectPath(BUILD_CASES[0]);
-    const allowBuilds = fs.readFileSync(
-      path.join(firstWorkspace, 'pnpm-workspace.yaml'),
-      'utf8',
-    );
+  it(
+    'builds and lints every supported project combination',
+    async () => {
+      const firstWorkspace = projectPath(BUILD_CASES[0]);
+      const allowBuilds = fs.readFileSync(
+        path.join(firstWorkspace, 'pnpm-workspace.yaml'),
+        'utf8',
+      );
 
-    fs.writeFileSync(
-      path.join(root, 'package.json'),
-      JSON.stringify({ name: 'generated-projects', private: true }),
-    );
-    fs.writeFileSync(
-      path.join(root, 'pnpm-workspace.yaml'),
-      `packages:
+      fs.writeFileSync(
+        path.join(root, 'package.json'),
+        JSON.stringify({ name: 'generated-projects', private: true }),
+      );
+      fs.writeFileSync(
+        path.join(root, 'pnpm-workspace.yaml'),
+        `packages:
   - projects/*-pnpm
 overrides:
   "@polkadot-api/json-rpc-provider": ^0.2.0
 ${allowBuilds}`,
-    );
+      );
 
-    await runCommand('pnpm', ['install'], {
-      cwd: root,
-    });
-    await runCommand(
-      'pnpm',
-      ['--recursive', '--workspace-concurrency=4', 'run', 'build'],
-      { cwd: root },
-    );
-  });
+      await runCommand('pnpm', ['install'], {
+        cwd: root,
+      });
+      await runCommand('pnpm', ['-r', '--no-bail', 'run', 'build'], {
+        cwd: root,
+      });
+      await runCommand('pnpm', ['-r', '--no-bail', 'run', 'lint'], {
+        cwd: root,
+      });
+    },
+    MATRIX_BUILD_TIMEOUT_MS,
+  );
 
   const installAndBuild = async (
     testCase: TGenerationCase,

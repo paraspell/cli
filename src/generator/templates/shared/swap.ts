@@ -6,7 +6,7 @@ type TSwapFragmentId = Extract<TFragmentId, `swap/${string}`>;
 export const createSwapFragments: TFragmentFactory<TSwapFragmentId> = () => {
   return {
     'swap/exchangeChains.api.frontend': () => source`import axios from "axios";
-        import { API_URL } from "../consts";
+        import { API_URL } from "./constants";
         
         export const loadExchangeChains = async (): Promise<readonly string[]> => {
           const response = await axios.get<string[]>(\`\${API_URL}/swap/exchange-chains\`);
@@ -15,7 +15,7 @@ export const createSwapFragments: TFragmentFactory<TSwapFragmentId> = () => {
         `,
     'swap/useExchangeChains.react':
       () => source`import { useCallback, useEffect, useRef, useState } from "react";
-        import { loadExchangeChains } from "../swap/exchangeChains";
+        import { loadExchangeChains } from "../utils/exchangeChains";
         
         export const useExchangeChains = () => {
           const [chains, setChains] = useState<readonly string[]>([]);
@@ -45,7 +45,7 @@ export const createSwapFragments: TFragmentFactory<TSwapFragmentId> = () => {
         `,
     'swap/useExchangeChains.vue':
       () => source`import { onMounted, ref, shallowRef } from "vue";
-        import { loadExchangeChains } from "../swap/exchangeChains";
+        import { loadExchangeChains } from "../utils/exchangeChains";
         
         export const useExchangeChains = () => {
           const chains = ref<readonly string[]>([]);

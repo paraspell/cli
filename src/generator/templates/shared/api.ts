@@ -74,8 +74,8 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
             ? source`import type { Hex } from "viem";
         `
             : ''
-        }import { API_URL } from "./consts${framework === 'node' ? source`.js` : ''}";
-        import type { TApiParams, TApiTransaction, TApiErrorResponse } from "./types${framework === 'node' ? source`.js` : ''}";
+        }import { API_URL } from "./${framework === 'node' ? 'consts.js' : 'constants'}";
+        import type { TApiParams, TApiTransaction, TApiErrorResponse } from "${framework === 'node' ? './types.js' : '../types'}";
         
         const postToApi = async <T>(
           url: string,
@@ -142,34 +142,29 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
         const toError = (error: unknown): Error =>
           error instanceof Error ? error : new Error(String(error));
 
+        type TApiDataState<T> = {
+          url: string;
+          data: T[];
+          error: Error | null;
+        };
+
         export const useApiData = <T>(url: string | undefined) => {
-          const [data, setData] = useState<T[]>([]);
-          const [loading, setLoading] = useState(false);
-          const [error, setError] = useState<Error | null>(null);
+          const [state, setState] = useState<TApiDataState<T> | null>(null);
 
           useEffect(() => {
-            if (!url) {
-              setData([]);
-              setLoading(false);
-              setError(null);
-              return;
-            }
+            if (!url) return;
 
             const controller = new AbortController();
-            setData([]);
-            setLoading(true);
-            setError(null);
 
             void axios
               .get<T[]>(url, { signal: controller.signal })
               .then((response) => {
-                setData(response.data);
+                setState({ url, data: response.data, error: null });
               })
               .catch((error: unknown) => {
-                if (!controller.signal.aborted) setError(toError(error));
-              })
-              .finally(() => {
-                if (!controller.signal.aborted) setLoading(false);
+                if (!controller.signal.aborted) {
+                  setState({ url, data: [], error: toError(error) });
+                }
               });
 
             return () => {
@@ -177,7 +172,12 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
             };
           }, [url]);
 
-          return { data, loading, error };
+          const current = state?.url === url ? state : null;
+          return {
+            data: current?.data ?? [],
+            loading: Boolean(url) && !current,
+            error: current?.error ?? null,
+          };
         };
         `,
     'api/useApiData.vue': () => source`import axios from "axios";
@@ -229,11 +229,11 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
         import { Binary } from "polkadot-api";
         import type { PolkadotSigner } from "polkadot-api";
         import { createWsClient } from "polkadot-api/ws";
-        import { API_URL } from "../consts";
-        import { fetchFromApi${evmWallet ? source`, fetchFromEvmApi` : ''} } from "../fetchFromApi";
+        import { API_URL } from "./constants";
+        import { fetchFromApi${evmWallet ? source`, fetchFromEvmApi` : ''} } from "./fetchFromApi";
         ${
           swap
-            ? source`import { requireSwapCurrency } from "../requireAsset";
+            ? source`import { requireSwapCurrency } from "./requireSwapCurrency";
         `
             : ''
         }
@@ -264,9 +264,12 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
           const response = await axios.get<string[]>(
             \`\${API_URL}/chains/\${apiTx.chain}/ws-endpoints\`,
           );
-          const endpoints = response.data;
+          const [endpoint] = response.data;
+          if (!endpoint) {
+            throw new Error(\`No WebSocket endpoint returned for \${apiTx.chain}.\`);
+          }
         
-          const client = createWsClient(endpoints[0]);
+          const client = createWsClient(endpoint);
           try {
             const callData = Binary.fromHex(apiTx.tx);
             const tx = await client.getUnsafeApi().txFromCallData(callData);

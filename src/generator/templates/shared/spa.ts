@@ -219,7 +219,7 @@ export const createSpaFragments: TFragmentFactory<TSpaFragmentId> = (
             <meta charset="UTF-8" />
             <link rel="icon" type="image/png" href="/paraspell-icon.png" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>ParaSpell XCM ${projectKind === 'api' ? 'API' : 'SDK'} - template</title>
+            <title>ParaSpell XCM ${projectKind === 'api' ? 'API' : 'SDK'} starter</title>
           </head>
           <body>
             <div id="${framework === 'react' ? 'root' : 'app'}"></div>
@@ -227,26 +227,13 @@ export const createSpaFragments: TFragmentFactory<TSpaFragmentId> = (
           </body>
         </html>
         `,
-    'spa/toError': () => source`const toError = (error: unknown): Error =>
+    'spa/toError':
+      () => source`export const toError = (error: unknown): Error =>
           error instanceof Error
             ? error
             : error instanceof ErrorEvent
               ? new Error(error.message)
               : new Error("An unknown error occurred");
-        `,
-    'spa/vite-env.d': () => source`/// <reference types="vite/client" />
-        ${
-          framework === 'vue'
-            ? source`
-        
-        declare module "*.vue" {
-          import type { DefineComponent } from "vue";
-          const component: DefineComponent<object, object, unknown>;
-          export default component;
-        }
-        `
-            : ''
-        }
         `,
   };
 };

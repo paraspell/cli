@@ -1,11 +1,10 @@
-import type { TTemplateContext, TTemplateFile } from '../types.js';
-import { createFragmentFile } from './fragment-file.js';
-import type { TFragmentRenderer } from './shared/fragment-types.js';
-import { createSpaBarrelTemplates } from './spa-barrels.js';
-import { createSpaToolingTemplates } from './spa-tooling.js';
-import { source } from './source.js';
+import type { TTemplateContext, TTemplateFile } from '../../types.js';
+import { createFragmentFile } from '../fragment-file.js';
+import type { TFragmentRenderer } from '../shared/fragment-types.js';
+import { createSpaToolingTemplates } from '../spa-tooling.js';
+import { source } from '../source.js';
 
-export const createXcmApiReactTemplates = (
+export const createReactApiTemplates = (
   context: TTemplateContext,
   renderFragment: TFragmentRenderer,
 ): readonly TTemplateFile[] => {
@@ -20,7 +19,7 @@ export const createXcmApiReactTemplates = (
     {
       path: 'src/App.tsx',
       render: () => source`import "./App.css";
-        import { XcmTransfer } from "./components";
+        import { XcmTransfer } from "./components/XcmTransfer";
         
         const App = () => (
           <>
@@ -60,22 +59,21 @@ export const createXcmApiReactTemplates = (
       render: () => source`import { useState, type FC } from "react";
         import { TransferForm } from "./TransferForm";
         import type { TFormValues } from "../types";
+        import { toError } from "../utils/toError";
         ${
           evmWallet
             ? source`
         import { WalletControls } from "./WalletControls";
         import { WalletKindSelector } from "./WalletKindSelector";
-        import { useWalletWithEvm } from "../hooks";
+        import { useWalletWithEvm } from "../hooks/useWalletWithEvm";
         `
             : source`
         import { SubstrateWalletControls } from "./SubstrateWalletControls";
-        import { usePapiWallet } from "../hooks";
-        import { submitUsingApi } from "../submit/submitUsingApi";
+        import { usePapiWallet } from "../hooks/usePapiWallet";
+        import { submitUsingApi } from "../utils/submitUsingApi";
         `
         }
-        ${renderFragment('spa/toError')}
         export const XcmTransfer: FC = () => {
-          const [errorVisible, setErrorVisible] = useState(false);
           const [error, setError] = useState<Error | null>(null);
           const [loading, setLoading] = useState(false);
         
@@ -93,7 +91,7 @@ export const createXcmApiReactTemplates = (
         
           const onSubmit = async (formValues: TFormValues) => {
             setLoading(true);
-            setErrorVisible(false);
+            setError(null);
         
             try {
               ${
@@ -118,7 +116,6 @@ export const createXcmApiReactTemplates = (
               alert("Transaction was successful!");
             } catch (error) {
               setError(toError(error));
-              setErrorVisible(true);
             } finally {
               setLoading(false);
             }
@@ -161,7 +158,11 @@ export const createXcmApiReactTemplates = (
                 originChain={originChain}
                 onOriginChange={setOriginChain}
               />
-              {errorVisible && <p className="transferError">{error?.message}</p>}
+              {error && (
+                <p className="transferError" role="alert">
+                  {error.message}
+                </p>
+              )}
             </div>
           );
         };
@@ -170,14 +171,19 @@ export const createXcmApiReactTemplates = (
     },
     {
       path: 'src/components/TransferForm.tsx',
-      render:
-        () => source`import { useState, useMemo, FormEvent, FC } from "react";
-        import { API_URL } from "../consts";
-        import { useApiData } from "../hooks";
+      render: () => source`import {
+          useMemo,
+          useState,
+          ${swap ? source`type ChangeEvent,` : ''}
+          type FC,
+          type FormEvent,
+        } from "react";
+        import { useApiData } from "../hooks/useApiData";
+        import { API_URL } from "../utils/constants";
         import type { TAssetInfo, TFormValues } from "../types";${
           swap
             ? source`
-        import { useExchangeChains } from "../hooks";`
+        import { useExchangeChains } from "../hooks/useExchangeChains";`
             : ''
         }
         
@@ -260,7 +266,7 @@ export const createXcmApiReactTemplates = (
             ? currencyToLocation
             : currencyToOptions.at(0)?.value;
         
-          const handleExchangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+          const handleExchangeChange = (e: ChangeEvent<HTMLSelectElement>) => {
             const selected = Array.from(e.target.selectedOptions, (o) => o.value);
             const exchanges = selected.filter((value) => value !== AUTO_EXCHANGE_VALUE);
             setExchange(exchanges.length > 0 ? exchanges : []);
@@ -313,7 +319,9 @@ export const createXcmApiReactTemplates = (
           return (
             <form onSubmit={handleSubmit}>
               {dataError && (
-                <p className="transferError">Could not load options: {dataError.message}</p>
+                <p className="transferError" role="alert">
+                  Could not load options: {dataError.message}
+                </p>
               )}
               <label>
                 Origin chain
@@ -376,6 +384,8 @@ export const createXcmApiReactTemplates = (
                 Amount
                 <input
                   type="number"
+                  min="0"
+                  step="any"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   required
@@ -447,28 +457,29 @@ export const createXcmApiReactTemplates = (
         
         `,
     },
-    fragment('src/consts.ts', 'api/consts'),
-    fragment('src/evm/eip6963.ts', 'evm/eip6963.ts', !evmWallet),
+    fragment('src/utils/constants.ts', 'api/consts'),
+    fragment('src/utils/eip6963.ts', 'evm/eip6963.ts', !evmWallet),
     fragment(
-      'src/evm/evmOrigins.ts',
+      'src/utils/evmOrigins.ts',
       'evm/evmOrigins.api.frontend',
       !evmWallet,
     ),
-    fragment('src/evm/getViemChain.ts', 'evm/getViemChain', !evmWallet),
+    fragment('src/utils/getViemChain.ts', 'evm/getViemChain', !evmWallet),
     fragment(
       'src/hooks/useEvmOriginChains.ts',
       'evm/useEvmOriginChains.react',
       !evmWallet,
     ),
-    fragment('src/evm/utils.ts', 'evm/utils.ts', !evmWallet),
-    fragment('src/fetchFromApi.ts', 'api/fetchFromApi'),
+    fragment('src/utils/evmWallet.ts', 'evm/utils.ts', !evmWallet),
+    fragment('src/utils/fetchFromApi.ts', 'api/fetchFromApi'),
     fragment('src/index.css', 'spa/index.css'),
-    fragment('src/requireAsset.ts', 'requireAsset', !swap),
-    fragment('src/submit/submitEvmTx.ts', 'api/submitEvmTx', !evmWallet),
-    fragment('src/submit/submitPapiTransaction.ts', 'papi/submitTransaction'),
-    fragment('src/submit/submitUsingApi.ts', 'api/submitUsingApi'),
+    fragment('src/utils/toError.ts', 'spa/toError'),
+    fragment('src/utils/requireSwapCurrency.ts', 'requireAsset', !swap),
+    fragment('src/utils/submitEvmTx.ts', 'api/submitEvmTx', !evmWallet),
+    fragment('src/utils/submitPapiTransaction.ts', 'papi/submitTransaction'),
+    fragment('src/utils/submitUsingApi.ts', 'api/submitUsingApi'),
     fragment(
-      'src/swap/exchangeChains.ts',
+      'src/utils/exchangeChains.ts',
       'swap/exchangeChains.api.frontend',
       !swap,
     ),
@@ -479,7 +490,6 @@ export const createXcmApiReactTemplates = (
     ),
     fragment('src/types.ts', 'types/api.frontend'),
     fragment('src/hooks/useApiData.ts', 'api/useApiData.react'),
-    fragment('src/vite-env.d.ts', 'spa/vite-env.d'),
     fragment(
       'src/components/EvmWalletControls.tsx',
       'evm/EvmWalletControls.react',
@@ -494,7 +504,7 @@ export const createXcmApiReactTemplates = (
     fragment('src/hooks/usePapiWallet.ts', 'wallet/usePapiWallet.react'),
     fragment(
       'src/hooks/useWalletWithEvm.ts',
-      'wallet/useWalletWithEvm.api.react',
+      'wallet/useWalletWithEvm.api',
       !evmWallet,
     ),
     fragment(
@@ -507,7 +517,7 @@ export const createXcmApiReactTemplates = (
       !evmWallet,
     ),
     fragment(
-      'src/wallet/shared/submitTransfer.ts',
+      'src/utils/connectWalletAlert.ts',
       'wallet/connectWalletAlert',
       !evmWallet,
     ),
@@ -516,7 +526,6 @@ export const createXcmApiReactTemplates = (
       'wallet/useWalletWithEvmCore.react',
       !evmWallet,
     ),
-    ...createSpaBarrelTemplates(context),
     ...createSpaToolingTemplates(context),
   ];
 };

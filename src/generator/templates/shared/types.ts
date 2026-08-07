@@ -258,25 +258,25 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
         };
         
         export type TSubstrateWalletBase<TSigner> = {
-          extensionNames: ${framework === 'vue' ? 'Ref<string[]> | string[]' : 'string[]'};
+          extensionNames: ${framework === 'vue' ? 'Ref<string[]>' : 'string[]'};
           selectedExtensionName: ${
             framework === 'vue'
-              ? 'Ref<string | undefined> | string | undefined'
+              ? 'Ref<string | undefined>'
               : 'string | undefined'
           };
           accounts: ${
             framework === 'vue'
-              ? 'Ref<TWalletAccountOption[]> | TWalletAccountOption[]'
+              ? 'Ref<TWalletAccountOption[]>'
               : 'TWalletAccountOption[]'
           };
           selectedAddress: ${
             framework === 'vue'
-              ? 'Ref<string | undefined> | string | undefined'
+              ? 'Ref<string | undefined>'
               : 'string | undefined'
           };
           connection: ${
             framework === 'vue'
-              ? 'Ref<TSubstrateWalletConnection<TSigner> | null> | TSubstrateWalletConnection<TSigner> | null'
+              ? 'Ref<TSubstrateWalletConnection<TSigner> | null>'
               : 'TSubstrateWalletConnection<TSigner> | null'
           };
           discoverExtensions: () => Promise<void>;
@@ -302,12 +302,12 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
           };
           evmProviderOptions: ${
             framework === 'vue'
-              ? 'Ref<TEvmProviderOption[]> | TEvmProviderOption[]'
+              ? 'Ref<TEvmProviderOption[]>'
               : 'TEvmProviderOption[]'
           };
           selectedEvmProviderUuid: ${
             framework === 'vue'
-              ? 'ComputedRef<string | undefined> | string | undefined'
+              ? 'ComputedRef<string | undefined>'
               : 'string | undefined'
           };
           discoverEvmProviders: () => Promise<void>;

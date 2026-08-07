@@ -1,9 +1,9 @@
-import type { TTemplateContext, TTemplateFile } from '../types.js';
-import { createFragmentFile } from './fragment-file.js';
-import type { TFragmentRenderer } from './shared/fragment-types.js';
-import { source } from './source.js';
+import type { TTemplateContext, TTemplateFile } from '../../types.js';
+import { createFragmentFile } from '../fragment-file.js';
+import type { TFragmentRenderer } from '../shared/fragment-types.js';
+import { source } from '../source.js';
 
-export const createXcmSdkNodeTemplates = (
+export const createNodeSdkTemplates = (
   context: TTemplateContext,
   renderFragment: TFragmentRenderer,
 ): readonly TTemplateFile[] => {
@@ -12,7 +12,6 @@ export const createXcmSdkNodeTemplates = (
     sdkPackage,
     extensions: { swap },
     evmWallet,
-    defaultOriginChain,
   } = context;
   const fragment = createFragmentFile(renderFragment);
 
@@ -167,7 +166,7 @@ export const createXcmSdkNodeTemplates = (
         import type { TTransferParams } from "./types.js";
         
         const defaults: TTransferParams = {
-          from: "${defaultOriginChain}",
+          from: "Astar",
           to: "Hydration",
           amount: "0.1",
           recipient: "//Bob",
