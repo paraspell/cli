@@ -1,6 +1,6 @@
 {
   "name": "create-paraspell",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Scaffold ParaSpell XCM SDK and XCM API starter apps",
   "type": "module",
   "license": "MIT",
