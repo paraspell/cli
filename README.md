@@ -1,40 +1,49 @@
-<h1 align="center">paraspell-cli ✨</h1>
+<br /><br />
 
-<p align="center">
-  <img width="400" alt="ParaSpell logo" src="https://github.com/paraspell/xcm-tools/assets/55763425/a65e3626-84cf-444b-ab77-9375508e5895">
-</p>
+<div align="center">
+  <h1 align="center">paraspell-cli</h1>
+  <h4 align="center">Scaffold ParaSpell XCM SDK and XCM API starter apps.</h4>
 
-<p align="center">
-  Start a working XCM app in minutes, with the stack and capabilities you choose.
-</p>
+  <p align="center">
+    <a href="https://npmjs.com/package/paraspell-cli">
+      <img alt="version" src="https://img.shields.io/npm/v/paraspell-cli?style=flat-square" />
+    </a>
+    <a href="https://npmjs.com/package/paraspell-cli">
+      <img alt="downloads" src="https://img.shields.io/npm/dm/paraspell-cli?style=flat-square" />
+    </a>
+    <a href="https://github.com/paraspell/cli/actions">
+      <img alt="build" src="https://github.com/paraspell/cli/actions/workflows/ci.yml/badge.svg" />
+    </a>
+    <a href="https://codecov.io/gh/paraspell/cli">
+      <img alt="codecov" src="https://codecov.io/gh/paraspell/cli/graph/badge.svg" />
+    </a>
+  </p>
 
-<p align="center">
-  <a href="https://paraspell.xyz">Website</a> ·
-  <a href="https://paraspell.github.io/docs/">Documentation</a> ·
-  <a href="https://github.com/paraspell/xcm-tools">XCM Tools</a>
-</p>
+  <p>ParaSpell website <a href="https://paraspell.xyz">[here]</a></p>
+  <p>XCM SDK documentation <a href="https://paraspell.github.io/docs/xcm-sdk/getting-started.html">[here]</a></p>
+  <p>XCM API documentation <a href="https://paraspell.github.io/docs/xcm-api/getting-started.html">[here]</a></p>
+  <p>XCM Tools monorepo <a href="https://github.com/paraspell/xcm-tools">[here]</a></p>
+</div>
 
-<p align="center">
-  <a href="https://codecov.io/gh/paraspell/cli">
-    <img src="https://codecov.io/gh/paraspell/cli/graph/badge.svg" alt="Codecov">
-  </a>
-</p>
+<br /><br />
 
-## Get started
+## Usage
+
+### Get started
 
 ```bash
 pnpm dlx paraspell-cli@latest
 ```
 
-The wizard helps you choose what to build, shows you the final setup, creates
-the project, and installs its dependencies. When it finishes:
+The wizard collects your choices, previews the configuration, then creates the
+project and installs its dependencies.
 
 ```bash
 cd my-xcm-app
 pnpm dev
 ```
 
-Use npm, Yarn, or Bun instead if that is what your project uses:
+Use npm, Yarn, or Bun if that's your package manager:
 
 ```bash
 npx paraspell-cli@latest
@@ -42,46 +51,49 @@ yarn dlx paraspell-cli@latest
 bunx paraspell-cli@latest
 ```
 
-Requires Node.js 24 or newer.
+> [!NOTE]
+> Requires Node.js 24 or newer.
 
-## What can I build?
+### XCM SDK
 
-|             | XCM SDK                                | XCM API                            |
-| ----------- | -------------------------------------- | ---------------------------------- |
-| Best for    | Calling ParaSpell directly in your app | Keeping XCM logic outside your app |
-| Integration | PAPI, Polkadot.js, or Dedot            | Package-less HTTP API              |
-| Apps        | React, Vue, or Node.js                 | React, Vue, or Node.js             |
+Call ParaSpell directly from your app. Choose a Polkadot client — PAPI
+(recommended), Polkadot.js, or Dedot — and generate a React, Vue, or Node.js
+project.
 
-The generated app comes with a transfer flow already wired up. Add any of these
-when you need them:
+### XCM API
 
-- **Swap** for cross-chain swaps
-- **EVM** for EVM origin chains
-- **Snowbridge** for transfers between Ethereum and Polkadot
+A REST API that builds XCM transfers while you sign them locally, so XCM
+logic stays out of your app. Generate a React, Vue, or Node.js project that
+calls it.
 
-React and Vue projects include a Vite app with wallet integration. Node.js
-projects include a headless Express server and optional development wallet
-setup.
+### Extensions
 
-## The wizard
+Every generated app ships with a transfer flow already wired up. Add any of
+these when you need them:
 
-The interactive flow asks only what matters for the project you selected:
+- **EVM** — use EVM chains as origins
+- **Swap** — cross-chain swaps via `@paraspell/swap`
+- **Snowbridge** — transfers between Ethereum and Polkadot
+
+React and Vue projects generate a Vite app with wallet integration. Node.js
+projects generate a headless Express server with an optional development
+wallet.
+
+### The wizard
 
 1. Choose XCM SDK or XCM API.
 2. Choose React, Vue, or Node.js.
-3. Pick a Polkadot client when using the SDK.
-4. Choose the Swap, EVM, and Snowbridge extensions you need.
+3. Pick a Polkadot client for the SDK.
+4. Choose the Swap, EVM, and Snowbridge extensions.
 5. Name the project and choose a package manager.
 6. Optionally configure a development wallet for Node.js.
-7. Review everything before files are written.
+7. Review the configuration before files are written.
 
-Project creation and dependency installation include live progress. If
-installation fails, your generated project is kept and the CLI prints the
-manual command to continue.
+Project creation and dependency installation report live progress. If
+installation fails, the generated project is kept and the CLI prints the
+command to finish manually.
 
-## Use it from scripts
-
-Prefer explicit commands in CI or when you already know the setup you want:
+### Scripting
 
 ```bash
 # React app using the XCM SDK and PAPI
@@ -103,8 +115,8 @@ npx paraspell-cli@latest sdk node \
   --extensions swap
 ```
 
-Non-interactive environments use sensible defaults and leave dependency
-installation as an explicit CI step.
+Non-interactive environments use sensible defaults; dependency installation
+stays an explicit CI step.
 
 ```bash
 paraspell-cli --help
@@ -112,19 +124,21 @@ paraspell-cli sdk --help
 paraspell-cli api --help
 ```
 
-## A note about wallet secrets
+### Wallet secrets
 
-Node.js projects can write a Substrate mnemonic and EVM private key to the
+Node.js projects can write a Substrate mnemonic and an EVM private key to the
 generated `.env`. Wallet setup is optional, values are entered through masked
 prompts, and `.env` is gitignored.
 
-Use a development account such as `//Alice`. The generated Node.js server can
-sign and submit live XCM transfers when you call `POST /`.
+Use a development account such as `//Alice`. The generated Node.js server
+signs and submits live XCM transfers on `POST /`.
 
-Avoid secret flags in shared shells or CI logs; command-line values may be saved
-in shell history. Prefer the interactive prompt or edit `.env` yourself.
+> [!WARNING]
+> Avoid secret flags in shared shells or CI logs — command-line values can be
+> saved in shell history. Prefer the interactive prompt, or edit `.env`
+> directly.
 
-## Work on the CLI
+## Development
 
 ```bash
 pnpm install
@@ -132,23 +146,24 @@ pnpm build
 pnpm start
 ```
 
-Useful checks:
+## Tests
 
-```bash
-pnpm compile
-pnpm lint
-pnpm format:check
-pnpm build
-pnpm test
-pnpm test --coverage
-pnpm test:e2e
-```
+- Run compilation using `pnpm compile`
+- Run the linter using `pnpm lint`
+- Check formatting using `pnpm format:check`
+- Run the build using `pnpm build`
+- Run unit tests using `pnpm test`
+- Run unit tests with coverage using `pnpm test --coverage`
+- Run end-to-end tests using `pnpm test:e2e`
 
-## Links
+## Get Support 🚑
 
-- [XCM SDK documentation](https://paraspell.github.io/docs/xcm-sdk/getting-started.html)
-- [XCM API documentation](https://paraspell.github.io/docs/xcm-api/getting-started.html)
-- [XCM Tools monorepo](https://github.com/paraspell/xcm-tools)
-- [ParaSpell website](https://paraspell.xyz)
+- Contact form on our [landing page](https://paraspell.xyz/#contact-us).
+- Message us on our [X](https://x.com/paraspell).
+- Support channel on [telegram](https://t.me/paraspell).
 
-MIT licensed.
+## License
+
+Made with 💛 by [ParaSpell✨](https://paraspell.xyz/)
+
+Published under [MIT License](LICENSE).
