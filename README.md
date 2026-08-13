@@ -29,21 +29,16 @@
 
 ## Usage
 
-### Get started
+> [!NOTE]
+> Requires Node.js 24 or newer.
+
+### Quick start
 
 ```bash
 pnpm dlx paraspell-cli@latest
 ```
 
-The wizard collects your choices, previews the configuration, then creates the
-project and installs its dependencies.
-
-```bash
-cd my-xcm-app
-pnpm dev
-```
-
-Use npm, Yarn, or Bun if that's your package manager:
+Use npm, Yarn, or Bun instead if that's your package manager:
 
 ```bash
 npx paraspell-cli@latest
@@ -51,49 +46,79 @@ yarn dlx paraspell-cli@latest
 bunx paraspell-cli@latest
 ```
 
-> [!NOTE]
-> Requires Node.js 24 or newer.
-
-### XCM SDK
-
-Call ParaSpell directly from your app. Choose a Polkadot client — PAPI
-(recommended), Polkadot.js, or Dedot — and generate a React, Vue, or Node.js
-project.
-
-### XCM API
-
-A REST API that builds XCM transfers while you sign them locally, so XCM
-logic stays out of your app. Generate a React, Vue, or Node.js project that
-calls it.
-
-### Extensions
-
-Every generated app ships with a transfer flow already wired up. Add any of
-these when you need them:
-
-- **EVM** — use EVM chains as origins
-- **Swap** — cross-chain swaps via `@paraspell/swap`
-- **Snowbridge** — transfers between Ethereum and Polkadot
-
-React and Vue projects generate a Vite app with wallet integration. Node.js
-projects generate a headless Express server with an optional development
-wallet.
-
-### The wizard
+### Interactive mode
 
 1. Choose XCM SDK or XCM API.
 2. Choose React, Vue, or Node.js.
-3. Pick a Polkadot client for the SDK.
+3. Pick a Polkadot client for the SDK: PAPI (recommended), Polkadot.js, or
+   Dedot.
 4. Choose the Swap, EVM, and Snowbridge extensions.
 5. Name the project and choose a package manager.
 6. Optionally configure a development wallet for Node.js.
 7. Review the configuration before files are written.
 
-Project creation and dependency installation report live progress. If
-installation fails, the generated project is kept and the CLI prints the
-command to finish manually.
+> [!NOTE]
+> Project creation and dependency installation report live progress. If
+> installation fails, the generated project is kept and the CLI prints the
+> command to finish it manually.
 
-### Scripting
+### What to choose 🧰
+
+| Choice                        | Options               | Pick based on                                                                                                                                                                              |
+| ------------------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tool                           | XCM SDK / XCM API      | XCM SDK calls ParaSpell directly from your app. XCM API builds transfers via REST while you sign them locally, keeping XCM logic out of your app.                                        |
+| Extensions                     | EVM, Swap, Snowbridge  | **EVM** for EVM-chain origins, **Swap** for cross-chain swaps (`@paraspell/swap`), **Snowbridge** for Ethereum ↔ Polkadot transfers.                                                      |
+| Wallet secrets (Node.js only)  | Configure / skip       | Configure a development wallet (e.g. `//Alice`) so the generated server can sign and submit live transfers on `POST /`; skip it to wire up signing yourself. Secrets are entered via masked prompts and written to a gitignored `.env`. |
+
+> [!WARNING]
+> Avoid typing secrets literally when passing them as flags in shared shells
+> or CI logs: command-line values can be saved in shell history. Prefer the
+> interactive prompt, or edit `.env` directly.
+
+### Getting help
+
+```bash
+npx paraspell-cli@latest --help
+npx paraspell-cli@latest sdk --help
+npx paraspell-cli@latest api --help
+```
+
+> [!NOTE]
+> These commands run the CLI once without installing it, so `paraspell-cli`
+> alone won't work afterward. Install it globally with `npm i -g
+> paraspell-cli` to call `paraspell-cli --help` directly.
+
+Want to skip the prompts and generate a project in one command? See
+[Commands](#commands) below.
+
+### Commands
+
+Every wizard step is also available as a flag. Pass everything a command
+needs and the wizard is skipped entirely, or leave a value out and the CLI
+only prompts for that one — handy for templates, CI pipelines, or repeated
+scaffolding.
+
+```bash
+paraspell-cli sdk [framework] [flags]
+paraspell-cli api [framework] [flags]
+```
+
+`framework` can also be passed positionally instead of via `--framework`.
+
+### Flags
+
+| Flag                    | Values                                               | Description                                                                  |
+| ------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `--name`                | string                                               | Project name                                                                 |
+| `--framework`           | `react` \| `vue` \| `node`                           | Target framework (default `react`)                                           |
+| `--client`              | `papi` \| `pjs` \| `dedot`                           | JS client, `sdk` command only (default `papi`)                               |
+| `--extensions`          | comma-separated list of `evm`, `swap`, `snowbridge`  | Extensions to include                                                        |
+| `--package-manager`     | `npm` \| `yarn` \| `pnpm` \| `bun`                   | Package manager used to install dependencies (default `pnpm`)                |
+| `--out`                 | path                                                  | Output directory                                                             |
+| `--private-key`         | string                                               | EVM wallet key for the Node.js server, when using EVM or Snowbridge origins  |
+| `--substrate-mnemonic`  | string                                               | Substrate mnemonic or `//Dev` URI for the Node.js server                     |
+
+### Examples
 
 ```bash
 # React app using the XCM SDK and PAPI
@@ -115,28 +140,16 @@ npx paraspell-cli@latest sdk node \
   --extensions swap
 ```
 
-Non-interactive environments use sensible defaults; dependency installation
-stays an explicit CI step.
-
-```bash
-paraspell-cli --help
-paraspell-cli sdk --help
-paraspell-cli api --help
-```
-
-### Wallet secrets
-
-Node.js projects can write a Substrate mnemonic and an EVM private key to the
-generated `.env`. Wallet setup is optional, values are entered through masked
-prompts, and `.env` is gitignored.
-
-Use a development account such as `//Alice`. The generated Node.js server
-signs and submits live XCM transfers on `POST /`.
+> [!NOTE]
+> Non-interactive environments use sensible defaults for anything not passed
+> as a flag. Dependency installation stays an explicit step, so it can be run
+> separately in CI.
 
 > [!WARNING]
-> Avoid secret flags in shared shells or CI logs — command-line values can be
-> saved in shell history. Prefer the interactive prompt, or edit `.env`
-> directly.
+> Avoid typing `--private-key` or `--substrate-mnemonic` literally in shared
+> shells or CI logs: command-line values can end up in shell history. Pass
+> them via an environment variable instead. Preferably through the
+> interactive prompt, or edit the generated `.env` directly.
 
 ## Development
 
