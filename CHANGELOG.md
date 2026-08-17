@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/paraspell/cli/compare/paraspell-cli-v1.1.0...paraspell-cli-v1.1.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* Disable git checks for npm publishing ([549085d](https://github.com/paraspell/cli/commit/549085d002858b076353ebd22397967c8471d910))
+
 ## [1.1.0](https://github.com/paraspell/cli/compare/paraspell-cli-v1.0.0...paraspell-cli-v1.1.0) (2026-08-17)
 
 
