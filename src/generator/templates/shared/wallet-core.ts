@@ -26,7 +26,7 @@ export const createWalletCoreFragments: TFragmentFactory<
         };
         `,
     'wallet/useWalletWithEvm.api':
-      () => source`import type { PolkadotSigner } from "polkadot-api";
+      () => source`import type { CommonSignerTxCreator } from "@polkadot-api/signers-common";
         import type { TFormValues, TUseWalletReturn } from "../types";
         import { submitUsingApi } from "../utils/submitUsingApi";
         import { connectWalletAlert } from "../utils/connectWalletAlert";
@@ -38,7 +38,7 @@ export const createWalletCoreFragments: TFragmentFactory<
           const { ensureEvmOriginChains, isEvmOrigin } = useEvmOriginChains();
           const papi = usePapiWallet();
 
-          const core = useWalletWithEvmCore<PolkadotSigner>(papi);
+          const core = useWalletWithEvmCore<CommonSignerTxCreator>(papi);
 
           const submitTransfer = async (formValues: TFormValues) => {
             const options = core.buildSubmitOptions(formValues.from);
@@ -58,11 +58,11 @@ export const createWalletCoreFragments: TFragmentFactory<
         };
         `,
     'wallet/useWalletWithEvm.sdk': () => {
-      const signerType = client === 'papi' ? 'PolkadotSigner' : 'Signer';
+      const signerType = client === 'papi' ? 'CommonSignerTxCreator' : 'Signer';
 
       return source`${
         client === 'papi'
-          ? source`import type { PolkadotSigner } from "polkadot-api";
+          ? source`import type { CommonSignerTxCreator } from "@polkadot-api/signers-common";
         `
           : source`import type { Signer } from "@polkadot/api/types";
         `

@@ -30,7 +30,7 @@ export const createNodeApiTemplates = (
     {
       path: 'src/submitSubstrate.ts',
       render: () => source`import axios from "axios";
-        import type { PolkadotSigner } from "polkadot-api";
+        import type { CommonSignerTxCreator } from "@polkadot-api/signers-common";
         import { createWsClient } from "polkadot-api/ws";
         import { API_URL } from "./consts.js";
         import { submitPapiTransaction } from "./submitPapiTransaction.js";
@@ -39,7 +39,7 @@ export const createNodeApiTemplates = (
         
         const submitApiTransaction = async (
           apiTx: TApiTransaction,
-          signer: PolkadotSigner,
+          signer: CommonSignerTxCreator,
         ): Promise<string> => {
           const response = await axios.get<string[]>(
             \`\${API_URL}/chains/\${apiTx.chain}/ws-endpoints\`,
@@ -63,7 +63,7 @@ export const createNodeApiTemplates = (
         
         export const submitSubstrateTransfers = async (
           transactions: TApiTransaction[],
-          signer: PolkadotSigner,
+          signer: CommonSignerTxCreator,
         ): Promise<string[]> => {
           const hashes: string[] = [];
           for (const apiTx of transactions) {
@@ -77,14 +77,14 @@ export const createNodeApiTemplates = (
     {
       path: 'src/substrate.ts',
       render: () => source`import { Binary } from "polkadot-api";
-        import { getPolkadotSigner } from "polkadot-api/signer";
+        import { getTxCreator } from "polkadot-api/tx-creator";
         ${renderFragment('node/substrate-keyring')}
         
         export const getSubstrateAccount = (secret: string) => {
           const pair = createKeyringPair(secret);
           return {
             address: pair.address,
-            signer: getPolkadotSigner(
+            signer: getTxCreator(
               pair.publicKey,
               "Sr25519",
               (input) => signBytes(pair, input),

@@ -67,8 +67,8 @@ export const createNodeSdkTemplates = (
       path: 'src/substrate.ts',
       render: () => source`${
         client === 'papi'
-          ? source`import { getPolkadotSigner } from "polkadot-api/signer";
-        import type { PolkadotSigner } from "polkadot-api";
+          ? source`import { getTxCreator } from "polkadot-api/tx-creator";
+        import type { CommonSignerTxCreator } from "@polkadot-api/signers-common";
         `
           : source`${
               client === 'pjs'
@@ -108,7 +108,7 @@ export const createNodeSdkTemplates = (
         
         export const getSubstrateSigner = (): ${
           client === 'papi'
-            ? 'PolkadotSigner'
+            ? 'CommonSignerTxCreator'
             : client === 'pjs'
               ? 'TPjsSigner'
               : 'KeyringPair'
@@ -117,7 +117,7 @@ export const createNodeSdkTemplates = (
         ${
           client === 'papi'
             ? source`
-          return getPolkadotSigner(
+          return getTxCreator(
             pair.publicKey,
             "Sr25519",
             (input) => signBytes(pair, input),

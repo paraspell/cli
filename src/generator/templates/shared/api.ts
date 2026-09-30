@@ -227,7 +227,7 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
         `,
     'api/submitUsingApi': () => source`import axios from "axios";
         import { Binary } from "polkadot-api";
-        import type { PolkadotSigner } from "polkadot-api";
+        import type { CommonSignerTxCreator } from "@polkadot-api/signers-common";
         import { createWsClient } from "polkadot-api/ws";
         import { API_URL } from "./constants";
         import { fetchFromApi${evmWallet ? source`, fetchFromEvmApi` : ''} } from "./fetchFromApi";
@@ -259,7 +259,7 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
         
         const submitApiTransaction = async (
           apiTx: TApiTransaction,
-          signer: PolkadotSigner,
+          signer: CommonSignerTxCreator,
         ) => {
           const response = await axios.get<string[]>(
             \`\${API_URL}/chains/\${apiTx.chain}/ws-endpoints\`,
@@ -283,7 +283,7 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
             ? source`
         export const submitUsingApi = async (
           formValues: TFormValues,
-          options: TWalletSubmitOptions<PolkadotSigner>,
+          options: TWalletSubmitOptions<CommonSignerTxCreator>,
           evmOrigins: TEvmOriginHelpers,
         ): Promise<void> => {
           const currency = formValues.currency;
@@ -361,7 +361,7 @@ export const createApiFragments: TFragmentFactory<TApiFragmentId> = (
             : source`
         export const submitUsingApi = async (
           formValues: TFormValues,
-          signer: PolkadotSigner,
+          signer: CommonSignerTxCreator,
           senderAddress: string,
         ): Promise<void> => {
           const currency = formValues.currency;

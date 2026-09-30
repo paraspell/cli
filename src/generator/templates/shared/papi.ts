@@ -6,17 +6,17 @@ type TPapiFragmentId = Extract<TFragmentId, `papi/${string}`>;
 export const createPapiFragments: TFragmentFactory<TPapiFragmentId> = () => ({
   'papi/submitTransaction': () => source`import {
       InvalidTxError,
-      type PolkadotSigner,
       type Transaction,
       type TxFinalizedPayload,
     } from "polkadot-api";
+    import type { CommonSignerTxCreator } from "@polkadot-api/signers-common";
 
     export const submitPapiTransaction = async (
       tx: Transaction,
-      signer: PolkadotSigner,
+      signer: CommonSignerTxCreator,
     ): Promise<TxFinalizedPayload> => {
       try {
-        const result = await tx.signAndSubmit(signer);
+        const result = await tx.createAndSubmit(signer);
         if (!result.ok) {
           const message = result.dispatchError?.value
             ? JSON.stringify(result.dispatchError.value)
