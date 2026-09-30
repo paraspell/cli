@@ -129,7 +129,7 @@ describe('createTemplateFiles', () => {
     expect(apiReact.has('src/wallet/evm/index.ts')).toBe(false);
     expect(apiReact.has('src/utils.ts')).toBe(false);
     const apiPapiSubmit = apiReact.get('src/utils/submitPapiTransaction.ts');
-    expect(apiPapiSubmit).toContain('tx.signAndSubmit(signer)');
+    expect(apiPapiSubmit).toContain('tx.createAndSubmit(signer)');
     expect(apiPapiSubmit).toContain('throw new Error(message)');
     expect(apiPapiSubmit).toContain('{ cause: error }');
     expect(apiPapiSubmit).not.toContain('UnsupportedOperationError');

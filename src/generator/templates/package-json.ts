@@ -47,7 +47,11 @@ const sdkClientDependencies = (
 
   switch (context.client) {
     case 'papi':
-      return dependencyVersions('@paraspell/descriptors', 'polkadot-api');
+      return dependencyVersions(
+        '@paraspell/descriptors',
+        '@polkadot-api/signers-common',
+        'polkadot-api',
+      );
     case 'pjs':
       return isNode
         ? dependencyVersions(
@@ -108,7 +112,11 @@ const browserManifest = (context: TTemplateContext): TPackageJson => {
       ...(isSdk
         ? sdkDependencies(context)
         : {
-            ...dependencyVersions('axios', 'polkadot-api'),
+            ...dependencyVersions(
+              'axios',
+              '@polkadot-api/signers-common',
+              'polkadot-api',
+            ),
             ...(context.evmWallet ? dependencyVersions('mipd', 'viem') : {}),
           }),
       ...(isReact
@@ -122,6 +130,7 @@ const browserManifest = (context: TTemplateContext): TPackageJson => {
         ? dependencyVersions(
             '@types/react',
             '@types/react-dom',
+            '@typescript/native',
             '@vitejs/plugin-react',
             'eslint-plugin-react-hooks',
             'eslint-plugin-react-refresh',
@@ -152,13 +161,22 @@ const nodeManifest = (context: TTemplateContext): TPackageJson => {
     dependencies: {
       ...(isSdk
         ? sdkDependencies(context)
-        : dependencyVersions('axios', 'polkadot-api')),
+        : dependencyVersions(
+            'axios',
+            '@polkadot-api/signers-common',
+            'polkadot-api',
+          )),
       ...dependencyVersions('@polkadot/keyring', 'dotenv', 'express'),
       ...(!isSdk && context.evmWallet ? dependencyVersions('viem') : {}),
     },
     devDependencies: {
       ...QUALITY_DEPENDENCIES,
-      ...dependencyVersions('@types/express', '@types/node', 'tsx'),
+      ...dependencyVersions(
+        '@types/express',
+        '@types/node',
+        '@typescript/native',
+        'tsx',
+      ),
     },
   };
 };
