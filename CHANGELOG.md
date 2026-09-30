@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.2](https://github.com/paraspell/cli/compare/paraspell-cli-v1.1.1...paraspell-cli-v1.1.2) (2026-09-30)
+
+
+### Bug Fixes
+
+* Make all prefixes releasable 🔧 ([9fc7574](https://github.com/paraspell/cli/commit/9fc757431e9cd70870af40dc0304c0b42b5111a2))
+
+
+### Build System
+
+* Update deps to latest versions 📦 ([4f03fd0](https://github.com/paraspell/cli/commit/4f03fd007d266958860c914fb10a3b8ba4f58a3a))
+
 ## [1.1.1](https://github.com/paraspell/cli/compare/paraspell-cli-v1.1.0...paraspell-cli-v1.1.1) (2026-08-17)
 
 
