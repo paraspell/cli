@@ -9,11 +9,11 @@ export const createPapiFragments: TFragmentFactory<TPapiFragmentId> = () => ({
       type Transaction,
       type TxFinalizedPayload,
     } from "polkadot-api";
-    import type { CommonSignerTxCreator } from "@polkadot-api/signers-common";
+    import type { InjectedPolkadotAccount } from "polkadot-api/pjs-signer";
 
     export const submitPapiTransaction = async (
       tx: Transaction,
-      signer: CommonSignerTxCreator,
+      signer: InjectedPolkadotAccount["txCreator"],
     ): Promise<TxFinalizedPayload> => {
       try {
         const result = await tx.createAndSubmit(signer);

@@ -47,11 +47,13 @@ const sdkClientDependencies = (
 
   switch (context.client) {
     case 'papi':
-      return dependencyVersions(
-        '@paraspell/descriptors',
-        '@polkadot-api/signers-common',
-        'polkadot-api',
-      );
+      return isNode
+        ? dependencyVersions(
+            '@paraspell/descriptors',
+            '@polkadot-api/signers-common',
+            'polkadot-api',
+          )
+        : dependencyVersions('@paraspell/descriptors', 'polkadot-api');
     case 'pjs':
       return isNode
         ? dependencyVersions(
@@ -112,11 +114,7 @@ const browserManifest = (context: TTemplateContext): TPackageJson => {
       ...(isSdk
         ? sdkDependencies(context)
         : {
-            ...dependencyVersions(
-              'axios',
-              '@polkadot-api/signers-common',
-              'polkadot-api',
-            ),
+            ...dependencyVersions('axios', 'polkadot-api'),
             ...(context.evmWallet ? dependencyVersions('mipd', 'viem') : {}),
           }),
       ...(isReact
