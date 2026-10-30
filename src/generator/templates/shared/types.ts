@@ -20,7 +20,7 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
     'types/api.frontend': () => source`${
       evmWallet
         ? source`
-        import type { CommonSignerTxCreator } from "@polkadot-api/signers-common";
+        import type { InjectedPolkadotAccount } from "polkadot-api/pjs-signer";
         ${
           framework === 'vue'
             ? source`
@@ -192,7 +192,7 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
         ${
           client === 'papi' && evmWallet
             ? source`
-        import type { CommonSignerTxCreator } from "@polkadot-api/signers-common";
+        import type { InjectedPolkadotAccount } from "polkadot-api/pjs-signer";
         `
             : ''
         }${
@@ -316,7 +316,7 @@ export const createTypesFragments: TFragmentFactory<TTypesFragmentId> = (
           disconnectEvm: () => void;
         };
         
-        export type TUseWalletReturn = TUseWalletWithEvmReturn<${client === 'papi' ? 'CommonSignerTxCreator' : 'Signer'}>;
+        export type TUseWalletReturn = TUseWalletWithEvmReturn<${client === 'papi' ? 'InjectedPolkadotAccount["txCreator"]' : 'Signer'}>;
         `,
   };
 };

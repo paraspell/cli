@@ -206,7 +206,6 @@ export const createWalletVueFragments: TFragmentFactory<
           getInjectedExtensions,
           type InjectedPolkadotAccount,
         } from "polkadot-api/pjs-signer";
-        import type { CommonSignerTxCreator } from "@polkadot-api/signers-common";
         import type { TSubstrateWalletConnection } from "../types";
         
         export const usePapiWallet = () => {
@@ -216,7 +215,7 @@ export const createWalletVueFragments: TFragmentFactory<
           const selectedAccount = ref<InjectedPolkadotAccount>();
           const selectedAddress = computed(() => selectedAccount.value?.address);
         
-          const connection = computed((): TSubstrateWalletConnection<CommonSignerTxCreator> | null => {
+          const connection = computed((): TSubstrateWalletConnection<InjectedPolkadotAccount["txCreator"]> | null => {
             if (!selectedAccount.value) return null;
             return {
               address: selectedAccount.value.address,

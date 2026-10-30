@@ -201,7 +201,7 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
               : ''
           }
         } from "@paraspell/sdk";
-        import type { CommonSignerTxCreator } from "@polkadot-api/signers-common";
+        import type { InjectedPolkadotAccount } from "polkadot-api/pjs-signer";
         import type { TFormValues${evmWallet ? source`, TWalletSubmitOptions` : ''} } from "../types";
         ${
           swap
@@ -219,8 +219,8 @@ export const createXcmFragments: TFragmentFactory<TXcmFragmentId> = (
           formValues: TFormValues,
           ${
             evmWallet
-              ? source`options: TWalletSubmitOptions<CommonSignerTxCreator>,`
-              : source`signer: CommonSignerTxCreator,
+              ? source`options: TWalletSubmitOptions<InjectedPolkadotAccount["txCreator"]>,`
+              : source`signer: InjectedPolkadotAccount["txCreator"],
           senderAddress: string,`
           }
         ): Promise<void> => {
