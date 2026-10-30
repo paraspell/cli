@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/paraspell/cli/compare/paraspell-cli-v1.1.2...paraspell-cli-v1.1.3) (2026-10-30)
+
+
+### Build System
+
+* Update deps to latest 📦 ([c898d90](https://github.com/paraspell/cli/commit/c898d90400a0826ec8b6bb95bb4ece3be5118f44))
+
 ## [1.1.2](https://github.com/paraspell/cli/compare/paraspell-cli-v1.1.1...paraspell-cli-v1.1.2) (2026-09-30)
 
 
