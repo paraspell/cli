@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4](https://github.com/paraspell/cli/compare/paraspell-cli-v1.1.3...paraspell-cli-v1.1.4) (2026-11-01)
+
+
+### Build System
+
+* Update Node.js to v26 LTS 👨‍💻 ([7ae270d](https://github.com/paraspell/cli/commit/7ae270d7bd76aa47276453d352f08bee890d5127))
+
 ## [1.1.3](https://github.com/paraspell/cli/compare/paraspell-cli-v1.1.2...paraspell-cli-v1.1.3) (2026-10-30)
 
 
